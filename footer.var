@@ -1,0 +1,57 @@
+/*-*- mode: c;-*-*/
+
+#ifndef YY_PART
+
+YY_PARSE int YYPARSEFROM(YYRule yystart, const char* name)
+{
+    int yyok;
+
+    if (!yybuflen)
+        {
+            yybuflen    = 1024;
+            yybuf       = malloc(yybuflen);
+            yytextlen   = 1024;
+            yytext      = malloc(yytextlen);
+            yythunkslen = 32;
+            yythunks    = malloc(sizeof(YYThunk) * yythunkslen);
+            yyvalslen   = 32;
+            yyvals      = malloc(sizeof(YYSTYPE) * yyvalslen);
+            yybegin     = yyend = yypos = yylimit = yythunkpos = 0;
+        }
+
+    yyClearCache();
+
+    yybegin    = yyend = yypos;
+    yythunkpos = 0;
+    yyval      = yyvals;
+    yyok       = yyCall(yystart, name);
+
+    if (yyok) yyDone();
+
+    yyCommit();
+
+    return yyok;
+
+    // for references ONLY
+    (void)yyrefill;
+    (void)yymatchDot;
+    (void)yymatchChar;
+    (void)yymatchString;
+    (void)yymatchClass;
+    (void)yyDo;
+    (void)yyText;
+    (void)yyDone;
+    (void)yyCommit;
+    (void)yyAccept;
+    (void)yyPush;
+    (void)yyPop;
+    (void)yySet;
+    (void)yyCall;
+    (void)yytextmax;
+}
+
+YY_PARSE int YYPARSE(void) {
+    return YYPARSEFROM(yy_%s, "%s");
+}
+
+#endif

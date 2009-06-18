@@ -1,0 +1,26 @@
+/*-*- mode: c;-*-*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct _yy_state YYState;
+typedef struct _yythunk  YYThunk;
+typedef int (*YYRule)(YYState yystate);
+typedef void (*YYAction)(char *yytext, int yyleng, YYThunk thunk);
+
+struct _yy_state {
+    int yypos;
+    int yythunkpos;
+};
+
+struct _yythunk {
+    int      begin;
+    int      end;
+    YYAction action;
+    YYState  state;
+};
+
+
+/*-- end of header --*/
+
