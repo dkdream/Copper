@@ -284,20 +284,27 @@ static int countVariables(Node *node)
 
 static void defineVariables(Node *node)
 {
-    fprintf(output, "#define yy yySelf->result\n");
-
-    int count= 0;
+    int count = 0;
     while (node)
         {
-            fprintf(output, "#define %s yySelf->val[%d]\n", node->variable.name, --count);
+            fprintf(output, "#define %s yySelf->vals[frame + %d]\n", node->variable.name, --count);
             node->variable.offset= count;
             node= node->variable.next;
         }
+
+    fprintf(output, "#define yy yySelf->result\n");
+    fprintf(output, "#define yythunkpos yySelf->thunkpos\n");
+
+    if (count) {
+        fprintf(output, "  const int frame = yySelf->val;\n");
+        fprintf(output, "  yyFrame(yySelf, %u);\n", count);
+    }
 }
 
 static void undefineVariables(Node *node)
 {
     fprintf(output, "#undef yy\n");
+    fprintf(output, "#undef yythunkpos\n");
 
     while (node)
         {

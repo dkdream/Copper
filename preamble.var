@@ -9,8 +9,11 @@
 #endif
 
 #ifndef YY_DEBUG
+#ifndef DEBUGGING
 #define YY_DEBUG(format, args...)
-/*#define YY_DEBUG(format, args...) fprintf(stderr, format, ## args)*/
+#else
+#define YY_DEBUG(format, args...) fprintf(stderr, format, ## args)
+#endif
 #endif
 
 #ifndef YY_INPUT
@@ -75,7 +78,7 @@ struct  _yyclass {
     int	      thunkslen;
     int       thunkpos;
     YYSTYPE   result;
-    YYSTYPE * val;
+    int       val;
     YYSTYPE * vals;
     int       valslen;
     YYCache * cache;
@@ -145,6 +148,7 @@ static inline void yyStart(YYClass* yySelf) {
     yySelf->vals      = malloc(sizeof(YYSTYPE) * yySelf->valslen);
     yySelf->begin     = yySelf->end = yySelf->pos = yySelf->limit = yySelf->thunkpos = 0;
     yySelf->text[0]   = '\0';
+    yySelf->val       = 0;
 }
 
 static inline void yyFreeList(YYCacheNode* node) {
@@ -399,7 +403,7 @@ static inline int yyText(YYClass* yySelf) {
 
     yySelf->text[length]= '\0';
 
-    YY_DEBUG("GET text[%d,%d] = \'%s\'\n", begin, end,  yySelf->text);
+    //    YY_DEBUG("GET text[%d,%d] = \'%s\'\n", begin, end,  yySelf->text);
 
     return length;
 }
@@ -445,7 +449,7 @@ static inline int yyThunkText(YYClass* yySelf, YYThunk thunk) {
 
     yySelf->text[length]= '\0';
 
-    YY_DEBUG("GET thunk text[%d,%d] = \'%s\'\n", begin, end,  yySelf->text);
+    //    YY_DEBUG("GET thunk text[%d,%d] = \'%s\'\n", begin, end,  yySelf->text);
 
     return length;
 }
@@ -495,18 +499,21 @@ static inline int yyAccept(YYClass* yySelf, int tp0) {
 }
 
 static void yyPush(YYClass* yySelf, YYThunk thunk) {
-    YY_DEBUG("do %s %d", "push", thunk.argument);
+    YY_DEBUG("do %s %d\n", "push", thunk.argument);
     yySelf->val += thunk.argument;
 }
 
 static void yyPop(YYClass* yySelf, YYThunk thunk) {
-    YY_DEBUG("do %s %d", "pop", thunk.argument);
+    YY_DEBUG("do %s %d\n", "pop", thunk.argument);
     yySelf->val -= thunk.argument;
 }
 
 static void yySet(YYClass* yySelf, YYThunk thunk) {
-    YY_DEBUG("do %s v[%d] = %d", "set", thunk.argument,  yySelf->result);
-    yySelf->val[thunk.argument] = yySelf->result;
+    YY_DEBUG("do %s v[%d] = %d\n", "set", thunk.argument,  yySelf->result);
+    yySelf->vals[yySelf->val + thunk.argument] = yySelf->result;
+}
+
+static void yyFrame(YYClass* yySelf, int size) {
 }
 
 static inline void yyRecursion(YYClass* yySelf, YYState yystate, const char* yyrulename) {

@@ -67,7 +67,8 @@ wc : .FORCE
 calc : .FORCE
 	$(LEG) $(LEG_OPT) -o calc_leg.c calc.leg
 	$(CC) $(CFLAGS) -o calc calc_leg.c
-	echo 'a = 6;  b = 7;  a * b' | ./calc | $(TEE) $@.out
+#	echo 'a = 6;  b = 7;  a * b' | ./calc | $(TEE) $@.out
+	cat calc.input | ./calc | $(TEE) $@.out
 	$(DIFF) $@.ref $@.out
 	rm -f $@.out
 	@echo

@@ -12,7 +12,7 @@ static int yyParseFrom(YYClass* self, YYRule yystart, const char* name)
 
     self->begin    = self->end = self->pos;
     self->thunkpos = 0;
-    self->val      = self->vals;
+    self->val      = 0;
 
     yyok = yyCall(self, yystart, name);
 
