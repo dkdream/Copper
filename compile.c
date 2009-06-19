@@ -270,7 +270,6 @@ static void Node_compile_c_ko(Node *node, int ko)
     }
 }
 
-
 static int countVariables(Node *node)
 {
   int count= 0;
@@ -297,7 +296,6 @@ static void defineVariables(Node *node)
 
     if (count) {
         fprintf(output, "  const int frame = yySelf->val;\n");
-        fprintf(output, "  yyFrame(yySelf, %u);\n", count);
     }
 }
 

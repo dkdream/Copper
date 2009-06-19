@@ -8,3 +8,6 @@ test
 wc
 javascript
 *.out
+*.inc
+*.c
+

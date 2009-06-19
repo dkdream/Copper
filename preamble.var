@@ -500,20 +500,19 @@ static inline int yyAccept(YYClass* yySelf, int tp0) {
 
 static void yyPush(YYClass* yySelf, YYThunk thunk) {
     YY_DEBUG("do %s %d\n", "push", thunk.argument);
+    /* need to check if yySelf->val > yySelf->valslen */
     yySelf->val += thunk.argument;
 }
 
 static void yyPop(YYClass* yySelf, YYThunk thunk) {
     YY_DEBUG("do %s %d\n", "pop", thunk.argument);
     yySelf->val -= thunk.argument;
+    /* need to check if yySelf->val < 0 */
 }
 
 static void yySet(YYClass* yySelf, YYThunk thunk) {
     YY_DEBUG("do %s v[%d] = %d\n", "set", thunk.argument,  yySelf->result);
     yySelf->vals[yySelf->val + thunk.argument] = yySelf->result;
-}
-
-static void yyFrame(YYClass* yySelf, int size) {
 }
 
 static inline void yyRecursion(YYClass* yySelf, YYState yystate, const char* yyrulename) {
