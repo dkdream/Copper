@@ -1,43 +1,11 @@
 /*-*- mode: c;-*-*/
 
 #ifndef YY_SAVE
-#define YY_SAVE(state, pos, thunkpos) { state.yypos=pos; state.yythunkpos = thunkpos; }
+#define YY_SAVE(state) { state.yypos = yySelf->pos; state.yythunkpos = yySelf->thunkpos; }
 #endif
 
 #ifndef YY_RESTORE
-#define YY_RESTORE(state, pos, thunkpos) { pos = state.yypos; thunkpos = state.yythunkpos; }
-#endif
-
-#ifndef YY_VARIABLE
-#define YY_VARIABLE static
-#endif
-
-#ifndef YY_LOCAL
-#define YY_LOCAL static inline
-#endif
-
-#ifndef YY_ACTION
-#define YY_ACTION static
-#endif
-
-#ifndef YY_RULE
-#define YY_RULE	static
-#endif
-
-#ifndef YY_PARSE
-#define YY_PARSE
-#endif
-
-#ifndef YY_RECURSION
-#define YY_RECURSION
-#endif
-
-#ifndef YYPARSE
-#define YYPARSE yyparse
-#endif
-
-#ifndef YYPARSEFROM
-#define YYPARSEFROM yyparsefrom
+#define YY_RESTORE(state) { yySelf->pos = state.yypos; yySelf->thunkpos = state.yythunkpos; }
 #endif
 
 #ifndef YY_DEBUG
@@ -57,12 +25,12 @@ static inline int yynextchar(char* buffer, int max_size) {
 
 /* begin of yytext */
 #ifndef YY_BEGIN
-#define YY_BEGIN ( yybegin = yypos, 1)
+#define YY_BEGIN yyBegin(yySelf)
 #endif
 
 /* end of yytext */
 #ifndef YY_END
-#define YY_END ( yyend = yypos, 1)
+#define YY_END yyEnd(yySelf)
 #endif
 
 /* user defined mark (useful in marking parse stack) */
@@ -91,6 +59,40 @@ static inline int yynextchar(char* buffer, int max_size) {
 
 typedef struct _yycache      YYCache;
 typedef struct _yycache_node YYCacheNode;
+typedef unsigned             YYArgument;
+
+struct  _yyclass {
+    char *    buf;
+    int	      buflen;
+    int	      pos;
+    int	      limit;
+    char *    text;
+    int	      textlen;
+    int	      begin;
+    int	      end;
+    int	      textmax;
+    YYThunk * thunks;
+    int	      thunkslen;
+    int       thunkpos;
+    YYSTYPE   result;
+    YYSTYPE * val;
+    YYSTYPE * vals;
+    int       valslen;
+    YYCache * cache;
+};
+
+struct _yy_state {
+    int yypos;
+    int yythunkpos;
+};
+
+struct _yythunk {
+    int        begin;
+    int        end;
+    YYState    state;
+    YYAction   action;
+    YYArgument argument;
+};
 
 struct _yycache_node {
     YYCacheNode* next;
@@ -109,32 +111,43 @@ struct _yycache {
     YYCacheNode* slot[0];
 };
 
-YY_VARIABLE char *     yybuf       = 0;
-YY_VARIABLE int	       yybuflen    = 0;
-YY_VARIABLE int	       yypos       = 0;
-YY_VARIABLE int	       yylimit     = 0;
-YY_VARIABLE char *     yytext      = 0;
-YY_VARIABLE int	       yytextlen   = 0;
-YY_VARIABLE int	       yybegin     = 0;
-YY_VARIABLE int	       yyend       = 0;
-YY_VARIABLE int	       yytextmax   = 0;
-YY_VARIABLE YYThunk *  yythunks    = 0;
-YY_VARIABLE int	       yythunkslen = 0;
-YY_VARIABLE int        yythunkpos  = 0;
-YY_VARIABLE YYSTYPE    yy;
-YY_VARIABLE YYSTYPE *  yyval       = 0;
-YY_VARIABLE YYSTYPE *  yyvals      = 0;
-YY_VARIABLE int        yyvalslen   = 0;
-YY_VARIABLE YYCache *  yycache     = 0;
+static YYClass theParser;
 
-YY_LOCAL void yyResizeDo(int count) {
-    while ((yythunkpos + count) >= yythunkslen) {
-        yythunkslen *= 2;
-        yythunks     = realloc(yythunks, sizeof(YYThunk) * yythunkslen);
-    }
+static inline void yyInit(YYClass* yySelf) {
+    yySelf->buf       = 0;
+    yySelf->buflen    = 0;
+    yySelf->pos       = 0;
+    yySelf->limit     = 0;
+    yySelf->text      = 0;
+    yySelf->textlen   = 0;
+    yySelf->begin     = 0;
+    yySelf->end       = 0;
+    yySelf->textmax   = 0;
+    yySelf->thunks    = 0;
+    yySelf->thunkslen = 0;
+    yySelf->thunkpos  = 0;
+    yySelf->val       = 0;
+    yySelf->vals      = 0;
+    yySelf->valslen   = 0;
+    yySelf->cache     = 0;
 }
 
-YY_LOCAL void yyFreeList(YYCacheNode* node) {
+static inline void yyStart(YYClass* yySelf) {
+    if (yySelf->buflen) return;
+
+    yySelf->buflen    = 1024;
+    yySelf->buf       = malloc(yySelf->buflen);
+    yySelf->textlen   = 1024;
+    yySelf->text      = malloc(yySelf->textlen);
+    yySelf->thunkslen = 32;
+    yySelf->thunks    = malloc(sizeof(YYThunk) * yySelf->thunkslen);
+    yySelf->valslen   = 32;
+    yySelf->vals      = malloc(sizeof(YYSTYPE) * yySelf->valslen);
+    yySelf->begin     = yySelf->end = yySelf->pos = yySelf->limit = yySelf->thunkpos = 0;
+    yySelf->text[0]   = '\0';
+}
+
+static inline void yyFreeList(YYCacheNode* node) {
     YYCacheNode* next = 0;
     for (; node; node = next) {
         next = node->next;
@@ -142,28 +155,35 @@ YY_LOCAL void yyFreeList(YYCacheNode* node) {
     }
 }
 
-YY_LOCAL void yyClearCache() {
+static inline void yyClearCache(YYClass* yySelf) {
     YY_DEBUG("     yyClearCache begin\n");
-    if (!yycache) {
-        yycache = malloc(sizeof(struct _yycache) + (sizeof(YYCacheNode*) * YY_CACHE_SLOTS));
-        yycache->size = YY_CACHE_SLOTS;
-        int size = yycache->size;
+    if (!yySelf->cache) {
+        yySelf->cache = malloc(sizeof(struct _yycache) + (sizeof(YYCacheNode*) * YY_CACHE_SLOTS));
+        yySelf->cache->size = YY_CACHE_SLOTS;
+        int size = yySelf->cache->size;
         for (; size--;) {
-            yycache->slot[size] = 0;
+            yySelf->cache->slot[size] = 0;
         }
     } else {
-        int size = yycache->size;
+        int size = yySelf->cache->size;
         for (; size--;) {
-            YYCacheNode* node = yycache->slot[size];
+            YYCacheNode* node = yySelf->cache->slot[size];
             yyFreeList(node);
-            yycache->slot[size] = 0;
+            yySelf->cache->slot[size] = 0;
         }
     }
     YY_DEBUG("     yyClearCache end\n");
 }
 
-YY_LOCAL void yyAddNode(int result, YYRule function, YYState start, const char* name) {
-    if (!yycache) return;
+static inline void yyResizeDo(YYClass* yySelf, int count) {
+    while ((yySelf->thunkpos + count) >= yySelf->thunkslen) {
+        yySelf->thunkslen *= 2;
+        yySelf->thunks     = realloc(yySelf->thunks, sizeof(YYThunk) * yySelf->thunkslen);
+    }
+}
+
+static inline void yyAddNode(YYClass* yySelf, int result, YYRule function, YYState start, const char* name) {
+    if (!yySelf->cache) return;
 
     int count = 0;
 
@@ -171,17 +191,17 @@ YY_LOCAL void yyAddNode(int result, YYRule function, YYState start, const char* 
         // if no chars are consumed then
         // this may the result of a YYACCEPT not of an optional rule
         // -- skip it
-        if (start.yypos == yypos) return;
+        if (start.yypos == yySelf->pos) return;
 
         // if no thunks were added then check check the length
-        if (start.yythunkpos != yythunkpos) {
-            count = yythunkpos - start.yythunkpos;
+        if (start.yythunkpos != yySelf->thunkpos) {
+            count = yySelf->thunkpos - start.yythunkpos;
             // wrong direction
             if (0 > count) return;
             // to many
             if (YY_CACHE_THUNKS < count) {
                 YY_DEBUG("     not adding cache node (%s,@%d,%d) at %d for %s - to many thunks\n",
-                         (result ? "ok" : "fail"), yypos, count,
+                         (result ? "ok" : "fail"), yySelf->pos, count,
                          start.yypos, name);
                 return;
             }
@@ -189,24 +209,24 @@ YY_LOCAL void yyAddNode(int result, YYRule function, YYState start, const char* 
         }
     }
 
-    int index = start.yypos % yycache->size;
+    int index = start.yypos % yySelf->cache->size;
 
     YYCacheNode* node =  malloc(sizeof(YYCacheNode) + (sizeof(YYCacheNode) * count));
 
     if (!node) return;
 
-    node->next     = yycache->slot[index];
+    node->next     = yySelf->cache->slot[index];
     node->location = start.yypos;
     node->function = function;
     node->result   = result;
-    node->begin    = yybegin;
-    node->end      = yyend;
+    node->begin    = yySelf->begin;
+    node->end      = yySelf->end;
 
     if (result) {
-        node->yypos = yypos;
+        node->yypos = yySelf->pos;
         node->count = count;
         YYThunk* to   = &(node->thunk[0]);
-        YYThunk* from = &(yythunks[start.yythunkpos]);
+        YYThunk* from = &(yySelf->thunks[start.yythunkpos]);
         for (; count--; ++to, ++from) {
             *to = *from;
         }
@@ -219,32 +239,32 @@ YY_LOCAL void yyAddNode(int result, YYRule function, YYState start, const char* 
              (node->result ? "ok" : "fail"), node->yypos, node->count,
              node->location, name);
 
-    yycache->slot[index] = node;
+    yySelf->cache->slot[index] = node;
 }
 
-YY_LOCAL int yyCheckNode(int* result, YYRule function, YYState start, const char* name) {
-    if (!yycache) return 0;
+static inline int yyCheckNode(YYClass* yySelf, int* result, YYRule function, YYState start, const char* name) {
+    if (!yySelf->cache) return 0;
 
-    int index = start.yypos % yycache->size;
+    int index = start.yypos % yySelf->cache->size;
 
-    YYCacheNode* node = yycache->slot[index];
+    YYCacheNode* node = yySelf->cache->slot[index];
 
     for (; node; node = node->next) {
         if (node->location != start.yypos) continue;
         if (node->function != function) continue;
         *result = node->result;
-        yypos   = node->yypos;
-        yybegin = node->begin;
-        yyend   = node->end;
+        yySelf->pos   = node->yypos;
+        yySelf->begin = node->begin;
+        yySelf->end   = node->end;
 
         int count = node->count;
 
         YYThunk* from = &(node->thunk[0]);
-        YYThunk* to   = &(yythunks[yythunkpos]);
+        YYThunk* to   = &(yySelf->thunks[yySelf->thunkpos]);
 
         if (0 < count) {
-            yyResizeDo(count);
-            yythunkpos += count;
+            yyResizeDo(yySelf, count);
+            yySelf->thunkpos += count;
             for (; count--; ++to, ++from) {
                 *to = *from;
             }
@@ -260,183 +280,253 @@ YY_LOCAL int yyCheckNode(int* result, YYRule function, YYState start, const char
     return 0;
 }
 
-YY_LOCAL int yyrefill(void) {
-    while (yybuflen - yypos < 512) {
-        yybuflen *= 2;
-        yybuf     = realloc(yybuf, yybuflen+2);
+static inline int yyrefill(YYClass* yySelf) {
+    while (yySelf->buflen - yySelf->pos < 512) {
+        yySelf->buflen *= 2;
+        yySelf->buf     = realloc(yySelf->buf, yySelf->buflen+2);
     }
 
-    int yyn = YY_INPUT(yybuf + yypos, yybuflen - yypos);
+    int yyn = YY_INPUT(yySelf->buf + yySelf->pos, yySelf->buflen - yySelf->pos);
 
     if (0 == yyn) return 0;
 
-    yylimit += yyn;
-    yybuf[yylimit] = 0;
+    yySelf->limit += yyn;
+    yySelf->buf[yySelf->limit] = 0;
 
     return 1;
 }
 
-YY_LOCAL int yymatchDot(void) {
-    if (yypos >= yylimit && !yyrefill()) return 0;
-    ++yypos;
+static inline int yymatchDot(YYClass* yySelf) {
+    if (yySelf->pos >= yySelf->limit && !yyrefill(yySelf)) return 0;
+    yySelf->pos += 1;
     return 1;
 }
 
-YY_LOCAL int yymatchChar(int c) {
-    if (yypos >= yylimit && !yyrefill()) return 0;
+static inline int yymatchChar(YYClass* yySelf, int c) {
+    if (yySelf->pos >= yySelf->limit && !yyrefill(yySelf)) return 0;
 
-    if (yybuf[yypos] == c) {
-        ++yypos;
+    if (yySelf->buf[yySelf->pos] == c) {
+        yySelf->pos += 1;
         return 1;
     }
 
     return 0;
 }
 
-YY_LOCAL int yymatchString(char *s) {
-    int yysav= yypos;
+static inline int yymatchString(YYClass* yySelf, char *s) {
+    int yysav= yySelf->pos;
     while (*s) {
-        if (yypos >= yylimit && !yyrefill()) {
-            yypos= yysav;
+        if (yySelf->pos >= yySelf->limit && !yyrefill(yySelf)) {
+            yySelf->pos= yysav;
             return 0;
         }
-        if (yybuf[yypos] != *s) {
-            yypos= yysav;
+        if (yySelf->buf[yySelf->pos] != *s) {
+            yySelf->pos= yysav;
             return 0;
         }
         ++s;
-        ++yypos;
+        yySelf->pos += 1;
     }
     return 1;
 }
 
-YY_LOCAL int yymatchClass(const char* cls, unsigned char *bits) {
+static inline int yymatchClass(YYClass* yySelf, const char* cls, unsigned char *bits) {
     int chr;
 
-    if (yypos >= yylimit && !yyrefill()) return 0;
+    if (yySelf->pos >= yySelf->limit && !yyrefill(yySelf)) return 0;
 
-    chr = yybuf[yypos];
+    chr = yySelf->buf[yySelf->pos];
 
     if (bits[chr >> 3] & (1 << (chr & 7))) {
-        ++yypos;
+        ++yySelf->pos;
         return 1;
     }
 
     return 0;
 }
 
-YY_LOCAL void yyDo(YYAction action, int begin, int end, YYState state) {
+static inline void yyDo(YYClass* yySelf, YYAction action, YYArgument arg, YYState state) {
 
-    yyResizeDo(1);
+    yyResizeDo(yySelf,1);
 
-    yythunks[yythunkpos].begin  = begin;
-    yythunks[yythunkpos].end    = end;
-    yythunks[yythunkpos].state  = state;
-    yythunks[yythunkpos].action = action;
+    YYThunk *thunk = &(yySelf->thunks[yySelf->thunkpos]);
 
-    ++yythunkpos;
+    thunk->begin    = yySelf->begin;
+    thunk->end      = yySelf->end;
+    thunk->state    = state;
+    thunk->action   = action;
+    thunk->argument = arg;
+
+    ++yySelf->thunkpos;
 }
 
-YY_LOCAL int yyText(int begin, int end) {
-    int yyleng = end - begin;
-    if (yyleng <= 0)
-        yyleng= 0;
+static inline int yyBegin(YYClass* yySelf) {
+    yySelf->begin = yySelf->pos;
+    yySelf->end   = yySelf->pos;
+
+    YY_DEBUG("BEGIN %d\n", yySelf->begin);
+
+    return 1;
+}
+
+static inline int yyText(YYClass* yySelf) {
+    int begin  = yySelf->begin;
+    int end    = yySelf->end;
+    int length = end - begin;
+
+    if (length <= 0)
+        length = 0;
     else {
-        while (yytextlen < (yyleng - 1)) {
-            yytextlen *= 2;
-            yytext= realloc(yytext, yytextlen);
-	}
-        memcpy(yytext, yybuf + begin, yyleng);
-    }
+        int   textlen = yySelf->textlen;
+        char* text    = yySelf->text;
 
-    yytext[yyleng]= '\0';
+        if (textlen < (length - 1)) {
+            while (textlen < (length - 1)) {
+                textlen *= 2;
+                text= realloc(text, textlen);
+            }
 
-    return yyleng;
-}
-
-YY_LOCAL void yyDone(void) {
-    int pos;
-    for (pos = 0;  pos < yythunkpos;  ++pos) {
-        YYThunk *thunk = &yythunks[pos];
-
-        int yyleng = yyText(thunk->begin, thunk->end);
-
-        if (yyleng) {
-            YY_DEBUG("DO [%d] %p \'%s\' : ", pos, thunk->action, yytext);
-        } else {
-            YY_DEBUG("DO [%d] %p : ", pos, thunk->action);
+            yySelf->textlen = textlen;
+            yySelf->text    = text;
         }
 
-        thunk->action(yytext, yyleng, yythunks[pos]);
-    }
-    yythunkpos = 0;
-}
-
-YY_LOCAL void yyCommit() {
-    if ((yylimit -= yypos)) {
-        memmove(yybuf, yybuf + yypos, yylimit);
+        memcpy(text, yySelf->buf + begin, length);
     }
 
-    yybegin -= yypos;
-    yyend   -= yypos;
-    yypos    = yythunkpos = 0;
+    yySelf->text[length]= '\0';
 
-    yyClearCache();
+    YY_DEBUG("GET text[%d,%d] = \'%s\'\n", begin, end,  yySelf->text);
 
-    yybuf[yylimit] = 0;
+    return length;
 }
 
-YY_LOCAL int yyAccept(int tp0) {
+static inline int yyEnd(YYClass* yySelf) {
+    yySelf->end = yySelf->pos;
+
+    int length = yyText(yySelf);
+
+    if (0 < length) {
+        YY_DEBUG("END %d \'%s\'\n", yySelf->end, yySelf->text);
+    } else {
+        YY_DEBUG("END %d\n", yySelf->end);
+    }
+
+    return 1;
+}
+
+static inline int yyThunkText(YYClass* yySelf, YYThunk thunk) {
+    int begin  = thunk.begin;
+    int end    = thunk.end;
+    int length = end - begin;
+
+    if (length <= 0)
+        length = 0;
+    else {
+        char* target = yySelf->text;
+        char* source = yySelf->buf + begin;
+        int   limit  = yySelf->textlen;
+
+        if (limit < (length - 1)) {
+            while (limit < (length - 1)) {
+                limit *= 2;
+                target= realloc(target, limit);
+            }
+
+            yySelf->textlen = limit;
+            yySelf->text    = target;
+        }
+
+        memcpy(target, source, length);
+    }
+
+    yySelf->text[length]= '\0';
+
+    YY_DEBUG("GET thunk text[%d,%d] = \'%s\'\n", begin, end,  yySelf->text);
+
+    return length;
+}
+
+static inline void yyDone(YYClass* yySelf) {
+    int pos;
+    for (pos = 0;  pos < yySelf->thunkpos;  ++pos) {
+        YYThunk *thunk = &yySelf->thunks[pos];
+
+        YY_DEBUG("DO [%d] %p : ", pos, thunk->action);
+
+        thunk->action(yySelf, yySelf->thunks[pos]);
+    }
+    yySelf->thunkpos = 0;
+}
+
+static inline void yyCommit(YYClass* yySelf) {
+    if ((yySelf->limit -= yySelf->pos)) {
+        memmove(yySelf->buf, yySelf->buf + yySelf->pos, yySelf->limit);
+    }
+
+    yySelf->begin -= yySelf->pos;
+    yySelf->end   -= yySelf->pos;
+    yySelf->pos    = yySelf->thunkpos = 0;
+
+    yyClearCache(yySelf);
+
+    yySelf->buf[yySelf->limit] = 0;
+}
+
+static inline int yyAccept(YYClass* yySelf, int tp0) {
     if (tp0) {
         fprintf(stderr, "accept denied at %d", tp0);
         return 0;
     } else {
         YY_DEBUG("    yyAccept begin\n");
-        yyDone();
-        yyCommit();
+        yyDone(yySelf);
+        yyCommit(yySelf);
         YY_DEBUG("    yyAccept end\n");
     }
     return 1;
 }
 
-YY_LOCAL void yyPush(char *text, int count, YYThunk thunk) {
-    YY_DEBUG("do %s %d", "push", thunk.begin);
-    yyval += thunk.begin;
+static void yyPush(YYClass* yySelf, YYThunk thunk) {
+    YY_DEBUG("do %s %d", "push", thunk.argument);
+    yySelf->val += thunk.argument;
 }
 
-YY_LOCAL void yyPop(char *text, int count, YYThunk thunk) {
-    YY_DEBUG("do %s %d", "pop", thunk.begin);
-    yyval -= thunk.begin;
+static void yyPop(YYClass* yySelf, YYThunk thunk) {
+    YY_DEBUG("do %s %d", "pop", thunk.argument);
+    yySelf->val -= thunk.argument;
 }
 
-YY_LOCAL void yySet(char *text, int count, YYThunk thunk) {
-    YY_DEBUG("do %s v[%d] = %d", "set",thunk.begin,  yy);
-    yyval[thunk.begin] = yy;
+static void yySet(YYClass* yySelf, YYThunk thunk) {
+    YY_DEBUG("do %s v[%d] = %d", "set", thunk.argument,  yySelf->result);
+    yySelf->val[thunk.argument] = yySelf->result;
 }
 
-YY_RULE int yyCall(YYRule function, const char* name) {
+static inline void yyRecursion(YYClass* yySelf, YYState yystate, const char* yyrulename) {
+    return;
+}
+
+static int yyCall(YYClass* yySelf, YYRule function, const char* name) {
     YYState yystate;
-    int yyhere = yypos;
+    int yyhere = yySelf->pos;
 
-    YY_SAVE(yystate, yypos, yythunkpos);
+    YY_SAVE(yystate);
 
-    YY_DEBUG("start(%i) %s @ %s\n", yyhere, name, yybuf+yyhere);
+    YY_DEBUG("start(%i) %s @ %s\n", yyhere, name, yySelf->buf+yyhere);
 
     int result;
 
-    if (yyCheckNode(&result, function, yystate, name)) {
+    if (yyCheckNode(yySelf, &result, function, yystate, name)) {
         return result;
     } else {
-        result = function(yystate);
+        result = function(yySelf, yystate);
     }
 
-    yyAddNode(result, function, yystate, name);
+    yyAddNode(yySelf, result, function, yystate, name);
 
     if (result) {
-        YY_DEBUG("  ok(%i)   %s @ %s\n", yyhere, name, yybuf+yyhere);
+        YY_DEBUG("  ok(%i)   %s @ %s\n", yyhere, name, yySelf->buf+yyhere);
     } else {
-        YY_DEBUG("  fail(%i) %s @ %s\n", yyhere, name, yybuf+yyhere);
-        YY_RESTORE(yystate,  yypos, yythunkpos);
+        YY_DEBUG("  fail(%i) %s @ %s\n", yyhere, name, yySelf->buf+yyhere);
+        YY_RESTORE(yystate);
     }
 
     return result;
@@ -444,7 +534,7 @@ YY_RULE int yyCall(YYRule function, const char* name) {
 
 #endif /* YY_PART */
 
-#define	YYACCEPT yyAccept(yystate0.yythunkpos)
+#define	YYACCEPT yyAccept(yySelf, yystate0.yythunkpos)
 
 /*-- end of preamble --*/
 

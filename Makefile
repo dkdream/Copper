@@ -42,9 +42,9 @@ my_leg.c : my.leg $(LEG)
 	$(LEG) -o $@ $<
 
 check : leg-new .FORCE
-	./leg-new -o leg.test my.leg 2>test_out.err
+	./leg-new -v -o leg.test my.leg 2>test_out.log
 	$(DIFF) leg.test my_leg.c
-	-rm -f test_out.err
+	-@rm -f leg.test
 
 push : .FORCE
 	mv leg_orig.c leg_orig.c.BAK
@@ -56,6 +56,9 @@ test examples : leg-new .FORCE
 clean : .FORCE
 	rm -f *~ *.o *_leg.[cd] leg leg-new leg.test compile.inc test_out.err 
 	$(SHELL) -ec '(cd examples;  $(MAKE) $@)'
+
+clear : .FORCE
+	rm -f leg.test my_leg.o leg-new test_out.log
 
 scrub spotless : clean .FORCE
 	rm -f leg.x ascii2hex.x

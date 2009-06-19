@@ -125,10 +125,10 @@ static void jump(int n)		{
 }
 static void save(int n)		{
   fprintf(output, "\n  YYState yystate%d;", n);
-  fprintf(output, "\n  YY_SAVE(yystate%d,  yypos, yythunkpos);", n, n);
+  fprintf(output, "\n  YY_SAVE(yystate%d);", n, n);
 }
 static void restore(int n)	{
-   fprintf(output, "\n  YY_RESTORE(yystate%d,  yypos, yythunkpos);", n);
+   fprintf(output, "\n  YY_RESTORE(yystate%d);", n);
 }
 
 static void Node_compile_c_ko(Node *node, int ko)
@@ -142,17 +142,17 @@ static void Node_compile_c_ko(Node *node, int ko)
       break;
 
     case Dot:
-      fprintf(output, "  if (!yymatchDot())");
+      fprintf(output, "  if (!yymatchDot(yySelf))");
       jump(ko);
       break;
 
     case Name:
-      fprintf(output, "  if (!yyCall(&yy_%s, \"%s\"))",
+      fprintf(output, "  if (!yyCall(yySelf, &yy_%s, \"%s\"))",
               node->name.rule->rule.name,
               node->name.rule->rule.name);
       jump(ko);
       if (node->name.variable)
-	fprintf(output, "  yyDo(yySet, %d, 0, yystate0);", node->name.variable->variable.offset);
+	fprintf(output, "  yyDo(yySelf, yySet, %d, yystate0);", node->name.variable->variable.offset);
       break;
 
     case Character:
@@ -160,26 +160,26 @@ static void Node_compile_c_ko(Node *node, int ko)
       {
 	int len= strlen(node->string.value);
 	if (1 == len || (2 == len && '\\' == node->string.value[0]))
-	  fprintf(output, "  if (!yymatchChar('%s'))", node->string.value);
+	  fprintf(output, "  if (!yymatchChar(yySelf, '%s'))", node->string.value);
 	else
-	  fprintf(output, "  if (!yymatchString(\"%s\"))", node->string.value);
+	  fprintf(output, "  if (!yymatchString(yySelf, \"%s\"))", node->string.value);
         jump(ko);
       }
       break;
 
     case Class:
-      fprintf(output, "  if (!yymatchClass(\"%s\", (unsigned char *)\"%s\"))",
+      fprintf(output, "  if (!yymatchClass(yySelf, \"%s\", (unsigned char *)\"%s\"))",
               makeCCName(node->cclass.value),
               makeCharClass(node->cclass.value));
       jump(ko);
       break;
 
     case Action:
-      fprintf(output, "  yyDo(yy%s, yybegin, yyend, yystate0);", node->action.name);
+      fprintf(output, "  yyDo(yySelf, yy%s, 0, yystate0);", node->action.name);
       break;
 
     case Predicate:
-      fprintf(output, "  yyText(yybegin, yyend);  if (!(%s))", node->predicate.text);
+      fprintf(output, "  if (!(%s))", node->predicate.text);
       jump(ko);
       break;
 
@@ -284,22 +284,26 @@ static int countVariables(Node *node)
 
 static void defineVariables(Node *node)
 {
-  int count= 0;
-  while (node)
-    {
-      fprintf(output, "#define %s yyval[%d]\n", node->variable.name, --count);
-      node->variable.offset= count;
-      node= node->variable.next;
-    }
+    fprintf(output, "#define yy yySelf->result\n");
+
+    int count= 0;
+    while (node)
+        {
+            fprintf(output, "#define %s yySelf->val[%d]\n", node->variable.name, --count);
+            node->variable.offset= count;
+            node= node->variable.next;
+        }
 }
 
 static void undefineVariables(Node *node)
 {
-  while (node)
-    {
-      fprintf(output, "#undef %s\n", node->variable.name);
-      node= node->variable.next;
-    }
+    fprintf(output, "#undef yy\n");
+
+    while (node)
+        {
+            fprintf(output, "#undef %s\n", node->variable.name);
+            node= node->variable.next;
+        }
 }
 
 
@@ -316,14 +320,15 @@ static void Rule_compile_c2(Node *node)
 
       int safe = ((Query == node->rule.expression->type) || (Star == node->rule.expression->type));
 
-      fprintf(output, "\nYY_RULE int yy_%s(YYState yystate0)\n{", node->rule.name);
+      fprintf(output, "\nstatic int yy_%s(YYClass* yySelf, YYState yystate0)\n{", node->rule.name);
       fprintf(output, "\n  static const char* yyrulename = \"%s\";\n", node->rule.name);
+      fprintf(output, "\n#define yytext yySelf->text;\n");
 
       if (LeftRecursion & node->rule.flags)
-        fprintf(output, "  YY_RECURSION;\n");
+        fprintf(output, "  yyRecursion(yySelf, yystate0, yyrulename);\n");
 
       if (node->rule.variables)
-          fprintf(output, "  yyDo(yyPush, %d, 0, yystate0);\n", countVariables(node->rule.variables));
+          fprintf(output, "  yyDo(yySelf, yyPush, %d, yystate0);\n", countVariables(node->rule.variables));
 
       if (node->rule.begin)
         {
@@ -340,7 +345,7 @@ static void Rule_compile_c2(Node *node)
           fprintf(output, "\n{ %s }\n", node->rule.end);
 
       if (node->rule.variables)
-          fprintf(output, "  yyDo(yyPop, %d, 0, yystate0);", countVariables(node->rule.variables));
+          fprintf(output, "  yyDo(yySelf, yyPop, %d, yystate0);", countVariables(node->rule.variables));
 
       fprintf(output, "\n  return 1;");
 
@@ -353,6 +358,7 @@ static void Rule_compile_c2(Node *node)
           fprintf(output, "\n  return 0;");
       }
 
+      fprintf(output, "\n\n#undef yytext");
       fprintf(output, "\n  // for references ONLY");
       fprintf(output, "\n  (void)yyrulename;");
       fprintf(output, "\n}\n");
@@ -443,22 +449,27 @@ void Rule_compile_c(Node *node)
   fprintf(output, "%s", preamble);
 
   for (n= node;  n;  n= n->rule.next)
-    fprintf(output, "YY_RULE int yy_%s(); /* %d */\n", n->rule.name, n->rule.id);
+    fprintf(output, "static int yy_%s(); /* %d */\n", n->rule.name, n->rule.id);
 
   fprintf(output, "\n");
 
   for (n= actions;  n;  n= n->action.list)
     {
-      fprintf(output, "YY_ACTION void yy%s(char *yytext, int yyleng, YYThunk thunk)\n{\n", n->action.name);
+      fprintf(output, "static void yy%s(YYClass* yySelf, YYThunk thunk)\n{\n", n->action.name);
       fprintf(output, "  static const char* yyrulename = \"%s\";\n", n->action.rule->rule.name);
+      fprintf(output, "  int   yyleng = yyThunkText(yySelf, thunk);\n");
+      fprintf(output, "  char* yytext = yySelf->text;\n");
+      fprintf(output, "  int   yypos  = yySelf->pos;\n\n");
       defineVariables(n->action.rule->rule.variables);
-      fprintf(output, "  YY_DEBUG(\"do yy%s (%%s)\\n\", yyrulename);\n\n", n->action.name);
+      fprintf(output, "  YY_DEBUG(\"do yy%s (%%s) \'%%s\'\\n\", yyrulename, yytext);\n\n", n->action.name);
       fprintf(output, "  %s;\n", n->action.text);
       undefineVariables(n->action.rule->rule.variables);
       fprintf(output, "\n  // for references ONLY\n");
       fprintf(output, "  (void)yyrulename;\n");
       fprintf(output, "}\n");
     }
+
   Rule_compile_c2(node);
+
   fprintf(output, footer, start->rule.name, start->rule.name);
 }

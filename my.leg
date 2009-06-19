@@ -101,17 +101,17 @@ end-of-file=	!.
 void yyerror(char *message)
 {
   fprintf(stderr, "%s:%d: %s", fileName, lineNumber, message);
-  if (yytext[0]) fprintf(stderr, " near token '%s'", yytext);
-  if (yypos < yylimit || !feof(input))
+  if (theParser.text[0]) fprintf(stderr, " near token '%s'", theParser.text);
+  if (theParser.pos < theParser.limit || !feof(input))
     {
-      yybuf[yylimit]= '\0';
+      theParser.buf[theParser.limit]= '\0';
       fprintf(stderr, " before text \"");
-      while (yypos < yylimit)
+      while (theParser.pos < theParser.limit)
 	{
-	  if ('\n' == yybuf[yypos] || '\r' == yybuf[yypos]) break;
-	  fputc(yybuf[yypos++], stderr);
+	  if ('\n' == theParser.buf[theParser.pos] || '\r' == theParser.buf[theParser.pos]) break;
+	  fputc(theParser.buf[theParser.pos++], stderr);
 	}
-      if (yypos == yylimit)
+      if (theParser.pos == theParser.limit)
 	{
 	  int c;
 	  while (EOF != (c= fgetc(input)) && '\n' != c && '\r' != c)

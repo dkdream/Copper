@@ -2,33 +2,23 @@
 
 #ifndef YY_PART
 
-YY_PARSE int YYPARSEFROM(YYRule yystart, const char* name)
+static int yyParseFrom(YYClass* self, YYRule yystart, const char* name)
 {
     int yyok;
 
-    if (!yybuflen)
-        {
-            yybuflen    = 1024;
-            yybuf       = malloc(yybuflen);
-            yytextlen   = 1024;
-            yytext      = malloc(yytextlen);
-            yythunkslen = 32;
-            yythunks    = malloc(sizeof(YYThunk) * yythunkslen);
-            yyvalslen   = 32;
-            yyvals      = malloc(sizeof(YYSTYPE) * yyvalslen);
-            yybegin     = yyend = yypos = yylimit = yythunkpos = 0;
-        }
+    yyStart(self);
 
-    yyClearCache();
+    yyClearCache(self);
 
-    yybegin    = yyend = yypos;
-    yythunkpos = 0;
-    yyval      = yyvals;
-    yyok       = yyCall(yystart, name);
+    self->begin    = self->end = self->pos;
+    self->thunkpos = 0;
+    self->val      = self->vals;
 
-    if (yyok) yyDone();
+    yyok = yyCall(self, yystart, name);
 
-    yyCommit();
+    if (yyok) yyDone(self);
+
+    yyCommit(self);
 
     return yyok;
 
@@ -47,11 +37,11 @@ YY_PARSE int YYPARSEFROM(YYRule yystart, const char* name)
     (void)yyPop;
     (void)yySet;
     (void)yyCall;
-    (void)yytextmax;
 }
 
-YY_PARSE int YYPARSE(void) {
-    return YYPARSEFROM(yy_%s, "%s");
+int yyparse(void) {
+    yyInit(&theParser);
+    return yyParseFrom(&theParser, yy_%s, "%s");
 }
 
 #endif
