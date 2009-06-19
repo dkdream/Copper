@@ -40,7 +40,7 @@ static int yyParseFrom(YYClass* self, YYRule yystart, const char* name)
 }
 
 int yyparse(void) {
-    yyInit(&theParser);
+    //    yyInit(&theParser);
     return yyParseFrom(&theParser, yy_%s, "%s");
 }
 

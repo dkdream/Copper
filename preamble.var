@@ -156,7 +156,7 @@ static inline void yyFreeList(YYCacheNode* node) {
 }
 
 static inline void yyClearCache(YYClass* yySelf) {
-    YY_DEBUG("     yyClearCache begin\n");
+    YY_DEBUG("     yyClearCache\n");
     if (!yySelf->cache) {
         yySelf->cache = malloc(sizeof(struct _yycache) + (sizeof(YYCacheNode*) * YY_CACHE_SLOTS));
         yySelf->cache->size = YY_CACHE_SLOTS;
@@ -172,7 +172,6 @@ static inline void yyClearCache(YYClass* yySelf) {
             yySelf->cache->slot[size] = 0;
         }
     }
-    YY_DEBUG("     yyClearCache end\n");
 }
 
 static inline void yyResizeDo(YYClass* yySelf, int count) {
@@ -281,9 +280,14 @@ static inline int yyCheckNode(YYClass* yySelf, int* result, YYRule function, YYS
 }
 
 static inline int yyrefill(YYClass* yySelf) {
-    while (yySelf->buflen - yySelf->pos < 512) {
-        yySelf->buflen *= 2;
-        yySelf->buf     = realloc(yySelf->buf, yySelf->buflen+2);
+    YY_DEBUG("     yyrefill\n");
+
+    if (yySelf->buflen - yySelf->pos < 512) {
+        while (yySelf->buflen - yySelf->pos < 512) {
+            yySelf->buflen *= 2;
+            yySelf->buf     = realloc(yySelf->buf, yySelf->buflen+2);
+        }
+        yySelf->buf[yySelf->limit] = 0;
     }
 
     int yyn = YY_INPUT(yySelf->buf + yySelf->pos, yySelf->buflen - yySelf->pos);
@@ -360,7 +364,7 @@ static inline void yyDo(YYClass* yySelf, YYAction action, YYArgument arg, YYStat
     ++yySelf->thunkpos;
 }
 
-static inline int yyBegin(YYClass* yySelf) {
+static int yyBegin(YYClass* yySelf) {
     yySelf->begin = yySelf->pos;
     yySelf->end   = yySelf->pos;
 
@@ -400,7 +404,7 @@ static inline int yyText(YYClass* yySelf) {
     return length;
 }
 
-static inline int yyEnd(YYClass* yySelf) {
+static int yyEnd(YYClass* yySelf) {
     yySelf->end = yySelf->pos;
 
     int length = yyText(yySelf);
@@ -459,17 +463,22 @@ static inline void yyDone(YYClass* yySelf) {
 }
 
 static inline void yyCommit(YYClass* yySelf) {
+
     if ((yySelf->limit -= yySelf->pos)) {
         memmove(yySelf->buf, yySelf->buf + yySelf->pos, yySelf->limit);
     }
 
+    yySelf->buf[yySelf->limit] = 0;
+
     yySelf->begin -= yySelf->pos;
     yySelf->end   -= yySelf->pos;
-    yySelf->pos    = yySelf->thunkpos = 0;
+
+    if (0 > yySelf->begin) yySelf->begin = 0;
+    if (0 > yySelf->end)   yySelf->end = 0;
+
+    yySelf->pos = yySelf->thunkpos = 0;
 
     yyClearCache(yySelf);
-
-    yySelf->buf[yySelf->limit] = 0;
 }
 
 static inline int yyAccept(YYClass* yySelf, int tp0) {

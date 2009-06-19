@@ -1,7 +1,7 @@
 
 EXAMPLES = test rule accept dc dcv wc calc basic
 
-CFLAGS = -g -O3
+CFLAGS = -g
 
 DIFF = diff
 LEG  = ../leg-new
