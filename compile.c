@@ -396,7 +396,7 @@ int consumesInput(Node *node)
 	else
 	  {
 	    node->rule.flags |= RuleReached;
-	    result= consumesInput(node->rule.expression);
+	    result = consumesInput(node->rule.expression);
 	    node->rule.flags &= ~RuleReached;
 	  }
 	return result;
@@ -446,13 +446,20 @@ void Rule_compile_c(Node *node)
 {
   Node *n;
 
+  /*
   for (n= rules;  n;  n= n->rule.next)
     consumesInput(n);
+  */
 
   fprintf(output, "%s", preamble);
 
+  fprintf(output, "/* %s */\n", "rules");
   for (n= node;  n;  n= n->rule.next)
-    fprintf(output, "static int yy_%s(); /* %d */\n", n->rule.name, n->rule.id);
+    fprintf(output, "static int yy_%s (YYClass* yySelf, YYStack* yystack); /* %d */\n", n->rule.name, n->rule.id);
+
+  fprintf(output, "\n/* %s */\n", "actions");
+  for (n= actions;  n;  n= n->action.list)
+      fprintf(output, "static void yy%s (YYClass* yySelf, YYThunk thunk);\n", n->action.name);
 
   fprintf(output, "\n");
 
