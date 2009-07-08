@@ -8,16 +8,16 @@
 
 grammar=	- ( declaration | definition )+ trailer? end-of-file
 
-declaration=	'%{' < ( !'%}' . )* > RPERCENT		{ makeHeader(yytext); }						#{YYACCEPT}
+declaration=	'%{' < ( !'%}' . )* > RPERCENT		{ makeHeader(yytext); }
 
-trailer=	'%%' < .* >				{ makeTrailer(yytext); }					#{YYACCEPT}
+trailer=	'%%' < .* >				{ makeTrailer(yytext); }
 
 definition=	identifier 				{ checkRule(yytext); }
 			EQUAL ( expression end        	{ defineRule(rule_with_end); }
                               | expression              { defineRule(simple_rule); }
                               | begin expression end    { defineRule(rule_with_both); }
                               | begin expression        { defineRule(rule_with_begin); }
-                              ) SEMICOLON?										#{YYACCEPT}
+                              ) SEMICOLON?
 
 begin=          '%begin' - action                       { push(makePredicate(yytext)); }
 end=            '%end'   - action                       { push(makePredicate(yytext)); }

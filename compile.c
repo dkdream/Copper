@@ -147,7 +147,7 @@ static void Node_compile_c_ko(Node *node, int ko)
       break;
 
     case Name:
-      fprintf(output, "  if (!yyCall(yySelf, &yy_%s, \"%s\"))",
+      fprintf(output, "  if (!yyCall(yySelf, yystack, &yy_%s, \"%s\"))",
               node->name.rule->rule.name,
               node->name.rule->rule.name);
       jump(ko);
@@ -325,12 +325,13 @@ static void Rule_compile_c2(Node *node)
 
       int safe = ((Query == node->rule.expression->type) || (Star == node->rule.expression->type));
 
-      fprintf(output, "\nstatic int yy_%s(YYClass* yySelf, YYState yystate0)\n{", node->rule.name);
+      fprintf(output, "\nstatic int yy_%s(YYClass* yySelf, YYStack* yystack)\n{", node->rule.name);
       fprintf(output, "\n  static const char* yyrulename = \"%s\";\n", node->rule.name);
+      fprintf(output, "\n  YYState yystate0 = yystack->begin;\n");
       fprintf(output, "\n#define yytext yySelf->text;\n");
 
       if (LeftRecursion & node->rule.flags)
-        fprintf(output, "  yyRecursion(yySelf, yystate0, yyrulename);\n");
+        fprintf(output, "  yyRecursion(yySelf, yystack);\n");
 
       if (node->rule.variables)
           fprintf(output, "  yyDo(yySelf, yyPush, %d, yystate0);\n", countVariables(node->rule.variables));

@@ -5,10 +5,11 @@
 #include <string.h>
 
 typedef struct _yyclass  YYClass;
-typedef struct _yy_state YYState;
+typedef struct _yystack  YYStack;
+typedef struct _yystate  YYState;
 typedef struct _yythunk  YYThunk;
 
-typedef int  (*YYRule)(YYClass* yySelf, YYState yystate);
+typedef int  (*YYRule)(YYClass* yySelf, YYStack* yyStack);
 typedef void (*YYAction)(YYClass* yySelf, YYThunk thunk);
 
 /*-- end of header --*/

@@ -14,7 +14,7 @@ static int yyParseFrom(YYClass* self, YYRule yystart, const char* name)
     self->thunkpos = 0;
     self->val      = 0;
 
-    yyok = yyCall(self, yystart, name);
+    yyok = yyCall(self, (YYStack*) 0, yystart, name);
 
     if (yyok) yyDone(self);
 
