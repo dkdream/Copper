@@ -533,10 +533,6 @@ static void yySet(YYClass* yySelf, YYThunk thunk) {
     yySelf->vals[yySelf->val + thunk.argument] = yySelf->result;
 }
 
-static inline void yyRecursion(YYClass* yySelf, YYStack* yyStack) {
-    return;
-}
-
 static int yyCall(YYClass* yySelf, YYStack* yystack, YYRule function, const char* name) {
     YYStack yytop;
     YYState yystate;

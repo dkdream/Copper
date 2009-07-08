@@ -330,9 +330,6 @@ static void Rule_compile_c2(Node *node)
       fprintf(output, "\n  YYState yystate0 = yystack->begin;\n");
       fprintf(output, "\n#define yytext yySelf->text;\n");
 
-      if (LeftRecursion & node->rule.flags)
-        fprintf(output, "  yyRecursion(yySelf, yystack);\n");
-
       if (node->rule.variables)
           fprintf(output, "  yyDo(yySelf, yyPush, %d, yystate0);\n", countVariables(node->rule.variables));
 
