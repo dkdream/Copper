@@ -116,4 +116,4 @@ static inline void defineRule(enum RuleKind kind) {
     }
 }
 
-/*-- end of my_leg.inc --*/
+/*-- end of copper.inc --*/

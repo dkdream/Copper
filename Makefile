@@ -51,13 +51,13 @@ check : copper-new .FORCE
 
 push : .FORCE
 	mv copper_orig.c copper_orig.c.BAK
-	cp my_copper.c copper_orig.c
+	cp copper.c copper_orig.c
 
 test examples : copper-new .FORCE
 	$(SHELL) -ec '(cd examples;  $(MAKE))'
 
 clean : .FORCE
-	rm -f *~ *.o *_copper.[cd] copper copper-new copper.test compile.inc test_out.err 
+	rm -f *~ *.o copper.[cd] copper copper-new copper.test compile.inc test_out.log
 	$(SHELL) -ec '(cd examples;  $(MAKE) $@)'
 
 clear : .FORCE

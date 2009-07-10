@@ -138,7 +138,7 @@ void makeTrailer(char *text)
 
 static void version(char *name)
 {
-  printf("%s version %d.%d.%d\n", name, LEG_MAJOR, LEG_MINOR, LEG_LEVEL);
+  printf("%s version %d.%d.%d\n", name, COPPER_MAJOR, COPPER_MINOR, COPPER_LEVEL);
 }
 
 static void usage(char *name)

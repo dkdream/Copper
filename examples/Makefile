@@ -5,10 +5,8 @@ COPPER     = ../copper-new
 Copper.ext = cu
 
 CFLAGS = -g
-
-DIFF = diff
-LEG  = ../copper-new
-TEE = cat >
+DIFF   = diff
+TEE    = cat >
 
 all : $(EXAMPLES) .FORCE
 	@rm -f $(EXAMPLES:%=%.x)
