@@ -6,8 +6,7 @@ dcv
 rule
 test
 wc
-javascript
+thoms.c
 *.out
 *.inc
-*.c
-
+.#.*

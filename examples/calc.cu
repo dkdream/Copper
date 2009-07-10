@@ -1,7 +1,3 @@
-%{
-#include <stdio.h>
-int vars[26];
-%}
 
 Stmt	= - e:Expr EOL			{ printf("%d\n", e); }
 	| ( !EOL . )* EOL		{ printf("error\n"); }
@@ -35,12 +31,3 @@ CLOSE	= ')'		-
 
 -	= [ \t]*
 EOL	= '\n' | '\r\n' | '\r' | ';'
-
-%%
-
-int main()
-{
-  while (yyparse());
-
-  return 0;
-}

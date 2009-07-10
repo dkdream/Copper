@@ -1,7 +1,7 @@
-# LE Grammar for LE Grammars
+# Copper Grammar for copper
 
 %{
-#include "my_leg.inc"
+#include "copper.inc"
 %}
 
 # Hierarchical syntax

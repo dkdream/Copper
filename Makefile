@@ -1,8 +1,11 @@
 
-PREFIX	= /tools/Leg
+COPPER     = ./copper.x
+Copper.ext = cu
+
+PREFIX	= /tools/Copper
 BINDIR	= $(PREFIX)/bin
 
-LEG    = ./leg.x
+
 DIFF   = diff
 CFLAGS = -g $(OFLAGS) $(XFLAGS)
 OFLAGS = -O3 -DNDEBUG
@@ -12,20 +15,20 @@ TIME := $(shell date +T=%s.%N)
 
 OBJS = tree.o compile.o
 
-all : leg
+all : copper
 
 echo : ; echo $(TIME)
 
-leg-new : my_leg.o $(OBJS)
-	$(CC) $(CFLAGS) -o $@ my_leg.o $(OBJS)
+copper-new : copper.o $(OBJS)
+	$(CC) $(CFLAGS) -o $@ copper.o $(OBJS)
 
-leg : check
-	cp leg-new leg
+copper : check
+	cp copper-new copper
 
-install : $(BINDIR)/leg
+install : $(BINDIR)/copper
 
 uninstall : .FORCE
-	rm -f $(BINDIR)/leg
+	rm -f $(BINDIR)/copper
 
 compile.o : compile.inc
 
@@ -38,30 +41,30 @@ ascii2hex.x : ascii2hex.c
 	$(CC) $(CFLAGS) -o $@ $<
 	@./test_ascii2hex.sh "$(CC) $(CFLAGS)"
 
-my_leg.c : my.leg $(LEG)
-	$(LEG) -o $@ $<
+copper.c : copper.cu $(COPPER)
+	$(COPPER) -o $@ $<
 
-check : leg-new .FORCE
-	./leg-new -v -o leg.test my.leg 2>test_out.log
-	$(DIFF) leg.test my_leg.c
-	-@rm -f leg.test
+check : copper-new .FORCE
+	./copper-new -v -o copper.test copper.cu 2>test_out.log
+	$(DIFF) copper.test copper.c
+	-@rm -f copper.test
 
 push : .FORCE
-	mv leg_orig.c leg_orig.c.BAK
-	cp my_leg.c leg_orig.c
+	mv copper_orig.c copper_orig.c.BAK
+	cp my_copper.c copper_orig.c
 
-test examples : leg-new .FORCE
+test examples : copper-new .FORCE
 	$(SHELL) -ec '(cd examples;  $(MAKE))'
 
 clean : .FORCE
-	rm -f *~ *.o *_leg.[cd] leg leg-new leg.test compile.inc test_out.err 
+	rm -f *~ *.o *_copper.[cd] copper copper-new copper.test compile.inc test_out.err 
 	$(SHELL) -ec '(cd examples;  $(MAKE) $@)'
 
 clear : .FORCE
-	rm -f leg.test my_leg.o leg-new test_out.log
+	rm -f copper.test my_copper.o copper-new test_out.log
 
 scrub spotless : clean .FORCE
-	rm -f leg.x ascii2hex.x
+	rm -f copper.x ascii2hex.x
 	$(SHELL) -ec '(cd examples;  $(MAKE) $@)'
 
 ##
@@ -82,7 +85,7 @@ $(BINDIR)/% : %
 ##
 ##
 
-leg.x : leg_orig.o $(OBJS)
-	$(CC) $(CFLAGS) -o $@ leg_orig.o $(OBJS)
+copper.x : copper_orig.o $(OBJS)
+	$(CC) $(CFLAGS) -o $@ copper_orig.o $(OBJS)
 
 .FORCE :

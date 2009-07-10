@@ -19,7 +19,10 @@ void doDone();
 }
 
 #define YY_DONE doDone()
-#include "thoms_test.peg.c"
+#define YY_LOCAL(T)	static T
+#define YY_RULE(T)	static T
+
+#include INCLUDE
 
 void yyerror(char *message)
 {

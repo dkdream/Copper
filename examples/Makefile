@@ -1,100 +1,75 @@
 
 EXAMPLES = test rule accept dc dcv wc calc basic
 
+COPPER     = ../copper-new
+Copper.ext = cu
+
 CFLAGS = -g
 
 DIFF = diff
-LEG  = ../leg-new
+LEG  = ../copper-new
 TEE = cat >
 
 all : $(EXAMPLES) .FORCE
+	@rm -f $(EXAMPLES:%=%.x)
 	@ls -l $(EXAMPLES)
 
 test : .FORCE
-	$(LEG) $(LEG_OPT) -o test_leg.inc test.leg
-	$(CC) $(CFLAGS) -DLEG -o ./$@ test.c
-	echo 'ab.ac.ad.ae.afg.afh.afg.afh.afi.afj.' | ./$@ | $(TEE) $@.out
-	$(DIFF) test.ref $@.out
-	rm -f $@.out
-	@echo
-
-thoms : .FORCE
-	rm -f thoms_test_leg.c thoms_test
-	$(LEG) $(LEG_OPT) -o thoms_test_leg.c thoms_test.leg 
-	$(CC) $(CFLAGS) -o thoms_test thoms_test_leg.c
-	./thoms_test thoms.in
+	@MAKELEVEL=0 make TEMPLATE=simple_test.c ${@:%=%.x}
+	@MAKELEVEL=0 make ${@:%=%.check}
 
 rule : .FORCE
-	$(LEG) $(LEG_OPT) -o rule_leg.inc rule.leg
-	$(CC) $(CFLAGS) -DLEG -o ./$@ rule.c
-	echo 'abcbcdabcbcdabcbcdabcbcd' | ./$@ | $(TEE) $@.out
-	$(DIFF) rule.ref $@.out
-	rm -f $@.out
-	@echo
+	@MAKELEVEL=0 make TEMPLATE=simple_test.c ${@:%=%.x}
+	@MAKELEVEL=0 make ${@:%=%.check}
 
 accept : .FORCE
-	$(LEG) $(LEG_OPT) -o accept_leg.inc accept.leg
-	$(CC) $(CFLAGS) -DLEG -o ./$@ accept.c
-	echo 'abcbcdabcbcdabcbcdabcbcd' | ./$@ | $(TEE) $@.out
-	$(DIFF) accept.ref $@.out
-	rm -f $@.out
-	@echo
+	@MAKELEVEL=0 make TEMPLATE=simple_test.c ${@:%=%.x}
+	@MAKELEVEL=0 make ${@:%=%.check}
 
 dc : .FORCE
-	$(LEG) $(LEG_OPT) -o dc_leg.inc dc.leg
-	$(CC) $(CFLAGS) -DLEG -o ./$@ dc.c
-	echo '  2  *3 *(3+ 4) ' | ./$@ | $(TEE) $@.out
-	$(DIFF) dc.ref $@.out
-	rm -f $@.out
-	@echo
+	@MAKELEVEL=0 make TEMPLATE=simple_test.c ${@:%=%.x}
+	@MAKELEVEL=0 make ${@:%=%.check}
 
 dcv : .FORCE
-	$(LEG) $(LEG_OPT) -o dcv_leg.inc dcv.leg
-	$(CC) $(CFLAGS) -DLEG -o ./$@ dcv.c
-	echo 'a = 6;  b = 7;  a * b' | ./$@ | $(TEE) $@.out
-	$(DIFF) dcv.ref $@.out
-	rm -f $@.out
-	@echo
+	@MAKELEVEL=0 make TEMPLATE=simple_test.c ${@:%=%.x}
+	@MAKELEVEL=0 make ${@:%=%.check}
 
 wc : .FORCE
-	$(LEG) $(LEG_OPT) -o wc_leg.c wc.leg
-	$(CC) $(CFLAGS) -o wc wc_leg.c
-	cat wc.leg | ./$@ | $(TEE) $@.out
-	$(DIFF) $@.ref $@.out
-	rm -f $@.out
-	@echo
+	@MAKELEVEL=0 make TEMPLATE=counter_test.c ${@:%=%.x}
+	@MAKELEVEL=0 make ${@:%=%.check}
 
 calc : .FORCE
-	$(LEG) $(LEG_OPT) -o calc_leg.c calc.leg
-	$(CC) $(CFLAGS) -o calc calc_leg.c
-#	echo 'a = 6;  b = 7;  a * b' | ./calc | $(TEE) $@.out
-	cat calc.input | ./calc | $(TEE) $@.out
-	$(DIFF) $@.ref $@.out
-	rm -f $@.out
-	@echo
+	@MAKELEVEL=0 make TEMPLATE=simple_test.c ${@:%=%.x}
+	@MAKELEVEL=0 make ${@:%=%.check}
 
 basic : .FORCE
-	$(LEG) $(LEG_OPT) -o basic_leg.c basic.leg
-	$(CC) $(CFLAGS) -o basic basic_leg.c
-	( echo 'load "test"'; echo "run" ) | ./basic | $(TEE) $@.out
-	$(DIFF) $@.ref $@.out
-	rm -f $@.out
-	@echo
+	@MAKELEVEL=0 make TEMPLATE=basic_test.c ${@:%=%.x}
+	@MAKELEVEL=0 make ${@:%=%.check}
 
 left : .FORCE
-	$(LEG) $(LEG_OPT) -o $@_leg.inc $@.leg
-	$(CC) $(CFLAGS) -o ./$@ $@.c
-	@echo
+	@MAKELEVEL=0 make TEMPLATE=basic_test.c ${@:%=%.x}
 
-javascript : .FORCE
-	$(LEG) $(LEG_OPT) -o javascript_leg.c javascript.leg 2>&1
-	$(CC) $(CFLAGS) -o javascript javascript_leg.c
-	cat test_javascript.js | ./javascript | $(TEE) $@.out
+thoms : .FORCE
+	@MAKELEVEL=0 make TEMPLATE=thoms_test.c ${@:%=%.x}
+	./thoms_test.x thoms.in
 
 clean : .FORCE
-	rm -f *~ *.o *_peg.inc *_leg.inc *.out *_leg.c *.out left javascript thoms $(EXAMPLES)
+	rm -f *~ *.o *.x *.inc *.out *.out left thoms $(EXAMPLES)
 
 scrub spotless : clean
+
+%.x : %.${Copper.ext}
+	$(COPPER) $(COPPER_OPT) -o ${@:%.x=%.inc} $<
+	sed -e 's,INCLUDE,"${@:%.x=%.inc}",' ${TEMPLATE} > ./${@:%.x=%.c}
+	$(CC) $(CFLAGS) -o $@ ${@:%.x=%.c}
+	rm -f ${@:%.x=%.c}
+
+%.check : %.ref
+	cat ./${@:%.check=%.input}  | ./${@:%.check=%.x} | $(TEE) ${@:%.check=%.out}
+	$(DIFF) $< ${@:%.check=%.out}
+	rm -f ${@:%.check=%.out}
+	mv ${@:%.check=%.x} ${@:%.check=%}
+	@echo
 
 .FORCE :
 

@@ -1,9 +1,8 @@
+copper.c
+compile.inc
 *.x
 *.o
 *.log
-leg
-leg-new
-my_leg.c
-compile.inc
+.#.*
 *~
 
