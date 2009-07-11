@@ -10,6 +10,8 @@ typedef struct _yyclass  YYClass;
 typedef struct _yystack  YYStack;
 typedef struct _yystate  YYState;
 typedef struct _yythunk  YYThunk;
+typedef struct _yycache  YYCache;
+typedef unsigned         YYArgument;
 
 typedef int  (*YYRule)(YYClass* yySelf, YYStack* stack);
 typedef void (*YYAction)(YYClass* yySelf, YYThunk thunk);
@@ -18,6 +20,42 @@ typedef int  (*YYInput)(YYClass* yySelf, char* buffer, int max_size);
 typedef void (*YYDebug)(YYClass* yySelf, const char* format, ...);
 typedef void (*YYMark)(YYClass* yySelf);
 typedef void (*YYCollect)(YYClass* yySelf);
+
+#ifndef YYSTYPE
+#define YYSTYPE	int
+#endif
+
+struct  _yyclass {
+    char *    buf;
+    int	      buflen;
+    int	      pos;
+    int	      limit;
+    char *    text;
+    int	      textlen;
+    int	      begin;
+    int	      end;
+    int	      textmax;
+
+    /* action list */
+    YYThunk * thunks;
+    int	      thunkslen;
+    int       thunkpos;
+
+    /* data stack */
+    YYSTYPE   result;
+    int       val;
+    YYSTYPE * vals;
+    int       valslen;
+
+    /**/
+    YYCache * cache;
+
+    /*method table*/
+    YYInput   input_;
+    YYDebug   debug_;
+    YYMark    mark_;
+    YYCollect collect_;
+};
 
 /*-- end of header --*/
 
@@ -64,10 +102,6 @@ static inline int yynextchar(char* buffer, int max_size) {
 #define YY_COLLECT
 #endif
 
-#ifndef YYSTYPE
-#define YYSTYPE	int
-#endif
-
 #ifndef YY_CACHE_SLOTS
 #define YY_CACHE_SLOTS 1023
 #endif
@@ -78,35 +112,7 @@ static inline int yynextchar(char* buffer, int max_size) {
 
 #ifndef YY_PART
 
-typedef struct _yycache      YYCache;
 typedef struct _yycache_node YYCacheNode;
-typedef unsigned             YYArgument;
-
-struct  _yyclass {
-    char *    buf;
-    int	      buflen;
-    int	      pos;
-    int	      limit;
-    char *    text;
-    int	      textlen;
-    int	      begin;
-    int	      end;
-    int	      textmax;
-    YYThunk * thunks;
-    int	      thunkslen;
-    int       thunkpos;
-    YYSTYPE   result;
-    int       val;
-    YYSTYPE * vals;
-    int       valslen;
-    YYCache * cache;
-
-    /*method table*/
-    YYInput   input_;
-    YYDebug   debug_;
-    YYMark    mark_;
-    YYCollect collect_;
-};
 
 struct _yystate {
     int pos;

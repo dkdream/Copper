@@ -37,10 +37,6 @@ static inline int yynextchar(char* buffer, int max_size) {
 #define YY_COLLECT
 #endif
 
-#ifndef YYSTYPE
-#define YYSTYPE	int
-#endif
-
 #ifndef YY_CACHE_SLOTS
 #define YY_CACHE_SLOTS 1023
 #endif
@@ -51,35 +47,7 @@ static inline int yynextchar(char* buffer, int max_size) {
 
 #ifndef YY_PART
 
-typedef struct _yycache      YYCache;
 typedef struct _yycache_node YYCacheNode;
-typedef unsigned             YYArgument;
-
-struct  _yyclass {
-    char *    buf;
-    int	      buflen;
-    int	      pos;
-    int	      limit;
-    char *    text;
-    int	      textlen;
-    int	      begin;
-    int	      end;
-    int	      textmax;
-    YYThunk * thunks;
-    int	      thunkslen;
-    int       thunkpos;
-    YYSTYPE   result;
-    int       val;
-    YYSTYPE * vals;
-    int       valslen;
-    YYCache * cache;
-
-    /*method table*/
-    YYInput   input_;
-    YYDebug   debug_;
-    YYMark    mark_;
-    YYCollect collect_;
-};
 
 struct _yystate {
     int pos;
@@ -148,7 +116,7 @@ static inline void yyInit(YYClass* yySelf) {
     yySelf->thunks    = 0;
     yySelf->thunkslen = 0;
     yySelf->thunkpos  = 0;
-    yySelf->val       = 0;
+    yySelf->frame     = 0;
     yySelf->vals      = 0;
     yySelf->valslen   = 0;
     yySelf->cache     = 0;
@@ -167,7 +135,7 @@ static inline void yyStart(YYClass* yySelf) {
     yySelf->vals      = malloc(sizeof(YYSTYPE) * yySelf->valslen);
     yySelf->begin     = yySelf->end = yySelf->pos = yySelf->limit = yySelf->thunkpos = 0;
     yySelf->text[0]   = '\0';
-    yySelf->val       = 0;
+    yySelf->frame     = 0;
 }
 
 static inline void yyFreeList(YYCacheNode* node) {
@@ -530,19 +498,19 @@ static inline int yyAccept(YYClass* yySelf, YYStack* yystack) {
 
 static void yyPush(YYClass* yySelf, YYThunk thunk) {
     YY_DEBUG("do %s %d\n", "push", thunk.argument);
-    /* need to check if yySelf->val > yySelf->valslen */
-    yySelf->val += thunk.argument;
+    /* need to check if yySelf->frame > yySelf->valslen */
+    yySelf->frame += thunk.argument;
 }
 
 static void yyPop(YYClass* yySelf, YYThunk thunk) {
     YY_DEBUG("do %s %d\n", "pop", thunk.argument);
-    yySelf->val -= thunk.argument;
-    /* need to check if yySelf->val < 0 */
+    yySelf->frame -= thunk.argument;
+    /* need to check if yySelf->frame < 0 */
 }
 
 static void yySet(YYClass* yySelf, YYThunk thunk) {
     YY_DEBUG("do %s v[%d] = %d\n", "set", thunk.argument,  yySelf->result);
-    yySelf->vals[yySelf->val + thunk.argument] = yySelf->result;
+    yySelf->vals[yySelf->frame + thunk.argument] = yySelf->result;
 }
 
 static int yyCall(YYClass* yySelf, YYStack* yystack, YYRule function, const char* name) {

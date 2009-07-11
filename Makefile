@@ -3,7 +3,7 @@ BINDIR	= $(PREFIX)/bin
 
 TIME := $(shell date +T=%s.%N)
 
-COPPER     := $(or $(shell which --skip-dot --skip-tilde copper 2>/dev/null), ./copper.x)
+COPPER     := ./copper.x
 Copper.ext := cu
 
 DIFF   = diff
@@ -13,6 +13,7 @@ OFLAGS = -O3 -DNDEBUG
 OBJS = tree.o compile.o
 
 all : copper
+new : copper-new
 
 echo : ; echo $(TIME) $(COPPER)
 
@@ -22,7 +23,10 @@ copper-new : copper.o $(OBJS)
 copper : check
 	cp copper-new copper
 
-install : $(BINDIR)/copper
+install : copper
+	[ -d $(BINDIR) ] || mkdir -p $(BINDIR)
+	cp -p $< $(BINDIR)/copper
+	strip $(BINDIR)/copper
 
 uninstall : .FORCE
 	rm -f $(BINDIR)/copper
@@ -71,16 +75,14 @@ scrub spotless : clean .FORCE
 ##
 ##
 
-$(BINDIR)/% : %
-	[ -d $(BINDIR) ] || mkdir -p $(BINDIR)
-	cp -p $< $@
-	strip $@
-
 ##
 ##
 ## bootstrap
 ##
 ##
+
+copper.x :
+	$(MAKE) bootstrap
 
 bootstrap : copper_orig.o $(OBJS)
 	$(CC) $(CFLAGS) -o copper.x copper_orig.o $(OBJS)

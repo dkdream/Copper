@@ -8,6 +8,8 @@ typedef struct _yyclass  YYClass;
 typedef struct _yystack  YYStack;
 typedef struct _yystate  YYState;
 typedef struct _yythunk  YYThunk;
+typedef struct _yycache  YYCache;
+typedef unsigned         YYArgument;
 
 typedef int  (*YYRule)(YYClass* yySelf, YYStack* stack);
 typedef void (*YYAction)(YYClass* yySelf, YYThunk thunk);
@@ -16,6 +18,42 @@ typedef int  (*YYInput)(YYClass* yySelf, char* buffer, int max_size);
 typedef void (*YYDebug)(YYClass* yySelf, const char* format, ...);
 typedef void (*YYMark)(YYClass* yySelf);
 typedef void (*YYCollect)(YYClass* yySelf);
+
+#ifndef YYSTYPE
+#define YYSTYPE	int
+#endif
+
+struct  _yyclass {
+    char *    buf;
+    int	      buflen;
+    int	      pos;
+    int	      limit;
+    char *    text;
+    int	      textlen;
+    int	      begin;
+    int	      end;
+    int	      textmax;
+
+    /* action list */
+    YYThunk * thunks;
+    int	      thunkslen;
+    int       thunkpos;
+
+    /* data stack */
+    YYSTYPE   result;
+    int       frame;
+    YYSTYPE * vals;
+    int       valslen;
+
+    /**/
+    YYCache * cache;
+
+    /*method table*/
+    YYInput   input_;
+    YYDebug   debug_;
+    YYMark    mark_;
+    YYCollect collect_;
+};
 
 /*-- end of header --*/
 

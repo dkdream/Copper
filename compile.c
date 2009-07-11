@@ -94,10 +94,6 @@ static char *makeCCName(unsigned char *cclass)
     return string;
 }
 
-/*
-static void begin(void)		{ fprintf(output, "\n  {"); }
-static void end(void)		{ fprintf(output, "\n  }"); }
-*/
 static void label(int n)	{ fprintf(output, "\n  l%d:;\t", n); }
 static void jump(int n)		{
     if (1 < n) {
@@ -284,7 +280,7 @@ static void defineVariables(Node *node)
     fprintf(output, "#define yythunkpos yySelf->thunkpos\n");
 
     if (count) {
-        fprintf(output, "  const int frame = yySelf->val;\n");
+        fprintf(output, "  const int frame = yySelf->frame;\n");
     }
 }
 
