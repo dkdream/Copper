@@ -1,34 +1,7 @@
 /*-*- mode: c;-*-*/
 
-#define YY_SAVE(state)    { state.pos = yySelf->pos; state.thunkpos = yySelf->thunkpos; }
-#define YY_RESTORE(state) { yySelf->pos = state.pos; yySelf->thunkpos = state.thunkpos; }
-
-/* begin of yytext */
-#define YY_BEGIN ( yySelf->begin = yySelf->pos, yySelf->end = yySelf->pos, 1)
-
-/* end of yytext */
-#define YY_END (yySelf->end = yySelf->pos, 1)
-
 #define YY_SEND(method, args...) yySelf->method(yySelf, ## args)
 #define YY_CALL(method)          yySelf->method(yySelf)
-
-#ifndef YY_DEBUG
-#ifndef DEBUGGING
-#define YY_DEBUG(format, args...)
-#else
-#define YY_DEBUG(format, args...) fprintf(stderr, format, ## args)
-#endif
-#endif
-
-/* user defined mark (useful in marking parse stack) */
-#ifndef YY_MARK
-#define YY_MARK
-#endif
-
-/* user defined collect (useful in collecting from a parse stack) */
-#ifndef YY_COLLECT
-#define YY_COLLECT
-#endif
 
 #ifndef YY_CACHE_SLOTS
 #define YY_CACHE_SLOTS 1023
@@ -113,11 +86,17 @@ static void debug_method(YYClass* yySelf, const char* format, ...) {
 }
 
 static void mark_method(YYClass* yySelf) {
-    YY_MARK;
+/* user defined mark (useful in marking parse stack) */
+#ifdef YY_MARK
+    YY_MARK
+#endif
 }
 
 static void collect_method(YYClass* yySelf) {
-    YY_COLLECT;
+/* user defined collect (useful in collecting from a parse stack) */
+#ifdef YY_COLLECT
+    YY_COLLECT
+#endif
 }
 
 static inline void yyInit(YYClass* yySelf) {
@@ -173,7 +152,7 @@ static inline void yyFreeList(YYCacheNode* node) {
 }
 
 static inline void yyClearCache(YYClass* yySelf) {
-    YY_DEBUG("     yyClearCache\n");
+    YY_SEND(debug_,"     yyClearCache\n");
     if (!yySelf->cache) {
         yySelf->cache = malloc(sizeof(struct _yycache) + (sizeof(YYCacheNode*) * YY_CACHE_SLOTS));
         yySelf->cache->size = YY_CACHE_SLOTS;
@@ -220,7 +199,7 @@ static inline void yyAddNode(YYClass* yySelf, YYStack *yystack, int result) {
             if (0 > count) return;
             // to many
             if (YY_CACHE_THUNKS < count) {
-                YY_DEBUG("     not adding cache node (%s,@%d,%d) at %d for %s - to many thunks\n",
+                YY_SEND(debug_,"     not adding cache node (%s,@%d,%d) at %d for %s - to many thunks\n",
                          (result ? "ok" : "fail"), yySelf->pos, count,
                          start.pos, name);
                 return;
@@ -255,7 +234,7 @@ static inline void yyAddNode(YYClass* yySelf, YYStack *yystack, int result) {
         node->count = 0;
     }
 
-    YY_DEBUG("     adding cache node (%s,@%d,%d) at %d for %s\n",
+    YY_SEND(debug_,"     adding cache node (%s,@%d,%d) at %d for %s\n",
              (node->result ? "ok" : "fail"), node->pos, node->count,
              node->location, name);
 
@@ -295,7 +274,7 @@ static inline int yyCheckNode(YYClass* yySelf, YYStack *yystack, int* result)
             }
         }
 
-        YY_DEBUG("     using cache node (%s,@%d,%d) at %d for %s\n",
+        YY_SEND(debug_,"     using cache node (%s,@%d,%d) at %d for %s\n",
                  (node->result ? "ok" : "fail"), node->pos, node->count,
                  node->location, name);
 
@@ -306,7 +285,7 @@ static inline int yyCheckNode(YYClass* yySelf, YYStack *yystack, int* result)
 }
 
 static inline int yyrefill(YYClass* yySelf) {
-    YY_DEBUG("     yyrefill\n");
+    YY_SEND(debug_,"     yyrefill\n");
 
     if (yySelf->buflen - yySelf->pos < 512) {
         while (yySelf->buflen - yySelf->pos < 512) {
@@ -395,7 +374,7 @@ static int yyBegin(YYClass* yySelf) {
     yySelf->begin = yySelf->pos;
     yySelf->end   = yySelf->pos;
 
-    YY_DEBUG("BEGIN %d\n", yySelf->begin);
+    YY_SEND(debug_,"BEGIN %d\n", yySelf->begin);
 
     return 1;
 }
@@ -426,7 +405,7 @@ static inline int yyText(YYClass* yySelf) {
 
     yySelf->text[length]= '\0';
 
-    //    YY_DEBUG("GET text[%d,%d] = \'%s\'\n", begin, end,  yySelf->text);
+    YY_SEND(debug_,"GET text[%d,%d] = \'%s\'\n", begin, end,  yySelf->text);
 
     return length;
 }
@@ -437,9 +416,9 @@ static int yyEnd(YYClass* yySelf) {
     int length = yyText(yySelf);
 
     if (0 < length) {
-        YY_DEBUG("END %d \'%s\'\n", yySelf->end, yySelf->text);
+        YY_SEND(debug_,"END %d \'%s\'\n", yySelf->end, yySelf->text);
     } else {
-        YY_DEBUG("END %d\n", yySelf->end);
+        YY_SEND(debug_,"END %d\n", yySelf->end);
     }
 
     return 1;
@@ -472,7 +451,7 @@ static inline int yyThunkText(YYClass* yySelf, YYThunk thunk) {
 
     yySelf->text[length]= '\0';
 
-    //    YY_DEBUG("GET thunk text[%d,%d] = \'%s\'\n", begin, end,  yySelf->text);
+    YY_SEND(debug_,"GET thunk text[%d,%d] = \'%s\'\n", begin, end,  yySelf->text);
 
     return length;
 }
@@ -482,7 +461,7 @@ static inline void yyDone(YYClass* yySelf) {
     for (pos = 0;  pos < yySelf->thunkpos;  ++pos) {
         YYThunk *thunk = &yySelf->thunks[pos];
 
-        YY_DEBUG("DO [%d] %p : ", pos, thunk->action);
+        YY_SEND(debug_,"DO [%d] %p : ", pos, thunk->action);
 
         thunk->action(yySelf, yySelf->thunks[pos]);
     }
@@ -515,28 +494,28 @@ static inline int yyAccept(YYClass* yySelf, YYStack* yystack) {
         fprintf(stderr, "accept denied at %d", tp0);
         return 0;
     } else {
-        YY_DEBUG("    yyAccept begin\n");
+        YY_SEND(debug_,"    yyAccept begin\n");
         yyDone(yySelf);
         yyCommit(yySelf);
-        YY_DEBUG("    yyAccept end\n");
+        YY_SEND(debug_,"    yyAccept end\n");
     }
     return 1;
 }
 
 static void yyPush(YYClass* yySelf, YYThunk thunk) {
-    YY_DEBUG("do %s %d\n", "push", thunk.argument);
+    YY_SEND(debug_,"do %s %d\n", "push", thunk.argument);
     /* need to check if yySelf->frame > yySelf->valslen */
     yySelf->frame += thunk.argument;
 }
 
 static void yyPop(YYClass* yySelf, YYThunk thunk) {
-    YY_DEBUG("do %s %d\n", "pop", thunk.argument);
+    YY_SEND(debug_,"do %s %d\n", "pop", thunk.argument);
     yySelf->frame -= thunk.argument;
     /* need to check if yySelf->frame < 0 */
 }
 
 static void yySet(YYClass* yySelf, YYThunk thunk) {
-    YY_DEBUG("do %s v[%d] = %d\n", "set", thunk.argument,  yySelf->result);
+    YY_SEND(debug_,"do %s v[%d] = %d\n", "set", thunk.argument,  yySelf->result);
     yySelf->vals[yySelf->frame + thunk.argument] = yySelf->result;
 }
 
@@ -548,9 +527,9 @@ static int yyCall(YYClass* yySelf, YYStack* yystack, YYRule function, const char
     yytop.current = function;
     yytop.name    = name;
 
-    YY_SAVE(yytop.begin);
+    YY_SEND(save_, &(yytop.begin));
 
-    YY_DEBUG("start(%i) %s @ %s\n", yytop.begin.pos, name, yySelf->buf+yytop.begin.pos);
+    YY_SEND(debug_,"start(%i) %s @ %s\n", yytop.begin.pos, name, yySelf->buf+yytop.begin.pos);
 
     int result;
 
@@ -563,10 +542,10 @@ static int yyCall(YYClass* yySelf, YYStack* yystack, YYRule function, const char
     yyAddNode(yySelf, &yytop, result);
 
     if (result) {
-        YY_DEBUG("  ok(%i)   %s @ %s\n", yytop.begin.pos, name, yySelf->buf+yytop.begin.pos);
+        YY_SEND(debug_,"  ok(%i)   %s @ %s\n", yytop.begin.pos, name, yySelf->buf+yytop.begin.pos);
     } else {
-        YY_DEBUG("  fail(%i) %s @ %s\n", yytop.begin.pos, name, yySelf->buf+yytop.begin.pos);
-        YY_RESTORE(yytop.begin);
+        YY_SEND(debug_,"  fail(%i) %s @ %s\n", yytop.begin.pos, name, yySelf->buf+yytop.begin.pos);
+        YY_SEND(restore_, &(yytop.begin));
     }
 
     return result;

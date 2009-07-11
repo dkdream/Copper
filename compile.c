@@ -456,7 +456,7 @@ void Rule_compile_c(Node *node)
       fprintf(output, "  char* yytext = yySelf->text;\n");
       fprintf(output, "  int   yypos  = yySelf->pos;\n\n");
       defineVariables(n->action.rule->rule.variables);
-      fprintf(output, "  YY_DEBUG(\"do yy%s (%%s) \'%%s\'\\n\", yyrulename, yytext);\n\n", n->action.name);
+      fprintf(output, "  YY_SEND(debug_, \"do yy%s (%%s) \'%%s\'\\n\", yyrulename, yytext);\n\n", n->action.name);
       fprintf(output, "  %s;\n", n->action.text);
       undefineVariables(n->action.rule->rule.variables);
       fprintf(output, "\n  // for references ONLY\n");

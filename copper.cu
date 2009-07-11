@@ -48,8 +48,8 @@ primary=	identifier				{ push(makeVariable(yytext)); }
 |		action					{ push(makeAction(yytext)); }
 |		BEGIN					{ push(makeMark("YY_CALL(begin_)")); }
 |		END					{ push(makeMark("YY_CALL(end_)")); }
-|		MARK					{ push(makeAction("YY_MARK;")); }
-|		COLLECT					{ push(makeAction("YY_COLLECT;")); }
+|		MARK					{ push(makeAction("YY_CALL(mark_);")); }
+|		COLLECT					{ push(makeAction("YY_CALL(collect_);")); }
 
 # Lexical syntax
 
