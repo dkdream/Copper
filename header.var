@@ -15,6 +15,10 @@ typedef int  (*YYRule)(YYClass* yySelf, YYStack* stack);
 typedef void (*YYAction)(YYClass* yySelf, YYThunk thunk);
 
 typedef int  (*YYInput)(YYClass* yySelf, char* buffer, int max_size);
+typedef void (*YYSave)(YYClass* yySelf, YYState* state);
+typedef void (*YYRestore)(YYClass* yySelf, YYState* state);
+typedef void (*YYBegin)(YYClass* yySelf);
+typedef void (*YYEnd)(YYClass* yySelf);
 typedef void (*YYDebug)(YYClass* yySelf, const char* format, ...);
 typedef void (*YYMark)(YYClass* yySelf);
 typedef void (*YYCollect)(YYClass* yySelf);
@@ -50,6 +54,10 @@ struct  _yyclass {
 
     /*method table*/
     YYInput   input_;
+    YYSave    save_;
+    YYRestore restore_;
+    YYBegin   begin_;
+    YYEnd     end_;
     YYDebug   debug_;
     YYMark    mark_;
     YYCollect collect_;

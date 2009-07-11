@@ -47,7 +47,7 @@ copper.c : copper.cu $(COPPER)
 
 check : copper-new .FORCE
 	./copper-new -v -o copper.test copper.cu 2>test_out.log
-	$(DIFF) --ignore-blank-lines  --show-c-function --brief copper.test copper.c
+	$(DIFF) --ignore-blank-lines  --show-c-function copper.test copper.c
 	-@rm -f copper.test
 
 push : .FORCE

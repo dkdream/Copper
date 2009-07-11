@@ -106,10 +106,10 @@ static void jump(int n)		{
 }
 static void save(int n)		{
   fprintf(output, "\n  YYState yystate%d;", n);
-  fprintf(output, "\n  YY_SAVE(yystate%d);", n, n);
+  fprintf(output, "\n  YY_SEND(save_, &yystate%d);", n, n);
 }
 static void restore(int n)	{
-   fprintf(output, "\n  YY_RESTORE(yystate%d);", n);
+   fprintf(output, "\n  YY_SEND(restore_, &yystate%d);", n);
 }
 
 static void Node_compile_c_ko(Node *node, int ko)

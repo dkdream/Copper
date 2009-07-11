@@ -2,6 +2,8 @@
 
 #ifndef YY_PART
 
+static YYClass* theParser = ((YYClass*)0);
+
 static int yyParseFrom(YYClass* self, YYRule yystart, const char* name)
 {
     int yyok;
@@ -40,8 +42,11 @@ static int yyParseFrom(YYClass* self, YYRule yystart, const char* name)
 }
 
 int yyparse(void) {
-    //    yyInit(&theParser);
-    return yyParseFrom(&theParser, yy_%s, "%s");
+    if (!theParser) {
+        theParser = malloc(sizeof(YYClass));
+        yyInit(theParser);
+    }
+    return yyParseFrom(theParser, yy_%s, "%s");
 }
 
 #endif

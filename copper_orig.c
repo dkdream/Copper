@@ -43,7 +43,7 @@ struct  _yyclass {
 
     /* data stack */
     YYSTYPE   result;
-    int       val;
+    int       frame;
     YYSTYPE * vals;
     int       valslen;
 
@@ -151,8 +151,6 @@ struct _yycache {
     YYCacheNode* slot[0];
 };
 
-static YYClass theParser;
-
 static void save_method(YYClass* yySelf, YYState* state) {
     state->pos = yySelf->pos; state->thunkpos = yySelf->thunkpos;
 }
@@ -162,10 +160,7 @@ static void restore_method(YYClass* yySelf, YYState* state) {
 }
 
 static int input_method(YYClass* yySelf, char* buffer, int max_size) {
-    int yyc = getchar();
-    if (EOF == yyc) return 0;
-    buffer[0] = yyc;
-    return 1;
+    return YY_INPUT(buffer, max_size);
 }
 
 static inline void yyInit(YYClass* yySelf) {
@@ -181,10 +176,12 @@ static inline void yyInit(YYClass* yySelf) {
     yySelf->thunks    = 0;
     yySelf->thunkslen = 0;
     yySelf->thunkpos  = 0;
-    yySelf->val       = 0;
+    yySelf->frame     = 0;
     yySelf->vals      = 0;
     yySelf->valslen   = 0;
     yySelf->cache     = 0;
+
+    yySelf->input_ = input_method;
 }
 
 static inline void yyStart(YYClass* yySelf) {
@@ -200,7 +197,7 @@ static inline void yyStart(YYClass* yySelf) {
     yySelf->vals      = malloc(sizeof(YYSTYPE) * yySelf->valslen);
     yySelf->begin     = yySelf->end = yySelf->pos = yySelf->limit = yySelf->thunkpos = 0;
     yySelf->text[0]   = '\0';
-    yySelf->val       = 0;
+    yySelf->frame     = 0;
 }
 
 static inline void yyFreeList(YYCacheNode* node) {
@@ -355,7 +352,8 @@ static inline int yyrefill(YYClass* yySelf) {
         yySelf->buf[yySelf->limit] = 0;
     }
 
-    int yyn = YY_INPUT(yySelf->buf + yySelf->pos, yySelf->buflen - yySelf->pos);
+    //    int yyn = YY_INPUT(yySelf->buf + yySelf->pos, yySelf->buflen - yySelf->pos);
+    int yyn = yySelf->input_(yySelf, yySelf->buf + yySelf->pos, yySelf->buflen - yySelf->pos);
 
     if (0 == yyn) return 0;
 
@@ -563,19 +561,19 @@ static inline int yyAccept(YYClass* yySelf, YYStack* yystack) {
 
 static void yyPush(YYClass* yySelf, YYThunk thunk) {
     YY_DEBUG("do %s %d\n", "push", thunk.argument);
-    /* need to check if yySelf->val > yySelf->valslen */
-    yySelf->val += thunk.argument;
+    /* need to check if yySelf->frame > yySelf->valslen */
+    yySelf->frame += thunk.argument;
 }
 
 static void yyPop(YYClass* yySelf, YYThunk thunk) {
     YY_DEBUG("do %s %d\n", "pop", thunk.argument);
-    yySelf->val -= thunk.argument;
-    /* need to check if yySelf->val < 0 */
+    yySelf->frame -= thunk.argument;
+    /* need to check if yySelf->frame < 0 */
 }
 
 static void yySet(YYClass* yySelf, YYThunk thunk) {
     YY_DEBUG("do %s v[%d] = %d\n", "set", thunk.argument,  yySelf->result);
-    yySelf->vals[yySelf->val + thunk.argument] = yySelf->result;
+    yySelf->vals[yySelf->frame + thunk.argument] = yySelf->result;
 }
 
 static int yyCall(YYClass* yySelf, YYStack* yystack, YYRule function, const char* name) {
@@ -735,7 +733,7 @@ static void yy_9_primary(YYClass* yySelf, YYThunk thunk)
 #define yythunkpos yySelf->thunkpos
   YY_DEBUG("do yy_9_primary (%s) '%s'\n", yyrulename, yytext);
 
-   push(makeMark("YY_END")); ;
+   push(makeMark("YY_CALL(end_)")); ;
 #undef yy
 #undef yythunkpos
 
@@ -753,7 +751,7 @@ static void yy_8_primary(YYClass* yySelf, YYThunk thunk)
 #define yythunkpos yySelf->thunkpos
   YY_DEBUG("do yy_8_primary (%s) '%s'\n", yyrulename, yytext);
 
-   push(makeMark("YY_BEGIN")); ;
+   push(makeMark("YY_CALL(begin_)")); ;
 #undef yy
 #undef yythunkpos
 
@@ -2382,6 +2380,8 @@ static int yy_grammar(YYClass* yySelf, YYStack* yystack)
 
 #ifndef YY_PART
 
+static YYClass* theParser = ((YYClass*)0);
+
 static int yyParseFrom(YYClass* self, YYRule yystart, const char* name)
 {
     int yyok;
@@ -2392,7 +2392,7 @@ static int yyParseFrom(YYClass* self, YYRule yystart, const char* name)
 
     self->begin    = self->end = self->pos;
     self->thunkpos = 0;
-    self->val      = 0;
+    self->frame    = 0;
 
     yyok = yyCall(self, (YYStack*) 0, yystart, name);
 
@@ -2420,8 +2420,11 @@ static int yyParseFrom(YYClass* self, YYRule yystart, const char* name)
 }
 
 int yyparse(void) {
-    //    yyInit(&theParser);
-    return yyParseFrom(&theParser, yy_grammar, "grammar");
+    if (!theParser) {
+        theParser = malloc(sizeof(YYClass));
+        yyInit(theParser);
+    }
+    return yyParseFrom(theParser, yy_grammar, "grammar");
 }
 
 #endif
@@ -2430,17 +2433,17 @@ int yyparse(void) {
 void yyerror(char *message)
 {
   fprintf(stderr, "%s:%d: %s", fileName, lineNumber, message);
-  if (theParser.text[0]) fprintf(stderr, " near token '%s'", theParser.text);
-  if (theParser.pos < theParser.limit || !feof(input))
+  if (theParser->text[0]) fprintf(stderr, " near token '%s'", theParser->text);
+  if (theParser->pos < theParser->limit || !feof(input))
     {
-      theParser.buf[theParser.limit]= '\0';
+      theParser->buf[theParser->limit]= '\0';
       fprintf(stderr, " before text \"");
-      while (theParser.pos < theParser.limit)
+      while (theParser->pos < theParser->limit)
 	{
-	  if ('\n' == theParser.buf[theParser.pos] || '\r' == theParser.buf[theParser.pos]) break;
-	  fputc(theParser.buf[theParser.pos++], stderr);
+	  if ('\n' == theParser->buf[theParser->pos] || '\r' == theParser->buf[theParser->pos]) break;
+	  fputc(theParser->buf[theParser->pos++], stderr);
 	}
-      if (theParser.pos == theParser.limit)
+      if (theParser->pos == theParser->limit)
 	{
 	  int c;
 	  while (EOF != (c= fgetc(input)) && '\n' != c && '\r' != c)

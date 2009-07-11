@@ -46,8 +46,8 @@ primary=	identifier				{ push(makeVariable(yytext)); }
 |		class					{ push(makeClass(yytext)); }
 |		DOT					{ push(makeDot()); }
 |		action					{ push(makeAction(yytext)); }
-|		BEGIN					{ push(makeMark("YY_BEGIN")); }
-|		END					{ push(makeMark("YY_END")); }
+|		BEGIN					{ push(makeMark("YY_CALL(begin_)")); }
+|		END					{ push(makeMark("YY_CALL(end_)")); }
 |		MARK					{ push(makeAction("YY_MARK;")); }
 |		COLLECT					{ push(makeAction("YY_COLLECT;")); }
 
@@ -101,17 +101,17 @@ end-of-file=	!.
 void yyerror(char *message)
 {
   fprintf(stderr, "%s:%d: %s", fileName, lineNumber, message);
-  if (theParser.text[0]) fprintf(stderr, " near token '%s'", theParser.text);
-  if (theParser.pos < theParser.limit || !feof(input))
+  if (theParser->text[0]) fprintf(stderr, " near token '%s'", theParser->text);
+  if (theParser->pos < theParser->limit || !feof(input))
     {
-      theParser.buf[theParser.limit]= '\0';
+      theParser->buf[theParser->limit]= '\0';
       fprintf(stderr, " before text \"");
-      while (theParser.pos < theParser.limit)
+      while (theParser->pos < theParser->limit)
 	{
-	  if ('\n' == theParser.buf[theParser.pos] || '\r' == theParser.buf[theParser.pos]) break;
-	  fputc(theParser.buf[theParser.pos++], stderr);
+	  if ('\n' == theParser->buf[theParser->pos] || '\r' == theParser->buf[theParser->pos]) break;
+	  fputc(theParser->buf[theParser->pos++], stderr);
 	}
-      if (theParser.pos == theParser.limit)
+      if (theParser->pos == theParser->limit)
 	{
 	  int c;
 	  while (EOF != (c= fgetc(input)) && '\n' != c && '\r' != c)
