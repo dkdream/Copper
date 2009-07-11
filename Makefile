@@ -1,23 +1,20 @@
-
-COPPER     = ./copper.x
-Copper.ext = cu
-
 PREFIX	= /tools/Copper
 BINDIR	= $(PREFIX)/bin
 
+TIME := $(shell date +T=%s.%N)
+
+COPPER     := $(or $(shell which --skip-dot --skip-tilde copper 2>/dev/null), ./copper.x)
+Copper.ext := cu
 
 DIFF   = diff
 CFLAGS = -g $(OFLAGS) $(XFLAGS)
 OFLAGS = -O3 -DNDEBUG
-#OFLAGS = -pg
-
-TIME := $(shell date +T=%s.%N)
 
 OBJS = tree.o compile.o
 
 all : copper
 
-echo : ; echo $(TIME)
+echo : ; echo $(TIME) $(COPPER)
 
 copper-new : copper.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ copper.o $(OBJS)
@@ -46,7 +43,7 @@ copper.c : copper.cu $(COPPER)
 
 check : copper-new .FORCE
 	./copper-new -v -o copper.test copper.cu 2>test_out.log
-	$(DIFF) copper.test copper.c
+	$(DIFF) --ignore-blank-lines  --show-c-function --brief copper.test copper.c
 	-@rm -f copper.test
 
 push : .FORCE
@@ -85,7 +82,7 @@ $(BINDIR)/% : %
 ##
 ##
 
-copper.x : copper_orig.o $(OBJS)
-	$(CC) $(CFLAGS) -o $@ copper_orig.o $(OBJS)
+bootstrap : copper_orig.o $(OBJS)
+	$(CC) $(CFLAGS) -o copper.x copper_orig.o $(OBJS)
 
 .FORCE :

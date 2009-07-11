@@ -46,8 +46,8 @@ primary=	identifier				{ push(makeVariable(yytext)); }
 |		class					{ push(makeClass(yytext)); }
 |		DOT					{ push(makeDot()); }
 |		action					{ push(makeAction(yytext)); }
-|		BEGIN					{ push(makePredicate("YY_BEGIN")); }
-|		END					{ push(makePredicate("YY_END")); }
+|		BEGIN					{ push(makeMark("YY_BEGIN")); }
+|		END					{ push(makeMark("YY_END")); }
 |		MARK					{ push(makeAction("YY_MARK;")); }
 |		COLLECT					{ push(makeAction("YY_COLLECT;")); }
 

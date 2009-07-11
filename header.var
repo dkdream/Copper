@@ -9,8 +9,13 @@ typedef struct _yystack  YYStack;
 typedef struct _yystate  YYState;
 typedef struct _yythunk  YYThunk;
 
-typedef int  (*YYRule)(YYClass* yySelf, YYStack* yyStack);
+typedef int  (*YYRule)(YYClass* yySelf, YYStack* stack);
 typedef void (*YYAction)(YYClass* yySelf, YYThunk thunk);
+
+typedef int  (*YYInput)(YYClass* yySelf, char* buffer, int max_size);
+typedef void (*YYDebug)(YYClass* yySelf, const char* format, ...);
+typedef void (*YYMark)(YYClass* yySelf);
+typedef void (*YYCollect)(YYClass* yySelf);
 
 /*-- end of header --*/
 

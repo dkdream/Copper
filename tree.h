@@ -18,7 +18,7 @@
 
 #include <stdio.h>
 
-enum { Unknown= 0, Rule, Variable, Name, Dot, Character, String, Class, Action, Predicate, Alternate, Sequence, PeekFor, PeekNot, Query, Star, Plus };
+enum { Unknown= 0, Rule, Variable, Name, Dot, Character, String, Class, Action, Predicate, Mark, Alternate, Sequence, PeekFor, PeekNot, Query, Star, Plus };
 
 enum {
   RuleUsed	= 1<<0,
@@ -37,6 +37,7 @@ struct String	 { int type;  Node *next;   char *value;								};
 struct Class	 { int type;  Node *next;   unsigned char *value;							};
 struct Action	 { int type;  Node *next;   char *text;	  Node *list;  char *name;  Node *rule;				};
 struct Predicate { int type;  Node *next;   char *text;									};
+struct Mark      { int type;  Node *next;   char *text;									};
 struct Alternate { int type;  Node *next;   Node *first;  Node *last;							};
 struct Sequence	 { int type;  Node *next;   Node *first;  Node *last;							};
 struct PeekFor	 { int type;  Node *next;   Node *element;								};
@@ -58,6 +59,7 @@ union Node
   struct Class		cclass;
   struct Action		action;
   struct Predicate	predicate;
+  struct Mark   	mark;
   struct Alternate	alternate;
   struct Sequence	sequence;
   struct PeekFor	peekFor;
@@ -89,6 +91,7 @@ extern Node *makeString(char *text);
 extern Node *makeClass(char *text);
 extern Node *makeAction(char *text);
 extern Node *makePredicate(char *text);
+extern Node *makeMark(char *text);
 extern Node *makeAlternate(Node *e);
 extern Node *Alternate_append(Node *e, Node *f);
 extern Node *makeSequence(Node *e);

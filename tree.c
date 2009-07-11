@@ -162,6 +162,13 @@ Node *makePredicate(char *text)
   return node;
 }
 
+Node *makeMark(char *text)
+{
+  Node *node= newNode(Mark);
+  node->mark.text= strdup(text);
+  return node;
+}
+
 Node *makeAlternate(Node *e)
 {
   if (Alternate != e->type)
@@ -304,6 +311,7 @@ static void Node_fprint(FILE *stream, Node *node)
     case Class:		fprintf(stream, " [%s]", node->cclass.value);				break;
     case Action:	fprintf(stream, " { %s }", node->action.text);				break;
     case Predicate:	fprintf(stream, " ?{ %s }", node->action.text);				break;
+    case Mark:          fprintf(stream, " ({ %s })", node->action.text);			break;
 
     case Alternate:	node= node->alternate.first;
 			fprintf(stream, " (");

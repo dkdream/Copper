@@ -11,8 +11,13 @@ typedef struct _yystack  YYStack;
 typedef struct _yystate  YYState;
 typedef struct _yythunk  YYThunk;
 
-typedef int  (*YYRule)(YYClass* yySelf, YYStack* yyStack);
+typedef int  (*YYRule)(YYClass* yySelf, YYStack* stack);
 typedef void (*YYAction)(YYClass* yySelf, YYThunk thunk);
+
+typedef int  (*YYInput)(YYClass* yySelf, char* buffer, int max_size);
+typedef void (*YYDebug)(YYClass* yySelf, const char* format, ...);
+typedef void (*YYMark)(YYClass* yySelf);
+typedef void (*YYCollect)(YYClass* yySelf);
 
 /*-- end of header --*/
 
@@ -22,13 +27,8 @@ typedef void (*YYAction)(YYClass* yySelf, YYThunk thunk);
 
 /*-*- mode: c;-*-*/
 
-#ifndef YY_SAVE
-#define YY_SAVE(state) { state.pos = yySelf->pos; state.thunkpos = yySelf->thunkpos; }
-#endif
-
-#ifndef YY_RESTORE
+#define YY_SAVE(state)    { state.pos = yySelf->pos; state.thunkpos = yySelf->thunkpos; }
 #define YY_RESTORE(state) { yySelf->pos = state.pos; yySelf->thunkpos = state.thunkpos; }
-#endif
 
 #ifndef YY_DEBUG
 #ifndef DEBUGGING
@@ -49,14 +49,10 @@ static inline int yynextchar(char* buffer, int max_size) {
 #endif
 
 /* begin of yytext */
-#ifndef YY_BEGIN
-#define YY_BEGIN yyBegin(yySelf)
-#endif
+#define YY_BEGIN ( yySelf->begin = yySelf->pos, yySelf->end = yySelf->pos, 1)
 
 /* end of yytext */
-#ifndef YY_END
-#define YY_END yyEnd(yySelf)
-#endif
+#define YY_END (yySelf->end = yySelf->pos, 1)
 
 /* user defined mark (useful in marking parse stack) */
 #ifndef YY_MARK
@@ -104,6 +100,12 @@ struct  _yyclass {
     YYSTYPE * vals;
     int       valslen;
     YYCache * cache;
+
+    /*method table*/
+    YYInput   input_;
+    YYDebug   debug_;
+    YYMark    mark_;
+    YYCollect collect_;
 };
 
 struct _yystate {
@@ -144,6 +146,21 @@ struct _yycache {
 };
 
 static YYClass theParser;
+
+static void save_method(YYClass* yySelf, YYState* state) {
+    state->pos = yySelf->pos; state->thunkpos = yySelf->thunkpos;
+}
+
+static void restore_method(YYClass* yySelf, YYState* state) {
+    yySelf->pos = state->pos; yySelf->thunkpos = state->thunkpos;
+}
+
+static int input_method(YYClass* yySelf, char* buffer, int max_size) {
+    int yyc = getchar();
+    if (EOF == yyc) return 0;
+    buffer[0] = yyc;
+    return 1;
+}
 
 static inline void yyInit(YYClass* yySelf) {
     yySelf->buf       = 0;
@@ -712,7 +729,7 @@ static void yy_9_primary(YYClass* yySelf, YYThunk thunk)
 #define yythunkpos yySelf->thunkpos
   YY_DEBUG("do yy_9_primary (%s) '%s'\n", yyrulename, yytext);
 
-   push(makePredicate("YY_END")); ;
+   push(makeMark("YY_END")); ;
 #undef yy
 #undef yythunkpos
 
@@ -730,7 +747,7 @@ static void yy_8_primary(YYClass* yySelf, YYThunk thunk)
 #define yythunkpos yySelf->thunkpos
   YY_DEBUG("do yy_8_primary (%s) '%s'\n", yyrulename, yytext);
 
-   push(makePredicate("YY_BEGIN")); ;
+   push(makeMark("YY_BEGIN")); ;
 #undef yy
 #undef yythunkpos
 
@@ -1507,7 +1524,7 @@ static int yy_class(YYClass* yySelf, YYStack* yystack)
 #define yytext yySelf->text;
 
   start_rule:;
-  if (!yymatchChar(yySelf, '[')) goto failed;  if (!(YY_BEGIN)) goto failed;
+  if (!yymatchChar(yySelf, '[')) goto failed;  { YY_BEGIN; }
   l26:;	
   YYState yystate27;
   YY_SAVE(yystate27);
@@ -1516,7 +1533,7 @@ static int yy_class(YYClass* yySelf, YYStack* yystack)
   l28:;	
   YY_RESTORE(yystate28);  if (!yyCall(yySelf, yystack, &yy_range, "range")) goto l27; goto l26;
   l27:;	
-  YY_RESTORE(yystate27);  if (!(YY_END)) goto failed;  if (!yymatchChar(yySelf, ']')) goto failed;  if (!yyCall(yySelf, yystack, &yy__, "_")) goto failed;
+  YY_RESTORE(yystate27);  { YY_END; }  if (!yymatchChar(yySelf, ']')) goto failed;  if (!yyCall(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
@@ -1542,7 +1559,7 @@ static int yy_literal(YYClass* yySelf, YYStack* yystack)
   start_rule:;
 
   YYState yystate29;
-  YY_SAVE(yystate29);  if (!yymatchClass(yySelf, "\'", (unsigned char *)"\000\000\000\000\200\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l30;  if (!(YY_BEGIN)) goto l30;
+  YY_SAVE(yystate29);  if (!yymatchClass(yySelf, "\'", (unsigned char *)"\000\000\000\000\200\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l30;  { YY_BEGIN; }
   l31:;	
   YYState yystate32;
   YY_SAVE(yystate32);
@@ -1551,9 +1568,9 @@ static int yy_literal(YYClass* yySelf, YYStack* yystack)
   l33:;	
   YY_RESTORE(yystate33);  if (!yyCall(yySelf, yystack, &yy_char, "char")) goto l32; goto l31;
   l32:;	
-  YY_RESTORE(yystate32);  if (!(YY_END)) goto l30;  if (!yymatchClass(yySelf, "\'", (unsigned char *)"\000\000\000\000\200\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l30;  if (!yyCall(yySelf, yystack, &yy__, "_")) goto l30; goto l29;
+  YY_RESTORE(yystate32);  { YY_END; }  if (!yymatchClass(yySelf, "\'", (unsigned char *)"\000\000\000\000\200\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l30;  if (!yyCall(yySelf, yystack, &yy__, "_")) goto l30; goto l29;
   l30:;	
-  YY_RESTORE(yystate29);  if (!yymatchClass(yySelf, "\"", (unsigned char *)"\000\000\000\000\004\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;  if (!(YY_BEGIN)) goto failed;
+  YY_RESTORE(yystate29);  if (!yymatchClass(yySelf, "\"", (unsigned char *)"\000\000\000\000\004\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;  { YY_BEGIN; }
   l34:;	
   YYState yystate35;
   YY_SAVE(yystate35);
@@ -1562,7 +1579,7 @@ static int yy_literal(YYClass* yySelf, YYStack* yystack)
   l36:;	
   YY_RESTORE(yystate36);  if (!yyCall(yySelf, yystack, &yy_char, "char")) goto l35; goto l34;
   l35:;	
-  YY_RESTORE(yystate35);  if (!(YY_END)) goto failed;  if (!yymatchClass(yySelf, "\"", (unsigned char *)"\000\000\000\000\004\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;  if (!yyCall(yySelf, yystack, &yy__, "_")) goto failed;
+  YY_RESTORE(yystate35);  { YY_END; }  if (!yymatchClass(yySelf, "\"", (unsigned char *)"\000\000\000\000\004\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;  if (!yyCall(yySelf, yystack, &yy__, "_")) goto failed;
   l29:;	
   goto passed;
 
@@ -1956,12 +1973,12 @@ static int yy_action(YYClass* yySelf, YYStack* yystack)
 #define yytext yySelf->text;
 
   start_rule:;
-  if (!yymatchChar(yySelf, '{')) goto failed;  if (!(YY_BEGIN)) goto failed;
+  if (!yymatchChar(yySelf, '{')) goto failed;  { YY_BEGIN; }
   l61:;	
   YYState yystate62;
   YY_SAVE(yystate62);  if (!yyCall(yySelf, yystack, &yy_braces, "braces")) goto l62; goto l61;
   l62:;	
-  YY_RESTORE(yystate62);  if (!(YY_END)) goto failed;  if (!yymatchChar(yySelf, '}')) goto failed;  if (!yyCall(yySelf, yystack, &yy__, "_")) goto failed;
+  YY_RESTORE(yystate62);  { YY_END; }  if (!yymatchChar(yySelf, '}')) goto failed;  if (!yyCall(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
@@ -2110,12 +2127,12 @@ static int yy_identifier(YYClass* yySelf, YYStack* yystack)
 #define yytext yySelf->text;
 
   start_rule:;
-  if (!(YY_BEGIN)) goto failed;  if (!yymatchClass(yySelf, "-a-zA-Z_", (unsigned char *)"\000\000\000\000\000\040\000\000\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;
+  { YY_BEGIN; }  if (!yymatchClass(yySelf, "-a-zA-Z_", (unsigned char *)"\000\000\000\000\000\040\000\000\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;
   l65:;	
   YYState yystate66;
   YY_SAVE(yystate66);  if (!yymatchClass(yySelf, "-a-zA-Z_0-9", (unsigned char *)"\000\000\000\000\000\040\377\003\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l66; goto l65;
   l66:;	
-  YY_RESTORE(yystate66);  if (!(YY_END)) goto failed;  if (!yyCall(yySelf, yystack, &yy__, "_")) goto failed;
+  YY_RESTORE(yystate66);  { YY_END; }  if (!yyCall(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
@@ -2191,12 +2208,12 @@ static int yy_trailer(YYClass* yySelf, YYStack* yystack)
 #define yytext yySelf->text;
 
   start_rule:;
-  if (!yymatchString(yySelf, "%%")) goto failed;  if (!(YY_BEGIN)) goto failed;
+  if (!yymatchString(yySelf, "%%")) goto failed;  { YY_BEGIN; }
   l68:;	
   YYState yystate69;
   YY_SAVE(yystate69);  if (!yymatchDot(yySelf)) goto l69; goto l68;
   l69:;	
-  YY_RESTORE(yystate69);  if (!(YY_END)) goto failed;  yyDo(yySelf, yy_1_trailer, 0, yystate0);
+  YY_RESTORE(yystate69);  { YY_END; }  yyDo(yySelf, yy_1_trailer, 0, yystate0);
   goto passed;
 
   passed:
@@ -2258,7 +2275,7 @@ static int yy_declaration(YYClass* yySelf, YYStack* yystack)
 #define yytext yySelf->text;
 
   start_rule:;
-  if (!yymatchString(yySelf, "%{")) goto failed;  if (!(YY_BEGIN)) goto failed;
+  if (!yymatchString(yySelf, "%{")) goto failed;  { YY_BEGIN; }
   l76:;	
   YYState yystate77;
   YY_SAVE(yystate77);
@@ -2267,7 +2284,7 @@ static int yy_declaration(YYClass* yySelf, YYStack* yystack)
   l78:;	
   YY_RESTORE(yystate78);  if (!yymatchDot(yySelf)) goto l77; goto l76;
   l77:;	
-  YY_RESTORE(yystate77);  if (!(YY_END)) goto failed;  if (!yyCall(yySelf, yystack, &yy_RPERCENT, "RPERCENT")) goto failed;  yyDo(yySelf, yy_1_declaration, 0, yystate0);
+  YY_RESTORE(yystate77);  { YY_END; }  if (!yyCall(yySelf, yystack, &yy_RPERCENT, "RPERCENT")) goto failed;  yyDo(yySelf, yy_1_declaration, 0, yystate0);
   goto passed;
 
   passed:

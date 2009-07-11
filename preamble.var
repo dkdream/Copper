@@ -1,12 +1,7 @@
 /*-*- mode: c;-*-*/
 
-#ifndef YY_SAVE
-#define YY_SAVE(state) { state.pos = yySelf->pos; state.thunkpos = yySelf->thunkpos; }
-#endif
-
-#ifndef YY_RESTORE
+#define YY_SAVE(state)    { state.pos = yySelf->pos; state.thunkpos = yySelf->thunkpos; }
 #define YY_RESTORE(state) { yySelf->pos = state.pos; yySelf->thunkpos = state.thunkpos; }
-#endif
 
 #ifndef YY_DEBUG
 #ifndef DEBUGGING
@@ -27,14 +22,10 @@ static inline int yynextchar(char* buffer, int max_size) {
 #endif
 
 /* begin of yytext */
-#ifndef YY_BEGIN
-#define YY_BEGIN yyBegin(yySelf)
-#endif
+#define YY_BEGIN ( yySelf->begin = yySelf->pos, yySelf->end = yySelf->pos, 1)
 
 /* end of yytext */
-#ifndef YY_END
-#define YY_END yyEnd(yySelf)
-#endif
+#define YY_END (yySelf->end = yySelf->pos, 1)
 
 /* user defined mark (useful in marking parse stack) */
 #ifndef YY_MARK
@@ -82,6 +73,12 @@ struct  _yyclass {
     YYSTYPE * vals;
     int       valslen;
     YYCache * cache;
+
+    /*method table*/
+    YYInput   input_;
+    YYDebug   debug_;
+    YYMark    mark_;
+    YYCollect collect_;
 };
 
 struct _yystate {
@@ -122,6 +119,21 @@ struct _yycache {
 };
 
 static YYClass theParser;
+
+static void save_method(YYClass* yySelf, YYState* state) {
+    state->pos = yySelf->pos; state->thunkpos = yySelf->thunkpos;
+}
+
+static void restore_method(YYClass* yySelf, YYState* state) {
+    yySelf->pos = state->pos; yySelf->thunkpos = state->thunkpos;
+}
+
+static int input_method(YYClass* yySelf, char* buffer, int max_size) {
+    int yyc = getchar();
+    if (EOF == yyc) return 0;
+    buffer[0] = yyc;
+    return 1;
+}
 
 static inline void yyInit(YYClass* yySelf) {
     yySelf->buf       = 0;

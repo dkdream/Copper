@@ -94,8 +94,10 @@ static char *makeCCName(unsigned char *cclass)
     return string;
 }
 
+/*
 static void begin(void)		{ fprintf(output, "\n  {"); }
 static void end(void)		{ fprintf(output, "\n  }"); }
+*/
 static void label(int n)	{ fprintf(output, "\n  l%d:;\t", n); }
 static void jump(int n)		{
     if (1 < n) {
@@ -164,6 +166,10 @@ static void Node_compile_c_ko(Node *node, int ko)
     case Predicate:
       fprintf(output, "  if (!(%s))", node->predicate.text);
       jump(ko);
+      break;
+
+    case Mark:
+      fprintf(output, "  { %s; }", node->mark.text);
       break;
 
     case Alternate:
