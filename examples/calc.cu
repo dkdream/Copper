@@ -15,7 +15,7 @@ Product	= l:Value
 		| DIVIDE r:Value	{ l /= r; }
 		)*			{ $$= l; }
 
-Value	= i:NUMBER			{ $$= atoi(yytext); }
+Value	= NUMBER			{ $$= atoi(yytext); }
 	| i:ID !ASSIGN			{ $$= vars[i]; }
 	| OPEN i:Expr CLOSE		{ $$= i; }
 

@@ -23,6 +23,11 @@ typedef void (*YYDebug)(YYClass* yySelf, const char* format, ...);
 typedef void (*YYMark)(YYClass* yySelf);
 typedef void (*YYCollect)(YYClass* yySelf);
 
+typedef int  (*YYApply)(YYClass* yySelf,
+                        YYStack* yystack,
+                        YYRule function,
+                        const char* name);
+
 #ifndef YYSTYPE
 #define YYSTYPE	int
 #endif
@@ -61,6 +66,7 @@ struct  _yyclass {
     YYDebug   debug_;
     YYMark    mark_;
     YYCollect collect_;
+    YYApply   apply_;
 };
 
 /*-- end of header --*/

@@ -128,7 +128,7 @@ static void Node_compile_c_ko(Node *node, int ko)
       break;
 
     case Name:
-      fprintf(output, "  if (!yyCall(yySelf, yystack, &yy_%s, \"%s\"))",
+      fprintf(output, "  if (!YY_SEND(apply_, yystack, &yy_%s, \"%s\"))",
               node->name.rule->rule.name,
               node->name.rule->rule.name);
       jump(ko);
@@ -268,20 +268,19 @@ static int countVariables(Node *node)
 
 static void defineVariables(Node *node)
 {
-    int count = 0;
-    while (node)
-        {
-            fprintf(output, "#define %s yySelf->vals[frame + %d]\n", node->variable.name, --count);
-            node->variable.offset= count;
-            node= node->variable.next;
-        }
+    if (node) {
+        int count = 0;
+        fprintf(output, "  const int frame = yySelf->frame;\n");
+        while (node)
+            {
+                fprintf(output, "#define %s yySelf->vals[frame + %d]\n", node->variable.name, --count);
+                node->variable.offset= count;
+                node= node->variable.next;
+            }
+    }
 
     fprintf(output, "#define yy yySelf->result\n");
     fprintf(output, "#define yythunkpos yySelf->thunkpos\n");
-
-    if (count) {
-        fprintf(output, "  const int frame = yySelf->frame;\n");
-    }
 }
 
 static void undefineVariables(Node *node)

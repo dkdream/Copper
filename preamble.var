@@ -52,81 +52,6 @@ struct _yycache {
     YYCacheNode* slot[0];
 };
 
-static void save_method(YYClass* yySelf, YYState* state) {
-    state->pos = yySelf->pos;
-    state->thunkpos = yySelf->thunkpos;
-}
-
-static void restore_method(YYClass* yySelf, YYState* state) {
-    yySelf->pos = state->pos;
-    yySelf->thunkpos = state->thunkpos;
-}
-
-static void begin_method(YYClass* yySelf) {
-    yySelf->begin = yySelf->pos;
-    yySelf->end   = yySelf->pos;
-}
-
-static void end_method(YYClass* yySelf) {
-    yySelf->end = yySelf->pos;
-}
-
-static int input_method(YYClass* yySelf, char* buffer, int max_size) {
-#ifdef YY_INPUT
-    return YY_INPUT(buffer, max_size);
-#else
-    int yyc = getchar();
-    if (EOF == yyc) return 0;
-    buffer[0] = yyc;
-    return 1;
-#endif
-}
-
-static void debug_method(YYClass* yySelf, const char* format, ...) {
-}
-
-static void mark_method(YYClass* yySelf) {
-/* user defined mark (useful in marking parse stack) */
-#ifdef YY_MARK
-    YY_MARK
-#endif
-}
-
-static void collect_method(YYClass* yySelf) {
-/* user defined collect (useful in collecting from a parse stack) */
-#ifdef YY_COLLECT
-    YY_COLLECT
-#endif
-}
-
-static inline void yyInit(YYClass* yySelf) {
-    yySelf->buf       = 0;
-    yySelf->buflen    = 0;
-    yySelf->pos       = 0;
-    yySelf->limit     = 0;
-    yySelf->text      = 0;
-    yySelf->textlen   = 0;
-    yySelf->begin     = 0;
-    yySelf->end       = 0;
-    yySelf->textmax   = 0;
-    yySelf->thunks    = 0;
-    yySelf->thunkslen = 0;
-    yySelf->thunkpos  = 0;
-    yySelf->frame     = 0;
-    yySelf->vals      = 0;
-    yySelf->valslen   = 0;
-    yySelf->cache     = 0;
-
-    yySelf->input_   = input_method;
-    yySelf->save_    = save_method;
-    yySelf->restore_ = restore_method;
-    yySelf->begin_   = begin_method;
-    yySelf->end_     = end_method;
-    yySelf->debug_   = debug_method;
-    yySelf->mark_    = mark_method;
-    yySelf->collect_ = collect_method;
-}
-
 static inline void yyStart(YYClass* yySelf) {
     if (yySelf->buflen) return;
 
@@ -370,7 +295,7 @@ static inline void yyDo(YYClass* yySelf, YYAction action, YYArgument arg, YYStat
     ++yySelf->thunkpos;
 }
 
-static int yyBegin(YYClass* yySelf) {
+static inline int yyBegin(YYClass* yySelf) {
     yySelf->begin = yySelf->pos;
     yySelf->end   = yySelf->pos;
 
@@ -410,7 +335,7 @@ static inline int yyText(YYClass* yySelf) {
     return length;
 }
 
-static int yyEnd(YYClass* yySelf) {
+static inline int yyEnd(YYClass* yySelf) {
     yySelf->end = yySelf->pos;
 
     int length = yyText(yySelf);
@@ -519,7 +444,54 @@ static void yySet(YYClass* yySelf, YYThunk thunk) {
     yySelf->vals[yySelf->frame + thunk.argument] = yySelf->result;
 }
 
-static int yyCall(YYClass* yySelf, YYStack* yystack, YYRule function, const char* name) {
+static void save_method(YYClass* yySelf, YYState* state) {
+    state->pos = yySelf->pos;
+    state->thunkpos = yySelf->thunkpos;
+}
+
+static void restore_method(YYClass* yySelf, YYState* state) {
+    yySelf->pos = state->pos;
+    yySelf->thunkpos = state->thunkpos;
+}
+
+static void begin_method(YYClass* yySelf) {
+    yySelf->begin = yySelf->pos;
+    yySelf->end   = yySelf->pos;
+}
+
+static void end_method(YYClass* yySelf) {
+    yySelf->end = yySelf->pos;
+}
+
+static int input_method(YYClass* yySelf, char* buffer, int max_size) {
+#ifdef YY_INPUT
+    return YY_INPUT(buffer, max_size);
+#else
+    int yyc = getchar();
+    if (EOF == yyc) return 0;
+    buffer[0] = yyc;
+    return 1;
+#endif
+}
+
+static void debug_method(YYClass* yySelf, const char* format, ...) {
+}
+
+static void mark_method(YYClass* yySelf) {
+/* user defined mark (useful in marking parse stack) */
+#ifdef YY_MARK
+    YY_MARK
+#endif
+}
+
+static void collect_method(YYClass* yySelf) {
+/* user defined collect (useful in collecting from a parse stack) */
+#ifdef YY_COLLECT
+    YY_COLLECT
+#endif
+}
+
+static int apply_method(YYClass* yySelf, YYStack* yystack, YYRule function, const char* name) {
     YYStack yytop;
     YYState yystate;
 
@@ -549,6 +521,35 @@ static int yyCall(YYClass* yySelf, YYStack* yystack, YYRule function, const char
     }
 
     return result;
+}
+
+static inline void yyInit(YYClass* yySelf) {
+    yySelf->buf       = 0;
+    yySelf->buflen    = 0;
+    yySelf->pos       = 0;
+    yySelf->limit     = 0;
+    yySelf->text      = 0;
+    yySelf->textlen   = 0;
+    yySelf->begin     = 0;
+    yySelf->end       = 0;
+    yySelf->textmax   = 0;
+    yySelf->thunks    = 0;
+    yySelf->thunkslen = 0;
+    yySelf->thunkpos  = 0;
+    yySelf->frame     = 0;
+    yySelf->vals      = 0;
+    yySelf->valslen   = 0;
+    yySelf->cache     = 0;
+
+    yySelf->input_   = input_method;
+    yySelf->save_    = save_method;
+    yySelf->restore_ = restore_method;
+    yySelf->begin_   = begin_method;
+    yySelf->end_     = end_method;
+    yySelf->debug_   = debug_method;
+    yySelf->mark_    = mark_method;
+    yySelf->collect_ = collect_method;
+    yySelf->apply_   = apply_method;
 }
 
 #endif /* YY_PART */
