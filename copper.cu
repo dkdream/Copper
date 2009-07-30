@@ -46,10 +46,10 @@ primary=	identifier				{ push(makeVariable(yytext)); }
 |		class					{ push(makeClass(yytext)); }
 |		DOT					{ push(makeDot()); }
 |		action					{ push(makeAction(yytext)); }
-|		BEGIN					{ push(makeMark("YY_CALL(begin_)")); }
-|		END					{ push(makeMark("YY_CALL(end_)")); }
-|		MARK					{ push(makeAction("YY_CALL(mark_);")); }
-|		COLLECT					{ push(makeAction("YY_CALL(collect_);")); }
+|		BEGIN					{ push(makeMark("YY_SEND(begin_, yystack)")); }
+|		END					{ push(makeMark("YY_SEND(end_, yystack)")); }
+|		MARK					{ push(makeAction("YY_SEND(mark_, yyrulename);")); }
+|		COLLECT					{ push(makeAction("YY_SEND(collect_, yyrulename);")); }
 
 # Lexical syntax
 

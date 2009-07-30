@@ -17,11 +17,11 @@ typedef void (*YYAction)(YYClass* yySelf, YYThunk thunk);
 typedef int  (*YYInput)(YYClass* yySelf, char* buffer, int max_size);
 typedef void (*YYSave)(YYClass* yySelf, YYState* state);
 typedef void (*YYRestore)(YYClass* yySelf, YYState* state);
-typedef void (*YYBegin)(YYClass* yySelf);
-typedef void (*YYEnd)(YYClass* yySelf);
+typedef void (*YYBegin)(YYClass* yySelf, YYStack* stack);
+typedef void (*YYEnd)(YYClass* yySelf, YYStack* stack);
 typedef void (*YYDebug)(YYClass* yySelf, const char* format, ...);
-typedef void (*YYMark)(YYClass* yySelf);
-typedef void (*YYCollect)(YYClass* yySelf);
+typedef void (*YYMark)(YYClass* yySelf, const char* name);
+typedef void (*YYCollect)(YYClass* yySelf, const char* name);
 
 typedef int  (*YYApply)(YYClass* yySelf,
                         YYStack* yystack,

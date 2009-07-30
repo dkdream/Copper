@@ -8,7 +8,7 @@ Copper.ext := cu
 
 DIFF   = diff
 CFLAGS = -g $(OFLAGS) $(XFLAGS)
-OFLAGS = -O3 -DNDEBUG
+OFLAGS = -O3 -DNDEBUG -Wall
 
 OBJS = tree.o compile.o
 

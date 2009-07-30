@@ -4,7 +4,7 @@ EXAMPLES = test rule accept dc dcv wc calc basic
 COPPER     = ../copper-new
 Copper.ext = cu
 
-CFLAGS = -g
+CFLAGS = -g -Wall
 DIFF   = diff
 TEE    = cat >
 

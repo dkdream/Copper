@@ -16,7 +16,6 @@ static int yyParseFrom(YYClass* yySelf, YYRule yystart, const char* name)
     yySelf->thunkpos = 0;
     yySelf->frame    = 0;
 
-    //    yyok = yyCall(yySelf, (YYStack*) 0, yystart, name);
     yyok = YY_SEND(apply_, (YYStack*) 0, yystart, name);
 
     if (yyok) yyDone(yySelf);
@@ -26,19 +25,15 @@ static int yyParseFrom(YYClass* yySelf, YYRule yystart, const char* name)
     return yyok;
 
     // for references ONLY
-    (void)yyrefill;
+    (void)yyPush;
+    (void)yyPop;
+    (void)yySet;
     (void)yymatchDot;
     (void)yymatchChar;
     (void)yymatchString;
     (void)yymatchClass;
     (void)yyDo;
-    (void)yyText;
-    (void)yyDone;
-    (void)yyCommit;
     (void)yyAccept;
-    (void)yyPush;
-    (void)yyPop;
-    (void)yySet;
 }
 
 int yyparse(void) {

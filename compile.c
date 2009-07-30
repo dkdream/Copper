@@ -106,7 +106,7 @@ static void jump(int n)		{
 }
 static void save(int n)		{
   fprintf(output, "\n  YYState yystate%d;", n);
-  fprintf(output, "\n  YY_SEND(save_, &yystate%d);", n, n);
+  fprintf(output, "\n  YY_SEND(save_, &yystate%d);", n);
 }
 static void restore(int n)	{
    fprintf(output, "\n  YY_SEND(restore_, &yystate%d);", n);
@@ -266,8 +266,13 @@ static int countVariables(Node *node)
   return count;
 }
 
-static void defineVariables(Node *node)
+static void defineVariables(Node *node, const char* name)
 {
+    fprintf(output, "  static const char* yyrulename = \"%s\";\n", name);
+    fprintf(output, "  int   yyleng = yyThunkText(yySelf, thunk);\n");
+    fprintf(output, "  char* yytext = yySelf->text;\n");
+    fprintf(output, "  int   yypos  = yySelf->pos;\n\n");
+
     if (node) {
         int count = 0;
         fprintf(output, "  const int frame = yySelf->frame;\n");
@@ -288,11 +293,22 @@ static void undefineVariables(Node *node)
     fprintf(output, "#undef yy\n");
     fprintf(output, "#undef yythunkpos\n");
 
-    while (node)
+    if (!node) fprintf(output, "\n  // for references ONLY\n");
+    else
         {
-            fprintf(output, "#undef %s\n", node->variable.name);
-            node= node->variable.next;
+            while (node)
+                {
+                    fprintf(output, "#undef %s\n", node->variable.name);
+                    node= node->variable.next;
+                }
+            fprintf(output, "\n  // for references ONLY\n");
+            fprintf(output, "  (void)frame;\n");
         }
+
+    fprintf(output, "  (void)yyrulename;\n");
+    fprintf(output, "  (void)yyleng;\n");
+    fprintf(output, "  (void)yytext;\n");
+    fprintf(output, "  (void)yypos;\n");
 }
 
 
@@ -312,7 +328,6 @@ static void Rule_compile_c2(Node *node)
       fprintf(output, "\nstatic int yy_%s(YYClass* yySelf, YYStack* yystack)\n{", node->rule.name);
       fprintf(output, "\n  static const char* yyrulename = \"%s\";\n", node->rule.name);
       fprintf(output, "\n  YYState yystate0 = yystack->begin;\n");
-      fprintf(output, "\n#define yytext yySelf->text;\n");
 
       if (node->rule.variables)
           fprintf(output, "  yyDo(yySelf, yyPush, %d, yystate0);\n", countVariables(node->rule.variables));
@@ -345,9 +360,10 @@ static void Rule_compile_c2(Node *node)
           fprintf(output, "\n  return 0;");
       }
 
-      fprintf(output, "\n\n#undef yytext");
       fprintf(output, "\n  // for references ONLY");
       fprintf(output, "\n  (void)yyrulename;");
+      fprintf(output, "\n  (void)yystate0;");
+      fprintf(output, "\n  if (0) goto start_rule;");
       fprintf(output, "\n}\n");
   }
 
@@ -450,16 +466,11 @@ void Rule_compile_c(Node *node)
   for (n= actions;  n;  n= n->action.list)
     {
       fprintf(output, "static void yy%s(YYClass* yySelf, YYThunk thunk)\n{\n", n->action.name);
-      fprintf(output, "  static const char* yyrulename = \"%s\";\n", n->action.rule->rule.name);
-      fprintf(output, "  int   yyleng = yyThunkText(yySelf, thunk);\n");
-      fprintf(output, "  char* yytext = yySelf->text;\n");
-      fprintf(output, "  int   yypos  = yySelf->pos;\n\n");
-      defineVariables(n->action.rule->rule.variables);
+      defineVariables(n->action.rule->rule.variables, n->action.rule->rule.name);
       fprintf(output, "  YY_SEND(debug_, \"do yy%s (%%s) \'%%s\'\\n\", yyrulename, yytext);\n\n", n->action.name);
       fprintf(output, "  %s;\n", n->action.text);
       undefineVariables(n->action.rule->rule.variables);
-      fprintf(output, "\n  // for references ONLY\n");
-      fprintf(output, "  (void)yyrulename;\n");
+
       fprintf(output, "}\n");
     }
 

@@ -19,11 +19,11 @@ typedef void (*YYAction)(YYClass* yySelf, YYThunk thunk);
 typedef int  (*YYInput)(YYClass* yySelf, char* buffer, int max_size);
 typedef void (*YYSave)(YYClass* yySelf, YYState* state);
 typedef void (*YYRestore)(YYClass* yySelf, YYState* state);
-typedef void (*YYBegin)(YYClass* yySelf);
-typedef void (*YYEnd)(YYClass* yySelf);
+typedef void (*YYBegin)(YYClass* yySelf, YYStack* stack);
+typedef void (*YYEnd)(YYClass* yySelf, YYStack* stack);
 typedef void (*YYDebug)(YYClass* yySelf, const char* format, ...);
-typedef void (*YYMark)(YYClass* yySelf);
-typedef void (*YYCollect)(YYClass* yySelf);
+typedef void (*YYMark)(YYClass* yySelf, const char* name);
+typedef void (*YYCollect)(YYClass* yySelf, const char* name);
 
 typedef int  (*YYApply)(YYClass* yySelf,
                         YYStack* yystack,
@@ -80,7 +80,6 @@ struct  _yyclass {
 /*-*- mode: c;-*-*/
 
 #define YY_SEND(method, args...) yySelf->method(yySelf, ## args)
-#define YY_CALL(method)          yySelf->method(yySelf)
 
 #ifndef YY_CACHE_SLOTS
 #define YY_CACHE_SLOTS 1023
@@ -130,53 +129,6 @@ struct _yycache {
     int size;
     YYCacheNode* slot[0];
 };
-
-static void save_method(YYClass* yySelf, YYState* state) {
-    state->pos = yySelf->pos;
-    state->thunkpos = yySelf->thunkpos;
-}
-
-static void restore_method(YYClass* yySelf, YYState* state) {
-    yySelf->pos = state->pos;
-    yySelf->thunkpos = state->thunkpos;
-}
-
-static void begin_method(YYClass* yySelf) {
-    yySelf->begin = yySelf->pos;
-    yySelf->end   = yySelf->pos;
-}
-
-static void end_method(YYClass* yySelf) {
-    yySelf->end = yySelf->pos;
-}
-
-static int input_method(YYClass* yySelf, char* buffer, int max_size) {
-#ifdef YY_INPUT
-    return YY_INPUT(buffer, max_size);
-#else
-    int yyc = getchar();
-    if (EOF == yyc) return 0;
-    buffer[0] = yyc;
-    return 1;
-#endif
-}
-
-static void debug_method(YYClass* yySelf, const char* format, ...) {
-}
-
-static void mark_method(YYClass* yySelf) {
-/* user defined mark (useful in marking parse stack) */
-#ifdef YY_MARK
-    YY_MARK
-#endif
-}
-
-static void collect_method(YYClass* yySelf) {
-/* user defined collect (useful in collecting from a parse stack) */
-#ifdef YY_COLLECT
-    YY_COLLECT
-#endif
-}
 
 static inline void yyStart(YYClass* yySelf) {
     if (yySelf->buflen) return;
@@ -421,60 +373,6 @@ static inline void yyDo(YYClass* yySelf, YYAction action, YYArgument arg, YYStat
     ++yySelf->thunkpos;
 }
 
-static int yyBegin(YYClass* yySelf) {
-    yySelf->begin = yySelf->pos;
-    yySelf->end   = yySelf->pos;
-
-    YY_SEND(debug_,"BEGIN %d\n", yySelf->begin);
-
-    return 1;
-}
-
-static inline int yyText(YYClass* yySelf) {
-    int begin  = yySelf->begin;
-    int end    = yySelf->end;
-    int length = end - begin;
-
-    if (length <= 0)
-        length = 0;
-    else {
-        int   textlen = yySelf->textlen;
-        char* text    = yySelf->text;
-
-        if (textlen < (length - 1)) {
-            while (textlen < (length - 1)) {
-                textlen *= 2;
-                text= realloc(text, textlen);
-            }
-
-            yySelf->textlen = textlen;
-            yySelf->text    = text;
-        }
-
-        memcpy(text, yySelf->buf + begin, length);
-    }
-
-    yySelf->text[length]= '\0';
-
-    YY_SEND(debug_,"GET text[%d,%d] = \'%s\'\n", begin, end,  yySelf->text);
-
-    return length;
-}
-
-static int yyEnd(YYClass* yySelf) {
-    yySelf->end = yySelf->pos;
-
-    int length = yyText(yySelf);
-
-    if (0 < length) {
-        YY_SEND(debug_,"END %d \'%s\'\n", yySelf->end, yySelf->text);
-    } else {
-        YY_SEND(debug_,"END %d\n", yySelf->end);
-    }
-
-    return 1;
-}
-
 static inline int yyThunkText(YYClass* yySelf, YYThunk thunk) {
     int begin  = thunk.begin;
     int end    = thunk.end;
@@ -570,9 +468,57 @@ static void yySet(YYClass* yySelf, YYThunk thunk) {
     yySelf->vals[yySelf->frame + thunk.argument] = yySelf->result;
 }
 
+static void save_method(YYClass* yySelf, YYState* state) {
+    state->pos = yySelf->pos;
+    state->thunkpos = yySelf->thunkpos;
+}
+
+static void restore_method(YYClass* yySelf, YYState* state) {
+    yySelf->pos = state->pos;
+    yySelf->thunkpos = state->thunkpos;
+}
+
+static void begin_method(YYClass* yySelf, YYStack* yystack) {
+    yySelf->begin = yySelf->pos;
+    yySelf->end   = yySelf->pos;
+
+    YY_SEND(debug_,"BEGIN %d\n", yySelf->begin);
+}
+
+static void end_method(YYClass* yySelf, YYStack* yystack) {
+    yySelf->end = yySelf->pos;
+}
+
+static int input_method(YYClass* yySelf, char* buffer, int max_size) {
+#ifdef YY_INPUT
+    return YY_INPUT(buffer, max_size);
+#else
+    int yyc = getchar();
+    if (EOF == yyc) return 0;
+    buffer[0] = yyc;
+    return 1;
+#endif
+}
+
+static void debug_method(YYClass* yySelf, const char* format, ...) {
+}
+
+static void mark_method(YYClass* yySelf, const char* yyrulename) {
+/* user defined mark (useful in marking parse stack) */
+#ifdef YY_MARK
+    YY_MARK;
+#endif
+}
+
+static void collect_method(YYClass* yySelf, const char* yyrulename) {
+/* user defined collect (useful in collecting from a parse stack) */
+#ifdef YY_COLLECT
+    YY_COLLECT;
+#endif
+}
+
 static int apply_method(YYClass* yySelf, YYStack* yystack, YYRule function, const char* name) {
     YYStack yytop;
-    YYState yystate;
 
     yytop.next    = yystack;
     yytop.current = function;
@@ -720,12 +666,15 @@ static void yy_11_primary(YYClass* yySelf, YYThunk thunk)
 #define yythunkpos yySelf->thunkpos
   YY_SEND(debug_, "do yy_11_primary (%s) '%s'\n", yyrulename, yytext);
 
-   push(makeAction("YY_CALL(collect_);")); ;
+   push(makeAction("YY_SEND(collect_, yyrulename);")); ;
 #undef yy
 #undef yythunkpos
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_10_primary(YYClass* yySelf, YYThunk thunk)
 {
@@ -738,12 +687,15 @@ static void yy_10_primary(YYClass* yySelf, YYThunk thunk)
 #define yythunkpos yySelf->thunkpos
   YY_SEND(debug_, "do yy_10_primary (%s) '%s'\n", yyrulename, yytext);
 
-   push(makeAction("YY_CALL(mark_);")); ;
+   push(makeAction("YY_SEND(mark_, yyrulename);")); ;
 #undef yy
 #undef yythunkpos
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_9_primary(YYClass* yySelf, YYThunk thunk)
 {
@@ -756,12 +708,15 @@ static void yy_9_primary(YYClass* yySelf, YYThunk thunk)
 #define yythunkpos yySelf->thunkpos
   YY_SEND(debug_, "do yy_9_primary (%s) '%s'\n", yyrulename, yytext);
 
-   push(makeMark("YY_CALL(end_)")); ;
+   push(makeMark("YY_SEND(end_, yystack)")); ;
 #undef yy
 #undef yythunkpos
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_8_primary(YYClass* yySelf, YYThunk thunk)
 {
@@ -774,12 +729,15 @@ static void yy_8_primary(YYClass* yySelf, YYThunk thunk)
 #define yythunkpos yySelf->thunkpos
   YY_SEND(debug_, "do yy_8_primary (%s) '%s'\n", yyrulename, yytext);
 
-   push(makeMark("YY_CALL(begin_)")); ;
+   push(makeMark("YY_SEND(begin_, yystack)")); ;
 #undef yy
 #undef yythunkpos
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_7_primary(YYClass* yySelf, YYThunk thunk)
 {
@@ -798,6 +756,9 @@ static void yy_7_primary(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_6_primary(YYClass* yySelf, YYThunk thunk)
 {
@@ -816,6 +777,9 @@ static void yy_6_primary(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_5_primary(YYClass* yySelf, YYThunk thunk)
 {
@@ -834,6 +798,9 @@ static void yy_5_primary(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_4_primary(YYClass* yySelf, YYThunk thunk)
 {
@@ -852,6 +819,9 @@ static void yy_4_primary(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_3_primary(YYClass* yySelf, YYThunk thunk)
 {
@@ -870,6 +840,9 @@ static void yy_3_primary(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_2_primary(YYClass* yySelf, YYThunk thunk)
 {
@@ -888,6 +861,9 @@ static void yy_2_primary(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_1_primary(YYClass* yySelf, YYThunk thunk)
 {
@@ -906,6 +882,9 @@ static void yy_1_primary(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_3_suffix(YYClass* yySelf, YYThunk thunk)
 {
@@ -924,6 +903,9 @@ static void yy_3_suffix(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_2_suffix(YYClass* yySelf, YYThunk thunk)
 {
@@ -942,6 +924,9 @@ static void yy_2_suffix(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_1_suffix(YYClass* yySelf, YYThunk thunk)
 {
@@ -960,6 +945,9 @@ static void yy_1_suffix(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_3_prefix(YYClass* yySelf, YYThunk thunk)
 {
@@ -978,6 +966,9 @@ static void yy_3_prefix(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_2_prefix(YYClass* yySelf, YYThunk thunk)
 {
@@ -996,6 +987,9 @@ static void yy_2_prefix(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_1_prefix(YYClass* yySelf, YYThunk thunk)
 {
@@ -1014,6 +1008,9 @@ static void yy_1_prefix(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_1_sequence(YYClass* yySelf, YYThunk thunk)
 {
@@ -1032,6 +1029,9 @@ static void yy_1_sequence(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_1_expression(YYClass* yySelf, YYThunk thunk)
 {
@@ -1050,6 +1050,9 @@ static void yy_1_expression(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_1_end(YYClass* yySelf, YYThunk thunk)
 {
@@ -1068,6 +1071,9 @@ static void yy_1_end(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_1_begin(YYClass* yySelf, YYThunk thunk)
 {
@@ -1086,6 +1092,9 @@ static void yy_1_begin(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_5_definition(YYClass* yySelf, YYThunk thunk)
 {
@@ -1104,6 +1113,9 @@ static void yy_5_definition(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_4_definition(YYClass* yySelf, YYThunk thunk)
 {
@@ -1122,6 +1134,9 @@ static void yy_4_definition(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_3_definition(YYClass* yySelf, YYThunk thunk)
 {
@@ -1140,6 +1155,9 @@ static void yy_3_definition(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_2_definition(YYClass* yySelf, YYThunk thunk)
 {
@@ -1158,6 +1176,9 @@ static void yy_2_definition(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_1_definition(YYClass* yySelf, YYThunk thunk)
 {
@@ -1176,6 +1197,9 @@ static void yy_1_definition(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_1_trailer(YYClass* yySelf, YYThunk thunk)
 {
@@ -1194,6 +1218,9 @@ static void yy_1_trailer(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 static void yy_1_declaration(YYClass* yySelf, YYThunk thunk)
 {
@@ -1212,6 +1239,9 @@ static void yy_1_declaration(YYClass* yySelf, YYThunk thunk)
 
   // for references ONLY
   (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
 }
 
 static int yy_end_of_line(YYClass* yySelf, YYStack* yystack)
@@ -1219,8 +1249,6 @@ static int yy_end_of_line(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "end_of_line";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
 
@@ -1239,10 +1267,10 @@ static int yy_end_of_line(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_comment(YYClass* yySelf, YYStack* yystack)
@@ -1250,8 +1278,6 @@ static int yy_comment(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "comment";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, '#')) goto failed;
@@ -1272,10 +1298,10 @@ static int yy_comment(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_space(YYClass* yySelf, YYStack* yystack)
@@ -1283,8 +1309,6 @@ static int yy_space(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "space";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
 
@@ -1303,10 +1327,10 @@ static int yy_space(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_braces(YYClass* yySelf, YYStack* yystack)
@@ -1314,8 +1338,6 @@ static int yy_braces(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "braces";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
 
@@ -1345,10 +1367,10 @@ static int yy_braces(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_range(YYClass* yySelf, YYStack* yystack)
@@ -1356,8 +1378,6 @@ static int yy_range(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "range";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
 
@@ -1374,10 +1394,10 @@ static int yy_range(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_char(YYClass* yySelf, YYStack* yystack)
@@ -1385,8 +1405,6 @@ static int yy_char(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "char";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
 
@@ -1416,10 +1434,10 @@ static int yy_char(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_COLLECT(YYClass* yySelf, YYStack* yystack)
@@ -1427,8 +1445,6 @@ static int yy_COLLECT(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "COLLECT";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, '$')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -1440,10 +1456,10 @@ static int yy_COLLECT(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_MARK(YYClass* yySelf, YYStack* yystack)
@@ -1451,8 +1467,6 @@ static int yy_MARK(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "MARK";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, '@')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -1464,10 +1478,10 @@ static int yy_MARK(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_END(YYClass* yySelf, YYStack* yystack)
@@ -1475,8 +1489,6 @@ static int yy_END(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "END";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, '>')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -1488,10 +1500,10 @@ static int yy_END(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_BEGIN(YYClass* yySelf, YYStack* yystack)
@@ -1499,8 +1511,6 @@ static int yy_BEGIN(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "BEGIN";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, '<')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -1512,10 +1522,10 @@ static int yy_BEGIN(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_DOT(YYClass* yySelf, YYStack* yystack)
@@ -1523,8 +1533,6 @@ static int yy_DOT(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "DOT";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, '.')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -1536,10 +1544,10 @@ static int yy_DOT(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_class(YYClass* yySelf, YYStack* yystack)
@@ -1548,10 +1556,8 @@ static int yy_class(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
-#define yytext yySelf->text;
-
   start_rule:;
-  if (!yymatchChar(yySelf, '[')) goto failed;  { YY_CALL(begin_); }
+  if (!yymatchChar(yySelf, '[')) goto failed;  { YY_SEND(begin_, yystack); }
   l26:;	
   YYState yystate27;
   YY_SEND(save_, &yystate27);
@@ -1560,7 +1566,7 @@ static int yy_class(YYClass* yySelf, YYStack* yystack)
   l28:;	
   YY_SEND(restore_, &yystate28);  if (!YY_SEND(apply_, yystack, &yy_range, "range")) goto l27; goto l26;
   l27:;	
-  YY_SEND(restore_, &yystate27);  { YY_CALL(end_); }  if (!yymatchChar(yySelf, ']')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  YY_SEND(restore_, &yystate27);  { YY_SEND(end_, yystack); }  if (!yymatchChar(yySelf, ']')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
@@ -1569,10 +1575,10 @@ static int yy_class(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_literal(YYClass* yySelf, YYStack* yystack)
@@ -1581,12 +1587,10 @@ static int yy_literal(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
-#define yytext yySelf->text;
-
   start_rule:;
 
   YYState yystate29;
-  YY_SEND(save_, &yystate29);  if (!yymatchClass(yySelf, "\'", (unsigned char *)"\000\000\000\000\200\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l30;  { YY_CALL(begin_); }
+  YY_SEND(save_, &yystate29);  if (!yymatchClass(yySelf, "\'", (unsigned char *)"\000\000\000\000\200\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l30;  { YY_SEND(begin_, yystack); }
   l31:;	
   YYState yystate32;
   YY_SEND(save_, &yystate32);
@@ -1595,9 +1599,9 @@ static int yy_literal(YYClass* yySelf, YYStack* yystack)
   l33:;	
   YY_SEND(restore_, &yystate33);  if (!YY_SEND(apply_, yystack, &yy_char, "char")) goto l32; goto l31;
   l32:;	
-  YY_SEND(restore_, &yystate32);  { YY_CALL(end_); }  if (!yymatchClass(yySelf, "\'", (unsigned char *)"\000\000\000\000\200\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l30;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto l30; goto l29;
+  YY_SEND(restore_, &yystate32);  { YY_SEND(end_, yystack); }  if (!yymatchClass(yySelf, "\'", (unsigned char *)"\000\000\000\000\200\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l30;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto l30; goto l29;
   l30:;	
-  YY_SEND(restore_, &yystate29);  if (!yymatchClass(yySelf, "\"", (unsigned char *)"\000\000\000\000\004\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;  { YY_CALL(begin_); }
+  YY_SEND(restore_, &yystate29);  if (!yymatchClass(yySelf, "\"", (unsigned char *)"\000\000\000\000\004\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;  { YY_SEND(begin_, yystack); }
   l34:;	
   YYState yystate35;
   YY_SEND(save_, &yystate35);
@@ -1606,7 +1610,7 @@ static int yy_literal(YYClass* yySelf, YYStack* yystack)
   l36:;	
   YY_SEND(restore_, &yystate36);  if (!YY_SEND(apply_, yystack, &yy_char, "char")) goto l35; goto l34;
   l35:;	
-  YY_SEND(restore_, &yystate35);  { YY_CALL(end_); }  if (!yymatchClass(yySelf, "\"", (unsigned char *)"\000\000\000\000\004\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  YY_SEND(restore_, &yystate35);  { YY_SEND(end_, yystack); }  if (!yymatchClass(yySelf, "\"", (unsigned char *)"\000\000\000\000\004\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
   l29:;	
   goto passed;
 
@@ -1616,10 +1620,10 @@ static int yy_literal(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_CLOSE(YYClass* yySelf, YYStack* yystack)
@@ -1627,8 +1631,6 @@ static int yy_CLOSE(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "CLOSE";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, ')')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -1640,10 +1642,10 @@ static int yy_CLOSE(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_OPEN(YYClass* yySelf, YYStack* yystack)
@@ -1651,8 +1653,6 @@ static int yy_OPEN(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "OPEN";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, '(')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -1664,10 +1664,10 @@ static int yy_OPEN(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_COLON(YYClass* yySelf, YYStack* yystack)
@@ -1675,8 +1675,6 @@ static int yy_COLON(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "COLON";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, ':')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -1688,10 +1686,10 @@ static int yy_COLON(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_PLUS(YYClass* yySelf, YYStack* yystack)
@@ -1699,8 +1697,6 @@ static int yy_PLUS(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "PLUS";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, '+')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -1712,10 +1708,10 @@ static int yy_PLUS(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_STAR(YYClass* yySelf, YYStack* yystack)
@@ -1723,8 +1719,6 @@ static int yy_STAR(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "STAR";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, '*')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -1736,10 +1730,10 @@ static int yy_STAR(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_QUESTION(YYClass* yySelf, YYStack* yystack)
@@ -1747,8 +1741,6 @@ static int yy_QUESTION(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "QUESTION";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, '?')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -1760,10 +1752,10 @@ static int yy_QUESTION(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_primary(YYClass* yySelf, YYStack* yystack)
@@ -1771,8 +1763,6 @@ static int yy_primary(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "primary";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
 
@@ -1815,10 +1805,10 @@ static int yy_primary(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_NOT(YYClass* yySelf, YYStack* yystack)
@@ -1826,8 +1816,6 @@ static int yy_NOT(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "NOT";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, '!')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -1839,10 +1827,10 @@ static int yy_NOT(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_suffix(YYClass* yySelf, YYStack* yystack)
@@ -1850,8 +1838,6 @@ static int yy_suffix(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "suffix";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!YY_SEND(apply_, yystack, &yy_primary, "primary")) goto failed;
@@ -1875,10 +1861,10 @@ static int yy_suffix(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_AND(YYClass* yySelf, YYStack* yystack)
@@ -1886,8 +1872,6 @@ static int yy_AND(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "AND";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, '&')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -1899,10 +1883,10 @@ static int yy_AND(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_prefix(YYClass* yySelf, YYStack* yystack)
@@ -1910,8 +1894,6 @@ static int yy_prefix(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "prefix";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
 
@@ -1932,10 +1914,10 @@ static int yy_prefix(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_BAR(YYClass* yySelf, YYStack* yystack)
@@ -1943,8 +1925,6 @@ static int yy_BAR(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "BAR";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, '|')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -1956,10 +1936,10 @@ static int yy_BAR(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_sequence(YYClass* yySelf, YYStack* yystack)
@@ -1967,8 +1947,6 @@ static int yy_sequence(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "sequence";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!YY_SEND(apply_, yystack, &yy_prefix, "prefix")) goto failed;
@@ -1985,10 +1963,10 @@ static int yy_sequence(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_action(YYClass* yySelf, YYStack* yystack)
@@ -1997,15 +1975,13 @@ static int yy_action(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
-#define yytext yySelf->text;
-
   start_rule:;
-  if (!yymatchChar(yySelf, '{')) goto failed;  { YY_CALL(begin_); }
+  if (!yymatchChar(yySelf, '{')) goto failed;  { YY_SEND(begin_, yystack); }
   l61:;	
   YYState yystate62;
   YY_SEND(save_, &yystate62);  if (!YY_SEND(apply_, yystack, &yy_braces, "braces")) goto l62; goto l61;
   l62:;	
-  YY_SEND(restore_, &yystate62);  { YY_CALL(end_); }  if (!yymatchChar(yySelf, '}')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  YY_SEND(restore_, &yystate62);  { YY_SEND(end_, yystack); }  if (!yymatchChar(yySelf, '}')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
@@ -2014,10 +1990,10 @@ static int yy_action(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_SEMICOLON(YYClass* yySelf, YYStack* yystack)
@@ -2025,8 +2001,6 @@ static int yy_SEMICOLON(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "SEMICOLON";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, ';')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -2038,10 +2012,10 @@ static int yy_SEMICOLON(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_begin(YYClass* yySelf, YYStack* yystack)
@@ -2049,8 +2023,6 @@ static int yy_begin(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "begin";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchString(yySelf, "%begin")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;  if (!YY_SEND(apply_, yystack, &yy_action, "action")) goto failed;  yyDo(yySelf, yy_1_begin, 0, yystate0);
@@ -2062,10 +2034,10 @@ static int yy_begin(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_end(YYClass* yySelf, YYStack* yystack)
@@ -2073,8 +2045,6 @@ static int yy_end(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "end";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchString(yySelf, "%end")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;  if (!YY_SEND(apply_, yystack, &yy_action, "action")) goto failed;  yyDo(yySelf, yy_1_end, 0, yystate0);
@@ -2086,10 +2056,10 @@ static int yy_end(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_expression(YYClass* yySelf, YYStack* yystack)
@@ -2097,8 +2067,6 @@ static int yy_expression(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "expression";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!YY_SEND(apply_, yystack, &yy_sequence, "sequence")) goto failed;
@@ -2115,10 +2083,10 @@ static int yy_expression(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_EQUAL(YYClass* yySelf, YYStack* yystack)
@@ -2126,8 +2094,6 @@ static int yy_EQUAL(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "EQUAL";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchChar(yySelf, '=')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -2139,10 +2105,10 @@ static int yy_EQUAL(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_identifier(YYClass* yySelf, YYStack* yystack)
@@ -2151,15 +2117,13 @@ static int yy_identifier(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
-#define yytext yySelf->text;
-
   start_rule:;
-  { YY_CALL(begin_); }  if (!yymatchClass(yySelf, "-a-zA-Z_", (unsigned char *)"\000\000\000\000\000\040\000\000\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;
+  { YY_SEND(begin_, yystack); }  if (!yymatchClass(yySelf, "-a-zA-Z_", (unsigned char *)"\000\000\000\000\000\040\000\000\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;
   l65:;	
   YYState yystate66;
   YY_SEND(save_, &yystate66);  if (!yymatchClass(yySelf, "-a-zA-Z_0-9", (unsigned char *)"\000\000\000\000\000\040\377\003\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l66; goto l65;
   l66:;	
-  YY_SEND(restore_, &yystate66);  { YY_CALL(end_); }  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  YY_SEND(restore_, &yystate66);  { YY_SEND(end_, yystack); }  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
@@ -2168,10 +2132,10 @@ static int yy_identifier(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_RPERCENT(YYClass* yySelf, YYStack* yystack)
@@ -2179,8 +2143,6 @@ static int yy_RPERCENT(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "RPERCENT";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!yymatchString(yySelf, "%}")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -2192,10 +2154,10 @@ static int yy_RPERCENT(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_end_of_file(YYClass* yySelf, YYStack* yystack)
@@ -2203,8 +2165,6 @@ static int yy_end_of_file(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "end_of_file";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
 
@@ -2220,10 +2180,10 @@ static int yy_end_of_file(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_trailer(YYClass* yySelf, YYStack* yystack)
@@ -2232,15 +2192,13 @@ static int yy_trailer(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
-#define yytext yySelf->text;
-
   start_rule:;
-  if (!yymatchString(yySelf, "%%")) goto failed;  { YY_CALL(begin_); }
+  if (!yymatchString(yySelf, "%%")) goto failed;  { YY_SEND(begin_, yystack); }
   l68:;	
   YYState yystate69;
   YY_SEND(save_, &yystate69);  if (!yymatchDot(yySelf)) goto l69; goto l68;
   l69:;	
-  YY_SEND(restore_, &yystate69);  { YY_CALL(end_); }  yyDo(yySelf, yy_1_trailer, 0, yystate0);
+  YY_SEND(restore_, &yystate69);  { YY_SEND(end_, yystack); }  yyDo(yySelf, yy_1_trailer, 0, yystate0);
   goto passed;
 
   passed:
@@ -2249,10 +2207,10 @@ static int yy_trailer(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_definition(YYClass* yySelf, YYStack* yystack)
@@ -2260,8 +2218,6 @@ static int yy_definition(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "definition";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!YY_SEND(apply_, yystack, &yy_identifier, "identifier")) goto failed;  yyDo(yySelf, yy_1_definition, 0, yystate0);  if (!YY_SEND(apply_, yystack, &yy_EQUAL, "EQUAL")) goto failed;
@@ -2287,10 +2243,10 @@ static int yy_definition(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_declaration(YYClass* yySelf, YYStack* yystack)
@@ -2299,10 +2255,8 @@ static int yy_declaration(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
-#define yytext yySelf->text;
-
   start_rule:;
-  if (!yymatchString(yySelf, "%{")) goto failed;  { YY_CALL(begin_); }
+  if (!yymatchString(yySelf, "%{")) goto failed;  { YY_SEND(begin_, yystack); }
   l76:;	
   YYState yystate77;
   YY_SEND(save_, &yystate77);
@@ -2311,7 +2265,7 @@ static int yy_declaration(YYClass* yySelf, YYStack* yystack)
   l78:;	
   YY_SEND(restore_, &yystate78);  if (!yymatchDot(yySelf)) goto l77; goto l76;
   l77:;	
-  YY_SEND(restore_, &yystate77);  { YY_CALL(end_); }  if (!YY_SEND(apply_, yystack, &yy_RPERCENT, "RPERCENT")) goto failed;  yyDo(yySelf, yy_1_declaration, 0, yystate0);
+  YY_SEND(restore_, &yystate77);  { YY_SEND(end_, yystack); }  if (!YY_SEND(apply_, yystack, &yy_RPERCENT, "RPERCENT")) goto failed;  yyDo(yySelf, yy_1_declaration, 0, yystate0);
   goto passed;
 
   passed:
@@ -2320,10 +2274,10 @@ static int yy_declaration(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy__(YYClass* yySelf, YYStack* yystack)
@@ -2331,8 +2285,6 @@ static int yy__(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "_";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
 
@@ -2350,10 +2302,10 @@ static int yy__(YYClass* yySelf, YYStack* yystack)
 
   passed:
   return 1;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 
 static int yy_grammar(YYClass* yySelf, YYStack* yystack)
@@ -2361,8 +2313,6 @@ static int yy_grammar(YYClass* yySelf, YYStack* yystack)
   static const char* yyrulename = "grammar";
 
   YYState yystate0 = yystack->begin;
-
-#define yytext yySelf->text;
 
   start_rule:;
   if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
@@ -2394,10 +2344,10 @@ static int yy_grammar(YYClass* yySelf, YYStack* yystack)
 
   failed:
   return 0;
-
-#undef yytext
   // for references ONLY
   (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
 }
 /*-*- mode: c;-*-*/
 
@@ -2427,19 +2377,20 @@ static int yyParseFrom(YYClass* yySelf, YYRule yystart, const char* name)
     return yyok;
 
     // for references ONLY
+#if 0
     (void)yyrefill;
     (void)yymatchDot;
     (void)yymatchChar;
     (void)yymatchString;
     (void)yymatchClass;
     (void)yyDo;
-    (void)yyText;
     (void)yyDone;
     (void)yyCommit;
     (void)yyAccept;
     (void)yyPush;
     (void)yyPop;
     (void)yySet;
+#endif
 }
 
 int yyparse(void) {
