@@ -418,20 +418,15 @@ static int input_method(YYClass* yySelf, char* buffer, int max_size) {
 }
 
 static void debug_method(YYClass* yySelf, const char* format, ...) {
+    /* default action do nothing */
 }
 
 static void mark_method(YYClass* yySelf, const char* yyrulename) {
-/* user defined mark (useful in marking parse stack) */
-#ifdef YY_MARK
-    YY_MARK;
-#endif
+    /* default action do nothing */
 }
 
 static void collect_method(YYClass* yySelf, const char* yyrulename) {
-/* user defined collect (useful in collecting from a parse stack) */
-#ifdef YY_COLLECT
-    YY_COLLECT;
-#endif
+    /* default action do nothing */
 }
 
 static int apply_method(YYClass* yySelf, YYStack* yystack, YYRule function, const char* name) {
