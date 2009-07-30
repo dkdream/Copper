@@ -98,6 +98,22 @@ end-of-file=	!.
 
 %%
 
+static inline int my_yy_input(YYClass* yySelf, char* buffer, int max_size) {
+    int chr = getc(input);
+    if ('\n' == chr || '\r' == chr) ++lineNumber;
+    if (EOF == chr) return 0;
+    buffer[0] = chr;
+    return 1;
+}
+
+static void my_debugger(YYClass* yySelf, const char* format, ...) {
+    if (!verboseFlag) return;
+    va_list arguments;
+    va_start(arguments, format);
+    vfprintf(stderr, format, arguments);
+    va_end(arguments);
+}
+
 void yyerror(char *message)
 {
   fprintf(stderr, "%s:%d: %s", fileName, lineNumber, message);
@@ -160,10 +176,10 @@ int main(int argc, char **argv)
   Node *n;
   int   c;
 
-  output= stdout;
-  input= stdin;
-  lineNumber= 1;
-  fileName= "<stdin>";
+  output     = stdout;
+  input      = stdin;
+  lineNumber = 1;
+  fileName   = "<stdin>";
 
   while (-1 != (c= getopt(argc, argv, "Vho:v")))
     {
@@ -196,6 +212,12 @@ int main(int argc, char **argv)
     }
   argc -= optind;
   argv += optind;
+
+  theParser = malloc(sizeof(YYClass));
+  yyInit(theParser);
+
+  theParser->input_ = my_yy_input;
+  theParser->debug_ = my_debugger;
 
   if (argc)
     {

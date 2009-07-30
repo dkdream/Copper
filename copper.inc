@@ -31,29 +31,10 @@ void makeTrailer(char *text);
 
 void yyerror(char *message);
 
-#define YY_INPUT(buf, max) my_yy_input(buf, max)
-#define YY_DEBUG(format, args...) my_debugger(format, ## args)
-
-static inline int my_yy_input(char* buffer, int max_size) {
-    int chr = getc(input);
-    if ('\n' == chr || '\r' == chr) ++lineNumber;
-    if (EOF == chr) return 0;
-    buffer[0] = chr;
-    return 1;
-}
-
 static inline void checkRule(char *name) {
     if (push(beginRule(findRule(name)))->rule.expression) {
         fprintf(stderr, "rule '%s' redefined\n", name);
     }
-}
-
-static void my_debugger(const char* format, ...) {
-    if (!verboseFlag) return;
-    va_list arguments;
-    va_start(arguments, format);
-    vfprintf(stderr, format, arguments);
-    va_end(arguments);
 }
 
 enum RuleKind {

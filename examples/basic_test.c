@@ -18,20 +18,6 @@ int getline(char *buf, int max);
 
 # define min(x, y) ((x) < (y) ? (x) : (y))
 
-# define YY_INPUT(buf, max_size) my_yy_input(buf, max_size)
-
-static inline int my_yy_input(char* buf, int max_size) {
-  int result = 0;
-  if ((pc >= 0) && (pc < numLines)) {
-    line *linep= lines+pc++;
-    result= min(max_size, linep->length);
-    memcpy(buf, linep->text, result);
-  } else {
-    result = getline(buf, max_size);
-  }
-  return result;
-}
-
 union value {
   int		  number;
   char	 *string;
@@ -94,6 +80,18 @@ void error(char *fmt, ...)
   fprintf(stderr, "\n");
   va_end(ap);
   epc= pc= -1;
+}
+
+static inline int my_yy_input(YYClass* yySelf, char* buf, int max_size) {
+  int result = 0;
+  if ((pc >= 0) && (pc < numLines)) {
+    line *linep= lines+pc++;
+    result= min(max_size, linep->length);
+    memcpy(buf, linep->text, result);
+  } else {
+    result = getline(buf, max_size);
+  }
+  return result;
 }
 
 #ifdef USE_READLINE
@@ -256,6 +254,11 @@ int main(int argc, char **argv)
 	load(*++argv);
       pc= 0;
     }
+
+  theParser = malloc(sizeof(YYClass));
+  yyInit(theParser);
+
+  theParser->input_ = my_yy_input;
 
   while (!feof(stdin))
     yyparse();

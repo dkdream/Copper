@@ -411,14 +411,10 @@ static void end_method(YYClass* yySelf, YYStack* yystack) {
 }
 
 static int input_method(YYClass* yySelf, char* buffer, int max_size) {
-#ifdef YY_INPUT
-    return YY_INPUT(buffer, max_size);
-#else
     int yyc = getchar();
     if (EOF == yyc) return 0;
     buffer[0] = yyc;
     return 1;
-#endif
 }
 
 static void debug_method(YYClass* yySelf, const char* format, ...) {
