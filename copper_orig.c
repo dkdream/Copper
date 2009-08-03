@@ -106,11 +106,12 @@ struct _yystack {
 };
 
 struct _yythunk {
-    int        begin;
-    int        end;
-    YYState    state;
-    YYAction   action;
-    YYArgument argument;
+    const char* name;
+    int         begin;
+    int         end;
+    YYState     state;
+    YYAction    action;
+    YYArgument  argument;
 };
 
 struct _yycache_node {
@@ -119,8 +120,6 @@ struct _yycache_node {
     void*   function;
     int     result;
     int     pos;
-    int     begin;
-    int     end;
     int     count;
     YYThunk thunk[0];
 };
@@ -195,7 +194,7 @@ static inline void yyAddNode(YYClass* yySelf, YYStack *yystack, int result) {
         // -- skip it
         if (start.pos == yySelf->pos) return;
 
-        // if no thunks were added then check check the length
+        // if no thunks were added then check the length
         if (start.thunkpos != yySelf->thunkpos) {
             count = yySelf->thunkpos - start.thunkpos;
             // wrong direction
@@ -221,8 +220,6 @@ static inline void yyAddNode(YYClass* yySelf, YYStack *yystack, int result) {
     node->location = start.pos;
     node->function = function;
     node->result   = result;
-    node->begin    = yySelf->begin;
-    node->end      = yySelf->end;
 
     if (result) {
         node->pos = yySelf->pos;
@@ -261,8 +258,6 @@ static inline int yyCheckNode(YYClass* yySelf, YYStack *yystack, int* result)
         if (node->function != function) continue;
         *result = node->result;
         yySelf->pos   = node->pos;
-        yySelf->begin = node->begin;
-        yySelf->end   = node->end;
 
         int count = node->count;
 
@@ -358,12 +353,15 @@ static inline int yymatchClass(YYClass* yySelf, const char* cls, unsigned char *
     return 0;
 }
 
-static inline void yyDo(YYClass* yySelf, YYAction action, YYArgument arg, YYState state) {
+static inline void yyDo(YYClass* yySelf, const char* actionname, YYAction action, YYArgument arg, YYState state) {
 
     yyResizeDo(yySelf,1);
 
     YYThunk *thunk = &(yySelf->thunks[yySelf->thunkpos]);
 
+    YY_SEND(debug_,"     yyDo [%d] %p %s\n", yySelf->thunkpos, action, actionname);
+
+    thunk->name     = actionname;
     thunk->begin    = yySelf->begin;
     thunk->end      = yySelf->end;
     thunk->state    = state;
@@ -410,9 +408,13 @@ static inline void yyDone(YYClass* yySelf) {
     for (pos = 0;  pos < yySelf->thunkpos;  ++pos) {
         YYThunk *thunk = &yySelf->thunks[pos];
 
-        YY_SEND(debug_,"DO [%d] %p : ", pos, thunk->action);
+        YY_SEND(debug_,"DO [%d] %p %s : ", pos, thunk->action, thunk->name);
 
-        thunk->action(yySelf, yySelf->thunks[pos]);
+        if (thunk->action) {
+            thunk->action(yySelf, yySelf->thunks[pos]);
+        } else {
+            YY_SEND(debug_,"\n");
+        }
     }
     yySelf->thunkpos = 0;
 }
@@ -487,6 +489,8 @@ static void begin_method(YYClass* yySelf, YYStack* yystack) {
 
 static void end_method(YYClass* yySelf, YYStack* yystack) {
     yySelf->end = yySelf->pos;
+
+    YY_SEND(debug_,"BEGIN %d END %d\n", yySelf->begin, yySelf->end);
 }
 
 static int input_method(YYClass* yySelf, char* buffer, int max_size) {
@@ -497,20 +501,15 @@ static int input_method(YYClass* yySelf, char* buffer, int max_size) {
 }
 
 static void debug_method(YYClass* yySelf, const char* format, ...) {
+    /* default action do nothing */
 }
 
 static void mark_method(YYClass* yySelf, const char* yyrulename) {
-/* user defined mark (useful in marking parse stack) */
-#ifdef YY_MARK
-    YY_MARK;
-#endif
+    /* default action do nothing */
 }
 
 static void collect_method(YYClass* yySelf, const char* yyrulename) {
-/* user defined collect (useful in collecting from a parse stack) */
-#ifdef YY_COLLECT
-    YY_COLLECT;
-#endif
+    /* default action do nothing */
 }
 
 static int apply_method(YYClass* yySelf, YYStack* yystack, YYRule function, const char* name) {
@@ -1763,35 +1762,35 @@ static int yy_primary(YYClass* yySelf, YYStack* yystack)
   start_rule:;
 
   YYState yystate37;
-  YY_SEND(save_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_identifier, "identifier")) goto l38;  yyDo(yySelf, yy_1_primary, 0, yystate0);  if (!YY_SEND(apply_, yystack, &yy_COLON, "COLON")) goto l38;  if (!YY_SEND(apply_, yystack, &yy_identifier, "identifier")) goto l38;
+  YY_SEND(save_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_identifier, "identifier")) goto l38;  yyDo(yySelf, " yy_1_primary", yy_1_primary, 0, yystate0);  if (!YY_SEND(apply_, yystack, &yy_COLON, "COLON")) goto l38;  if (!YY_SEND(apply_, yystack, &yy_identifier, "identifier")) goto l38;
   YYState yystate39;
   YY_SEND(save_, &yystate39);  if (!YY_SEND(apply_, yystack, &yy_EQUAL, "EQUAL")) goto l39; goto l38;
   l39:;	
-  YY_SEND(restore_, &yystate39);  yyDo(yySelf, yy_2_primary, 0, yystate0); goto l37;
+  YY_SEND(restore_, &yystate39);  yyDo(yySelf, " yy_2_primary", yy_2_primary, 0, yystate0); goto l37;
   l38:;	
   YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_identifier, "identifier")) goto l40;
   YYState yystate41;
   YY_SEND(save_, &yystate41);  if (!YY_SEND(apply_, yystack, &yy_EQUAL, "EQUAL")) goto l41; goto l40;
   l41:;	
-  YY_SEND(restore_, &yystate41);  yyDo(yySelf, yy_3_primary, 0, yystate0); goto l37;
+  YY_SEND(restore_, &yystate41);  yyDo(yySelf, " yy_3_primary", yy_3_primary, 0, yystate0); goto l37;
   l40:;	
   YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_OPEN, "OPEN")) goto l42;  if (!YY_SEND(apply_, yystack, &yy_expression, "expression")) goto l42;  if (!YY_SEND(apply_, yystack, &yy_CLOSE, "CLOSE")) goto l42; goto l37;
   l42:;	
-  YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_literal, "literal")) goto l43;  yyDo(yySelf, yy_4_primary, 0, yystate0); goto l37;
+  YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_literal, "literal")) goto l43;  yyDo(yySelf, " yy_4_primary", yy_4_primary, 0, yystate0); goto l37;
   l43:;	
-  YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_class, "class")) goto l44;  yyDo(yySelf, yy_5_primary, 0, yystate0); goto l37;
+  YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_class, "class")) goto l44;  yyDo(yySelf, " yy_5_primary", yy_5_primary, 0, yystate0); goto l37;
   l44:;	
-  YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_DOT, "DOT")) goto l45;  yyDo(yySelf, yy_6_primary, 0, yystate0); goto l37;
+  YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_DOT, "DOT")) goto l45;  yyDo(yySelf, " yy_6_primary", yy_6_primary, 0, yystate0); goto l37;
   l45:;	
-  YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_action, "action")) goto l46;  yyDo(yySelf, yy_7_primary, 0, yystate0); goto l37;
+  YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_action, "action")) goto l46;  yyDo(yySelf, " yy_7_primary", yy_7_primary, 0, yystate0); goto l37;
   l46:;	
-  YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_BEGIN, "BEGIN")) goto l47;  yyDo(yySelf, yy_8_primary, 0, yystate0); goto l37;
+  YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_BEGIN, "BEGIN")) goto l47;  yyDo(yySelf, " yy_8_primary", yy_8_primary, 0, yystate0); goto l37;
   l47:;	
-  YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_END, "END")) goto l48;  yyDo(yySelf, yy_9_primary, 0, yystate0); goto l37;
+  YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_END, "END")) goto l48;  yyDo(yySelf, " yy_9_primary", yy_9_primary, 0, yystate0); goto l37;
   l48:;	
-  YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_MARK, "MARK")) goto l49;  yyDo(yySelf, yy_10_primary, 0, yystate0); goto l37;
+  YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_MARK, "MARK")) goto l49;  yyDo(yySelf, " yy_10_primary", yy_10_primary, 0, yystate0); goto l37;
   l49:;	
-  YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_COLLECT, "COLLECT")) goto failed;  yyDo(yySelf, yy_11_primary, 0, yystate0);
+  YY_SEND(restore_, &yystate37);  if (!YY_SEND(apply_, yystack, &yy_COLLECT, "COLLECT")) goto failed;  yyDo(yySelf, " yy_11_primary", yy_11_primary, 0, yystate0);
   l37:;	
   goto passed;
 
@@ -1840,11 +1839,11 @@ static int yy_suffix(YYClass* yySelf, YYStack* yystack)
   YYState yystate50;
   YY_SEND(save_, &yystate50);
   YYState yystate52;
-  YY_SEND(save_, &yystate52);  if (!YY_SEND(apply_, yystack, &yy_QUESTION, "QUESTION")) goto l53;  yyDo(yySelf, yy_1_suffix, 0, yystate0); goto l52;
+  YY_SEND(save_, &yystate52);  if (!YY_SEND(apply_, yystack, &yy_QUESTION, "QUESTION")) goto l53;  yyDo(yySelf, " yy_1_suffix", yy_1_suffix, 0, yystate0); goto l52;
   l53:;	
-  YY_SEND(restore_, &yystate52);  if (!YY_SEND(apply_, yystack, &yy_STAR, "STAR")) goto l54;  yyDo(yySelf, yy_2_suffix, 0, yystate0); goto l52;
+  YY_SEND(restore_, &yystate52);  if (!YY_SEND(apply_, yystack, &yy_STAR, "STAR")) goto l54;  yyDo(yySelf, " yy_2_suffix", yy_2_suffix, 0, yystate0); goto l52;
   l54:;	
-  YY_SEND(restore_, &yystate52);  if (!YY_SEND(apply_, yystack, &yy_PLUS, "PLUS")) goto l50;  yyDo(yySelf, yy_3_suffix, 0, yystate0);
+  YY_SEND(restore_, &yystate52);  if (!YY_SEND(apply_, yystack, &yy_PLUS, "PLUS")) goto l50;  yyDo(yySelf, " yy_3_suffix", yy_3_suffix, 0, yystate0);
   l52:;	 goto l51;
   l50:;	
   YY_SEND(restore_, &yystate50);
@@ -1894,11 +1893,11 @@ static int yy_prefix(YYClass* yySelf, YYStack* yystack)
   start_rule:;
 
   YYState yystate55;
-  YY_SEND(save_, &yystate55);  if (!YY_SEND(apply_, yystack, &yy_AND, "AND")) goto l56;  if (!YY_SEND(apply_, yystack, &yy_action, "action")) goto l56;  yyDo(yySelf, yy_1_prefix, 0, yystate0); goto l55;
+  YY_SEND(save_, &yystate55);  if (!YY_SEND(apply_, yystack, &yy_AND, "AND")) goto l56;  if (!YY_SEND(apply_, yystack, &yy_action, "action")) goto l56;  yyDo(yySelf, " yy_1_prefix", yy_1_prefix, 0, yystate0); goto l55;
   l56:;	
-  YY_SEND(restore_, &yystate55);  if (!YY_SEND(apply_, yystack, &yy_AND, "AND")) goto l57;  if (!YY_SEND(apply_, yystack, &yy_suffix, "suffix")) goto l57;  yyDo(yySelf, yy_2_prefix, 0, yystate0); goto l55;
+  YY_SEND(restore_, &yystate55);  if (!YY_SEND(apply_, yystack, &yy_AND, "AND")) goto l57;  if (!YY_SEND(apply_, yystack, &yy_suffix, "suffix")) goto l57;  yyDo(yySelf, " yy_2_prefix", yy_2_prefix, 0, yystate0); goto l55;
   l57:;	
-  YY_SEND(restore_, &yystate55);  if (!YY_SEND(apply_, yystack, &yy_NOT, "NOT")) goto l58;  if (!YY_SEND(apply_, yystack, &yy_suffix, "suffix")) goto l58;  yyDo(yySelf, yy_3_prefix, 0, yystate0); goto l55;
+  YY_SEND(restore_, &yystate55);  if (!YY_SEND(apply_, yystack, &yy_NOT, "NOT")) goto l58;  if (!YY_SEND(apply_, yystack, &yy_suffix, "suffix")) goto l58;  yyDo(yySelf, " yy_3_prefix", yy_3_prefix, 0, yystate0); goto l55;
   l58:;	
   YY_SEND(restore_, &yystate55);  if (!YY_SEND(apply_, yystack, &yy_suffix, "suffix")) goto failed;
   l55:;	
@@ -1948,7 +1947,7 @@ static int yy_sequence(YYClass* yySelf, YYStack* yystack)
   if (!YY_SEND(apply_, yystack, &yy_prefix, "prefix")) goto failed;
   l59:;	
   YYState yystate60;
-  YY_SEND(save_, &yystate60);  if (!YY_SEND(apply_, yystack, &yy_prefix, "prefix")) goto l60;  yyDo(yySelf, yy_1_sequence, 0, yystate0); goto l59;
+  YY_SEND(save_, &yystate60);  if (!YY_SEND(apply_, yystack, &yy_prefix, "prefix")) goto l60;  yyDo(yySelf, " yy_1_sequence", yy_1_sequence, 0, yystate0); goto l59;
   l60:;	
   YY_SEND(restore_, &yystate60);
   goto passed;
@@ -2021,7 +2020,7 @@ static int yy_begin(YYClass* yySelf, YYStack* yystack)
   YYState yystate0 = yystack->begin;
 
   start_rule:;
-  if (!yymatchString(yySelf, "%begin")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;  if (!YY_SEND(apply_, yystack, &yy_action, "action")) goto failed;  yyDo(yySelf, yy_1_begin, 0, yystate0);
+  if (!yymatchString(yySelf, "%begin")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;  if (!YY_SEND(apply_, yystack, &yy_action, "action")) goto failed;  yyDo(yySelf, " yy_1_begin", yy_1_begin, 0, yystate0);
   goto passed;
 
   passed:
@@ -2043,7 +2042,7 @@ static int yy_end(YYClass* yySelf, YYStack* yystack)
   YYState yystate0 = yystack->begin;
 
   start_rule:;
-  if (!yymatchString(yySelf, "%end")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;  if (!YY_SEND(apply_, yystack, &yy_action, "action")) goto failed;  yyDo(yySelf, yy_1_end, 0, yystate0);
+  if (!yymatchString(yySelf, "%end")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;  if (!YY_SEND(apply_, yystack, &yy_action, "action")) goto failed;  yyDo(yySelf, " yy_1_end", yy_1_end, 0, yystate0);
   goto passed;
 
   passed:
@@ -2068,7 +2067,7 @@ static int yy_expression(YYClass* yySelf, YYStack* yystack)
   if (!YY_SEND(apply_, yystack, &yy_sequence, "sequence")) goto failed;
   l63:;	
   YYState yystate64;
-  YY_SEND(save_, &yystate64);  if (!YY_SEND(apply_, yystack, &yy_BAR, "BAR")) goto l64;  if (!YY_SEND(apply_, yystack, &yy_sequence, "sequence")) goto l64;  yyDo(yySelf, yy_1_expression, 0, yystate0); goto l63;
+  YY_SEND(save_, &yystate64);  if (!YY_SEND(apply_, yystack, &yy_BAR, "BAR")) goto l64;  if (!YY_SEND(apply_, yystack, &yy_sequence, "sequence")) goto l64;  yyDo(yySelf, " yy_1_expression", yy_1_expression, 0, yystate0); goto l63;
   l64:;	
   YY_SEND(restore_, &yystate64);
   goto passed;
@@ -2194,7 +2193,7 @@ static int yy_trailer(YYClass* yySelf, YYStack* yystack)
   YYState yystate69;
   YY_SEND(save_, &yystate69);  if (!yymatchDot(yySelf)) goto l69; goto l68;
   l69:;	
-  YY_SEND(restore_, &yystate69);  { YY_SEND(end_, yystack); }  yyDo(yySelf, yy_1_trailer, 0, yystate0);
+  YY_SEND(restore_, &yystate69);  { YY_SEND(end_, yystack); }  yyDo(yySelf, " yy_1_trailer", yy_1_trailer, 0, yystate0);
   goto passed;
 
   passed:
@@ -2216,15 +2215,15 @@ static int yy_definition(YYClass* yySelf, YYStack* yystack)
   YYState yystate0 = yystack->begin;
 
   start_rule:;
-  if (!YY_SEND(apply_, yystack, &yy_identifier, "identifier")) goto failed;  yyDo(yySelf, yy_1_definition, 0, yystate0);  if (!YY_SEND(apply_, yystack, &yy_EQUAL, "EQUAL")) goto failed;
+  if (!YY_SEND(apply_, yystack, &yy_identifier, "identifier")) goto failed;  yyDo(yySelf, " yy_1_definition", yy_1_definition, 0, yystate0);  if (!YY_SEND(apply_, yystack, &yy_EQUAL, "EQUAL")) goto failed;
   YYState yystate70;
-  YY_SEND(save_, &yystate70);  if (!YY_SEND(apply_, yystack, &yy_expression, "expression")) goto l71;  if (!YY_SEND(apply_, yystack, &yy_end, "end")) goto l71;  yyDo(yySelf, yy_2_definition, 0, yystate0); goto l70;
+  YY_SEND(save_, &yystate70);  if (!YY_SEND(apply_, yystack, &yy_expression, "expression")) goto l71;  if (!YY_SEND(apply_, yystack, &yy_end, "end")) goto l71;  yyDo(yySelf, " yy_2_definition", yy_2_definition, 0, yystate0); goto l70;
   l71:;	
-  YY_SEND(restore_, &yystate70);  if (!YY_SEND(apply_, yystack, &yy_expression, "expression")) goto l72;  yyDo(yySelf, yy_3_definition, 0, yystate0); goto l70;
+  YY_SEND(restore_, &yystate70);  if (!YY_SEND(apply_, yystack, &yy_expression, "expression")) goto l72;  yyDo(yySelf, " yy_3_definition", yy_3_definition, 0, yystate0); goto l70;
   l72:;	
-  YY_SEND(restore_, &yystate70);  if (!YY_SEND(apply_, yystack, &yy_begin, "begin")) goto l73;  if (!YY_SEND(apply_, yystack, &yy_expression, "expression")) goto l73;  if (!YY_SEND(apply_, yystack, &yy_end, "end")) goto l73;  yyDo(yySelf, yy_4_definition, 0, yystate0); goto l70;
+  YY_SEND(restore_, &yystate70);  if (!YY_SEND(apply_, yystack, &yy_begin, "begin")) goto l73;  if (!YY_SEND(apply_, yystack, &yy_expression, "expression")) goto l73;  if (!YY_SEND(apply_, yystack, &yy_end, "end")) goto l73;  yyDo(yySelf, " yy_4_definition", yy_4_definition, 0, yystate0); goto l70;
   l73:;	
-  YY_SEND(restore_, &yystate70);  if (!YY_SEND(apply_, yystack, &yy_begin, "begin")) goto failed;  if (!YY_SEND(apply_, yystack, &yy_expression, "expression")) goto failed;  yyDo(yySelf, yy_5_definition, 0, yystate0);
+  YY_SEND(restore_, &yystate70);  if (!YY_SEND(apply_, yystack, &yy_begin, "begin")) goto failed;  if (!YY_SEND(apply_, yystack, &yy_expression, "expression")) goto failed;  yyDo(yySelf, " yy_5_definition", yy_5_definition, 0, yystate0);
   l70:;	
   YYState yystate74;
   YY_SEND(save_, &yystate74);  if (!YY_SEND(apply_, yystack, &yy_SEMICOLON, "SEMICOLON")) goto l74; goto l75;
@@ -2261,7 +2260,7 @@ static int yy_declaration(YYClass* yySelf, YYStack* yystack)
   l78:;	
   YY_SEND(restore_, &yystate78);  if (!yymatchDot(yySelf)) goto l77; goto l76;
   l77:;	
-  YY_SEND(restore_, &yystate77);  { YY_SEND(end_, yystack); }  if (!YY_SEND(apply_, yystack, &yy_RPERCENT, "RPERCENT")) goto failed;  yyDo(yySelf, yy_1_declaration, 0, yystate0);
+  YY_SEND(restore_, &yystate77);  { YY_SEND(end_, yystack); }  if (!YY_SEND(apply_, yystack, &yy_RPERCENT, "RPERCENT")) goto failed;  yyDo(yySelf, " yy_1_declaration", yy_1_declaration, 0, yystate0);
   goto passed;
 
   passed:

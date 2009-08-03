@@ -133,7 +133,7 @@ static void Node_compile_c_ko(Node *node, int ko)
               node->name.rule->rule.name);
       jump(ko);
       if (node->name.variable)
-	fprintf(output, "  yyDo(yySelf, yySet, %d, yystate0);", node->name.variable->variable.offset);
+	fprintf(output, "  yyDo(yySelf, \"yySet\", yySet, %d, yystate0);", node->name.variable->variable.offset);
       break;
 
     case Character:
@@ -156,7 +156,7 @@ static void Node_compile_c_ko(Node *node, int ko)
       break;
 
     case Action:
-      fprintf(output, "  yyDo(yySelf, yy%s, 0, yystate0);", node->action.name);
+        fprintf(output, "  yyDo(yySelf, \" yy%s\", yy%s, 0, yystate0);", node->action.name, node->action.name);
       break;
 
     case Predicate:
@@ -330,7 +330,7 @@ static void Rule_compile_c2(Node *node)
       fprintf(output, "\n  YYState yystate0 = yystack->begin;\n");
 
       if (node->rule.variables)
-          fprintf(output, "  yyDo(yySelf, yyPush, %d, yystate0);\n", countVariables(node->rule.variables));
+          fprintf(output, "  yyDo(yySelf, \"yyPush\", yyPush, %d, yystate0);\n", countVariables(node->rule.variables));
 
       if (node->rule.begin)
         {
@@ -347,7 +347,7 @@ static void Rule_compile_c2(Node *node)
           fprintf(output, "\n{ %s }\n", node->rule.end);
 
       if (node->rule.variables)
-          fprintf(output, "  yyDo(yySelf, yyPop, %d, yystate0);", countVariables(node->rule.variables));
+          fprintf(output, "  yyDo(yySelf, \"yyPop\", yyPop, %d, yystate0);", countVariables(node->rule.variables));
 
       fprintf(output, "\n  return 1;");
 

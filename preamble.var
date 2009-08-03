@@ -27,11 +27,12 @@ struct _yystack {
 };
 
 struct _yythunk {
-    int        begin;
-    int        end;
-    YYState    state;
-    YYAction   action;
-    YYArgument argument;
+    const char* name;
+    int         begin;
+    int         end;
+    YYState     state;
+    YYAction    action;
+    YYArgument  argument;
 };
 
 struct _yycache_node {
@@ -40,8 +41,6 @@ struct _yycache_node {
     void*   function;
     int     result;
     int     pos;
-    int     begin;
-    int     end;
     int     count;
     YYThunk thunk[0];
 };
@@ -116,7 +115,7 @@ static inline void yyAddNode(YYClass* yySelf, YYStack *yystack, int result) {
         // -- skip it
         if (start.pos == yySelf->pos) return;
 
-        // if no thunks were added then check check the length
+        // if no thunks were added then check the length
         if (start.thunkpos != yySelf->thunkpos) {
             count = yySelf->thunkpos - start.thunkpos;
             // wrong direction
@@ -142,8 +141,6 @@ static inline void yyAddNode(YYClass* yySelf, YYStack *yystack, int result) {
     node->location = start.pos;
     node->function = function;
     node->result   = result;
-    node->begin    = yySelf->begin;
-    node->end      = yySelf->end;
 
     if (result) {
         node->pos = yySelf->pos;
@@ -182,8 +179,6 @@ static inline int yyCheckNode(YYClass* yySelf, YYStack *yystack, int* result)
         if (node->function != function) continue;
         *result = node->result;
         yySelf->pos   = node->pos;
-        yySelf->begin = node->begin;
-        yySelf->end   = node->end;
 
         int count = node->count;
 
@@ -279,12 +274,15 @@ static inline int yymatchClass(YYClass* yySelf, const char* cls, unsigned char *
     return 0;
 }
 
-static inline void yyDo(YYClass* yySelf, YYAction action, YYArgument arg, YYState state) {
+static inline void yyDo(YYClass* yySelf, const char* actionname, YYAction action, YYArgument arg, YYState state) {
 
     yyResizeDo(yySelf,1);
 
     YYThunk *thunk = &(yySelf->thunks[yySelf->thunkpos]);
 
+    YY_SEND(debug_,"     yyDo [%d] %p %s\n", yySelf->thunkpos, action, actionname);
+
+    thunk->name     = actionname;
     thunk->begin    = yySelf->begin;
     thunk->end      = yySelf->end;
     thunk->state    = state;
@@ -331,9 +329,13 @@ static inline void yyDone(YYClass* yySelf) {
     for (pos = 0;  pos < yySelf->thunkpos;  ++pos) {
         YYThunk *thunk = &yySelf->thunks[pos];
 
-        YY_SEND(debug_,"DO [%d] %p : ", pos, thunk->action);
+        YY_SEND(debug_,"DO [%d] %p %s : ", pos, thunk->action, thunk->name);
 
-        thunk->action(yySelf, yySelf->thunks[pos]);
+        if (thunk->action) {
+            thunk->action(yySelf, yySelf->thunks[pos]);
+        } else {
+            YY_SEND(debug_,"\n");
+        }
     }
     yySelf->thunkpos = 0;
 }
@@ -408,6 +410,8 @@ static void begin_method(YYClass* yySelf, YYStack* yystack) {
 
 static void end_method(YYClass* yySelf, YYStack* yystack) {
     yySelf->end = yySelf->pos;
+
+    YY_SEND(debug_,"BEGIN %d END %d\n", yySelf->begin, yySelf->end);
 }
 
 static int input_method(YYClass* yySelf, char* buffer, int max_size) {
