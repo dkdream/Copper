@@ -32,7 +32,7 @@ struct _yythunk {
     int         end;
     YYState     state;
     YYAction    action;
-    YYArgument  argument;
+    int         argument;
 };
 
 struct _yycache_node {
@@ -57,9 +57,9 @@ static inline void yyStart(YYClass* yySelf) {
     yySelf->buf       = malloc(yySelf->buflen);
     yySelf->textlen   = 1024;
     yySelf->text      = malloc(yySelf->textlen);
-    yySelf->thunkslen = 32;
+    yySelf->thunkslen = 2;
     yySelf->thunks    = malloc(sizeof(YYThunk) * yySelf->thunkslen);
-    yySelf->valslen   = 32;
+    yySelf->valslen   = 2;
     yySelf->vals      = malloc(sizeof(YYSTYPE) * yySelf->valslen);
     yySelf->begin     = yySelf->end = yySelf->pos = yySelf->limit = yySelf->thunkpos = 0;
     yySelf->text[0]   = '\0';
@@ -93,11 +93,39 @@ static inline void yyClearCache(YYClass* yySelf) {
     }
 }
 
-static inline void yyResizeDo(YYClass* yySelf, int count) {
-    while ((yySelf->thunkpos + count) >= yySelf->thunkslen) {
-        yySelf->thunkslen *= 2;
-        yySelf->thunks     = realloc(yySelf->thunks, sizeof(YYThunk) * yySelf->thunkslen);
+static inline void yyCheckDo(YYClass* yySelf) {
+    int end = yySelf->thunkpos;
+
+    if (1 > end) return;
+
+    int pos = 0;
+    for (pos = 0;  pos < end;  ++pos) {
+        YYThunk *thunk = &yySelf->thunks[pos];
+        if (thunk->action) continue;
+        YY_SEND(debug_,"     yyCheckDo [%d] error\n", pos);
+        break;
     }
+}
+
+static inline void yyResizeDo(YYClass* yySelf, int count) {
+    int marker = yySelf->thunkpos + count;
+    int old    = yySelf->thunkslen;
+
+    if (marker < old) return;
+
+    while (marker >= yySelf->thunkslen) {
+        yySelf->thunkslen *= 2;
+    }
+
+    YY_SEND(debug_,"     yyResizeDo %d -> %d\n", old, yySelf->thunkslen);
+
+    if (yySelf->thunks) {
+        yySelf->thunks = realloc(yySelf->thunks, sizeof(YYThunk) * yySelf->thunkslen);
+    } else {
+        yySelf->thunks = malloc(sizeof(YYThunk) * yySelf->thunkslen);
+    }
+
+    yyCheckDo(yySelf);
 }
 
 static inline void yyAddNode(YYClass* yySelf, YYStack *yystack, int result) {
@@ -274,7 +302,7 @@ static inline int yymatchClass(YYClass* yySelf, const char* cls, unsigned char *
     return 0;
 }
 
-static inline void yyDo(YYClass* yySelf, const char* actionname, YYAction action, YYArgument arg, YYState state) {
+static inline void yyDo(YYClass* yySelf, const char* actionname, YYAction action, int arg, YYState state) {
 
     yyResizeDo(yySelf,1);
 
@@ -374,9 +402,28 @@ static inline int yyAccept(YYClass* yySelf, YYStack* yystack) {
     return 1;
 }
 
+static inline void yyResizeVars(YYClass* yySelf, int count) {
+    int marker = yySelf->frame + count;
+
+    if (0 > marker) return;
+
+    while (marker >= yySelf->valslen) {
+        yySelf->valslen *= 2;
+    }
+
+    YY_SEND(debug_,"do %s %d\n", "stack-resize", yySelf->valslen);
+
+    if (yySelf->vals) {
+        yySelf->vals = realloc(yySelf->vals, sizeof(YYSTYPE) * yySelf->valslen);
+    } else {
+        yySelf->vals = malloc(sizeof(YYSTYPE) * yySelf->valslen);
+    }
+}
+
 static void yyPush(YYClass* yySelf, YYThunk thunk) {
     YY_SEND(debug_,"do %s %d\n", "push", thunk.argument);
-    /* need to check if yySelf->frame > yySelf->valslen */
+    /* need to check if yySelf->frame + thunk.argument >= yySelf->valslen */
+    yyResizeVars(yySelf, thunk.argument);
     yySelf->frame += thunk.argument;
 }
 
@@ -388,6 +435,7 @@ static void yyPop(YYClass* yySelf, YYThunk thunk) {
 
 static void yySet(YYClass* yySelf, YYThunk thunk) {
     YY_SEND(debug_,"do %s v[%d] = %d\n", "set", thunk.argument,  yySelf->result);
+    /* need to check if yySelf->frame + thunk.argument >= yySelf->valslen */
     yySelf->vals[yySelf->frame + thunk.argument] = yySelf->result;
 }
 

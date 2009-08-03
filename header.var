@@ -9,7 +9,6 @@ typedef struct _yystack  YYStack;
 typedef struct _yystate  YYState;
 typedef struct _yythunk  YYThunk;
 typedef struct _yycache  YYCache;
-typedef unsigned         YYArgument;
 
 typedef int  (*YYRule)(YYClass* yySelf, YYStack* stack);
 typedef void (*YYAction)(YYClass* yySelf, YYThunk thunk);
@@ -51,8 +50,8 @@ struct  _yyclass {
     /* data stack */
     YYSTYPE   result;
     int       frame;
-    YYSTYPE * vals;
     int       valslen;
+    YYSTYPE * vals;
 
     /**/
     YYCache * cache;

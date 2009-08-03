@@ -46,9 +46,11 @@ copper.c : copper.cu $(COPPER)
 	$(COPPER) -o $@ $<
 
 check : copper-new .FORCE
-	./copper-new -v -o copper.test copper.cu 2>test_out.log
-	$(DIFF) --ignore-blank-lines  --show-c-function copper.test copper.c
-	-@rm -f copper.test
+	$(MAKE) stage.two.c
+	$(DIFF) --ignore-blank-lines  --show-c-function stage.one.c stage.two.c
+	$(MAKE) test
+	-@rm -f stage.one  stage.one.c stage.one.o stage.two stage.two.c stage.two.o
+	echo PASSED
 
 push : .FORCE
 	mv copper_orig.c copper_orig.c.BAK
@@ -58,12 +60,28 @@ push : .FORCE
 test examples : copper-new .FORCE
 	$(SHELL) -ec '(cd examples;  $(MAKE))'
 
+stage.one.o : stage.one.c
+stage.one.c : copper.cu copper-new
+	./copper-new -v -o $@ copper.cu 2>stage.one.log
+
+stage.one : stage.one.o $(OBJS)
+	$(CC) $(CFLAGS) -o $@ stage.one.o $(OBJS)
+
+stage.two.o : stage.two.c
+stage.two.c : copper.cu stage.one
+	./stage.one -v -o $@ copper.cu 2>stage.two.log
+
+stage.two : stage.two.o $(OBJS)
+	$(CC) $(CFLAGS) -o $@ stage.one.o $(OBJS)
+
 clean : .FORCE
-	rm -f *~ *.o copper.[cd] copper copper-new copper.test compile.inc test_out.log
+	rm -f *~ *.o copper.[cd] copper copper-new compile.inc
+	rm -f stage.one  stage.one.c  stage.one.log  stage.one.o  stage.two  stage.two.c  stage.two.log  stage.two.o
 	$(SHELL) -ec '(cd examples;  $(MAKE) $@)'
 
 clear : .FORCE
-	rm -f copper.test my_copper.o copper-new test_out.log
+	rm -f my_copper.o copper-new
+	rm -f stage.one  stage.one.c  stage.one.log  stage.one.o  stage.two  stage.two.c  stage.two.log  stage.two.o
 
 scrub spotless : clean .FORCE
 	rm -f copper.x ascii2hex.x
