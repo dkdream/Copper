@@ -53,6 +53,7 @@ check : copper-new .FORCE
 push : .FORCE
 	mv copper_orig.c copper_orig.c.BAK
 	cp copper.c copper_orig.c
+	$(MAKE) bootstrap
 
 test examples : copper-new .FORCE
 	$(SHELL) -ec '(cd examples;  $(MAKE))'
