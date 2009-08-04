@@ -43,9 +43,12 @@ check : copper-new .FORCE
 	$(MAKE) stage.two.c
 	$(DIFF) --ignore-blank-lines  --show-c-function stage.one.c stage.two.c
 	$(DIFF) --ignore-blank-lines  --show-c-function header.one header.two
+	$(DIFF) --ignore-blank-lines  --show-c-function footing.one footing.two
 	$(DIFF) --ignore-blank-lines  --show-c-function copper.c stage.two.c
+	$(DIFF) --ignore-blank-lines  --show-c-function header.inc header.two
 	$(MAKE) test
-	-@rm -f stage.one  stage.one.c stage.one.o stage.two stage.two.c stage.two.o
+	-@rm -f stage.one stage.one.c stage.one.o header.one footing.one
+	-@rm -f stage.two stage.two.c stage.two.o header.two footing.two
 	echo PASSED
 
 push : .FORCE
@@ -56,13 +59,13 @@ push : .FORCE
 	$(MAKE) bootstrap
 
 test examples : copper-new .FORCE
-	$(SHELL) -ec '(cd examples;  $(MAKE))'
+	$(SHELL) -ec '(cd examples; $(MAKE))'
 
 
 # --
 
 copper.c : copper.cu $(COPPER)
-	$(COPPER) -v -Hheader.inc -o $@ copper.cu 2>stage.one.log
+	$(COPPER) -v -Hheader.inc -o $@ copper.cu 2>copper.log
 
 copper.o : copper.c
 	$(CC) $(CFLAGS) -DSTAGE_ZERO -c -o $@ $<
@@ -73,7 +76,7 @@ copper-new : copper.o $(OBJS)
 # --
 
 stage.one.c : copper.cu copper-new
-	./copper-new -v -Hheader.one -o $@ copper.cu 2>stage.one.log
+	./copper-new -v -Hheader.one -Ffooting.one -o $@ copper.cu 2>stage.one.log
 
 stage.one.o : stage.one.c
 	$(CC) $(CFLAGS) -DSTAGE_ONE -c -o $@ $<
@@ -84,7 +87,7 @@ stage.one : stage.one.o $(OBJS)
 # --
 
 stage.two.c : copper.cu stage.one
-	./stage.one -v -Hheader.two -o $@ copper.cu 2>stage.two.log
+	./stage.one -v -Hheader.two -Ffooting.two -o $@ copper.cu 2>stage.two.log
 
 stage.two.o : stage.two.c
 	$(CC) $(CFLAGS) -DSTAGE_TWO -c -o $@ $<
@@ -95,8 +98,10 @@ stage.two : stage.two.o $(OBJS)
 # --
 
 clean : .FORCE
-	rm -f *~ *.o copper copper-new compile.inc header.inc header.one header.two
-	rm -f stage.one  stage.one.c  stage.one.log  stage.one.o  stage.two  stage.two.c  stage.two.log  stage.two.o
+	rm -f *~ *.o copper copper-new compile.inc
+	rm -f copper.c header.inc copper.log
+	rm -f stage.one  stage.one.c stage.one.log stage.one.o header.one footing.one
+	rm -f stage.two  stage.two.c stage.two.log stage.two.o header.two footing.one
 	$(SHELL) -ec '(cd examples;  $(MAKE) $@)'
 
 clear : .FORCE
