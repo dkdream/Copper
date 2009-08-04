@@ -390,6 +390,7 @@ static void yy_2_definition (YYClass* yySelf, YYThunk thunk);
 static void yy_1_definition (YYClass* yySelf, YYThunk thunk);
 static void yy_1_trailer (YYClass* yySelf, YYThunk thunk);
 static void yy_1_declaration (YYClass* yySelf, YYThunk thunk);
+static void yy_1_heading (YYClass* yySelf, YYThunk thunk);
 
 static void yy_11_primary(YYClass* yySelf, YYThunk thunk)
 {
@@ -968,6 +969,27 @@ static void yy_1_declaration(YYClass* yySelf, YYThunk thunk)
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
   YY_SEND(debug_, "do yy_1_declaration (%s) '%s'\n", yyrulename, yytext);
+
+   declareRule(yytext); ;
+#undef yy
+#undef yythunkpos
+
+  // for references ONLY
+  (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
+}
+static void yy_1_heading(YYClass* yySelf, YYThunk thunk)
+{
+  static const char* yyrulename = "heading";
+  int   yyleng = yyThunkText(yySelf, thunk);
+  char* yytext = yySelf->text;
+  int   yypos  = yySelf->pos;
+
+#define yy yySelf->result
+#define yythunkpos yySelf->thunkpos
+  YY_SEND(debug_, "do yy_1_heading (%s) '%s'\n", yyrulename, yytext);
 
    makeHeader(yytext); ;
 #undef yy
@@ -1992,6 +2014,28 @@ int yy_declaration(YYClass* yySelf, YYStack* yystack)
   YYState yystate0 = yystack->begin;
 
   start_rule:;
+  if (!yymatchString(yySelf, "%declare")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;  if (!YY_SEND(apply_, yystack, &yy_identifier, "identifier")) goto failed;  yyDo(yySelf, " yy_1_declaration", yy_1_declaration, 0, yystate0);
+  goto passed;
+
+  passed:
+  return 1;
+  goto failed;
+
+  failed:
+  return 0;
+  // for references ONLY
+  (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
+}
+
+int yy_heading(YYClass* yySelf, YYStack* yystack)
+{
+  static const char* yyrulename = "heading";
+
+  YYState yystate0 = yystack->begin;
+
+  start_rule:;
   if (!yymatchString(yySelf, "%{")) goto failed;  { YY_SEND(begin_, yystack); }
   l76:;	
   YYState yystate77;
@@ -2001,7 +2045,7 @@ int yy_declaration(YYClass* yySelf, YYStack* yystack)
   l78:;	
   YY_SEND(restore_, &yystate78);  if (!yymatchDot(yySelf)) goto l77; goto l76;
   l77:;	
-  YY_SEND(restore_, &yystate77);  { YY_SEND(end_, yystack); }  if (!YY_SEND(apply_, yystack, &yy_RPERCENT, "RPERCENT")) goto failed;  yyDo(yySelf, " yy_1_declaration", yy_1_declaration, 0, yystate0);
+  YY_SEND(restore_, &yystate77);  { YY_SEND(end_, yystack); }  if (!YY_SEND(apply_, yystack, &yy_RPERCENT, "RPERCENT")) goto failed;  yyDo(yySelf, " yy_1_heading", yy_1_heading, 0, yystate0);
   goto passed;
 
   passed:
@@ -2053,25 +2097,29 @@ int yy_grammar(YYClass* yySelf, YYStack* yystack)
   start_rule:;
   if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
   YYState yystate85;
-  YY_SEND(save_, &yystate85);  if (!YY_SEND(apply_, yystack, &yy_declaration, "declaration")) goto l86; goto l85;
+  YY_SEND(save_, &yystate85);  if (!YY_SEND(apply_, yystack, &yy_heading, "heading")) goto l86; goto l85;
   l86:;	
+  YY_SEND(restore_, &yystate85);  if (!YY_SEND(apply_, yystack, &yy_declaration, "declaration")) goto l87; goto l85;
+  l87:;	
   YY_SEND(restore_, &yystate85);  if (!YY_SEND(apply_, yystack, &yy_definition, "definition")) goto failed;
   l85:;	
   l83:;	
   YYState yystate84;
   YY_SEND(save_, &yystate84);
-  YYState yystate87;
-  YY_SEND(save_, &yystate87);  if (!YY_SEND(apply_, yystack, &yy_declaration, "declaration")) goto l88; goto l87;
-  l88:;	
-  YY_SEND(restore_, &yystate87);  if (!YY_SEND(apply_, yystack, &yy_definition, "definition")) goto l84;
-  l87:;	 goto l83;
+  YYState yystate88;
+  YY_SEND(save_, &yystate88);  if (!YY_SEND(apply_, yystack, &yy_heading, "heading")) goto l89; goto l88;
+  l89:;	
+  YY_SEND(restore_, &yystate88);  if (!YY_SEND(apply_, yystack, &yy_declaration, "declaration")) goto l90; goto l88;
+  l90:;	
+  YY_SEND(restore_, &yystate88);  if (!YY_SEND(apply_, yystack, &yy_definition, "definition")) goto l84;
+  l88:;	 goto l83;
   l84:;	
   YY_SEND(restore_, &yystate84);
-  YYState yystate89;
-  YY_SEND(save_, &yystate89);  if (!YY_SEND(apply_, yystack, &yy_trailer, "trailer")) goto l89; goto l90;
-  l89:;	
-  YY_SEND(restore_, &yystate89);
-  l90:;	  if (!YY_SEND(apply_, yystack, &yy_end_of_file, "end_of_file")) goto failed;
+  YYState yystate91;
+  YY_SEND(save_, &yystate91);  if (!YY_SEND(apply_, yystack, &yy_trailer, "trailer")) goto l91; goto l92;
+  l91:;	
+  YY_SEND(restore_, &yystate91);
+  l92:;	  if (!YY_SEND(apply_, yystack, &yy_end_of_file, "end_of_file")) goto failed;
   goto passed;
 
   passed:
