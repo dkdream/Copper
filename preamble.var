@@ -50,6 +50,11 @@ struct _yycache {
     YYCacheNode* slot[0];
 };
 
+static inline void yyStateError() {
+    fprintf(stderr, "ERROR IN PARSER STATE");
+    exit(1);
+}
+
 static inline void yyStart(YYClass* yySelf) {
     if (yySelf->buflen) return;
 
@@ -57,7 +62,7 @@ static inline void yyStart(YYClass* yySelf) {
     yySelf->buf       = malloc(yySelf->buflen);
     yySelf->textlen   = 1024;
     yySelf->text      = malloc(yySelf->textlen);
-    yySelf->thunkslen = 2;
+    yySelf->thunkslen = 10;
     yySelf->thunks    = malloc(sizeof(YYThunk) * yySelf->thunkslen);
     yySelf->valslen   = 2;
     yySelf->vals      = malloc(sizeof(YYSTYPE) * yySelf->valslen);
@@ -100,9 +105,10 @@ static inline void yyCheckDo(YYClass* yySelf) {
 
     int pos = 0;
     for (pos = 0;  pos < end;  ++pos) {
-        YYThunk *thunk = &yySelf->thunks[pos];
+        YYThunk *thunk = &(yySelf->thunks[pos]);
         if (thunk->action) continue;
         YY_SEND(debug_,"     yyCheckDo [%d] error\n", pos);
+        yyStateError();
         break;
     }
 }
@@ -210,11 +216,13 @@ static inline int yyCheckNode(YYClass* yySelf, YYStack *yystack, int* result)
 
         int count = node->count;
 
-        YYThunk* from = &(node->thunk[0]);
-        YYThunk* to   = &(yySelf->thunks[yySelf->thunkpos]);
-
         if (0 < count) {
+            YYThunk* from = &(node->thunk[0]);
+
             yyResizeDo(yySelf, count);
+
+            YYThunk* to = &(yySelf->thunks[yySelf->thunkpos]);
+
             yySelf->thunkpos += count;
             for (; count--; ++to, ++from) {
                 *to = *from;
