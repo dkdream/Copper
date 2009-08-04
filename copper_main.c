@@ -90,83 +90,39 @@ static void usage(char *name)
     version(name);
     fprintf(stderr, "usage: %s [<option>...] [<file>...]\n", name);
     fprintf(stderr, "where <option> can be\n");
-    fprintf(stderr, "  -h          print this help information\n");
     fprintf(stderr, "  -o <ofile>  write output to <ofile>\n");
-    fprintf(stderr, "  -H <ofile>  write heading to <ofile>\n");
-    fprintf(stderr, "  -F <ofile>  write footing to <ofile>\n");
+    fprintf(stderr, "  -H <hfile>  write heading to <hfile>\n");
     fprintf(stderr, "  -v          be verbose\n");
-    fprintf(stderr, "  -V          print version number and exit\n");
-    fprintf(stderr, "if no <file> is given, input is read from stdin\n");
+    fprintf(stderr, "if no <file> is given,  input is read from stdin\n");
     fprintf(stderr, "if no <ofile> is given, output is written to stdout\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "usage: %s -F [<option>...] [<file>]\n", name);
+    fprintf(stderr, "  -F          output the copper common function\n");
+    fprintf(stderr, "  -o <ofile>  write output to <ofile>\n");
+    fprintf(stderr, "  -v          be verbose\n");
+    fprintf(stderr, "if no <ofile> is given, output is written to stdout\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "usage: %s -V [<option>...]\n", name);
+    fprintf(stderr, "  -V          print version number\n");
+    fprintf(stderr, "  -v          be verbose\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "usage: %s -h [<option>...]\n", name);
+    fprintf(stderr, "  -h          print this help information\n");
+    fprintf(stderr, "  -v          be verbose\n");
     exit(1);
 }
 
-int main(int argc, char **argv)
+static void parse_inputs(int argc, char **argv)
 {
-
-    input      = stdin;
-    output     = stdout;
-    lineNumber = 1;
-    fileName   = "<stdin>";
-
-    int chr;
-    FILE* heading = 0;
-    FILE* footing = 0;
-
-    while (-1 != (chr = getopt(argc, argv, "Vho:H:F:v")))
-        {
-            switch (chr)
-                {
-                case 'V':
-                    version(basename(argv[0]));
-                    exit(0);
-
-                case 'h':
-                    usage(basename(argv[0]));
-                    break;
-
-                case 'o':
-                    if (!(output = fopen(optarg, "w")))
-                        {
-                            perror(optarg);
-                            exit(1);
-                        }
-                    break;
-
-                case 'H':
-                    if (!(heading = fopen(optarg, "w")))
-                        {
-                            perror(optarg);
-                            exit(1);
-                        }
-                    break;
-
-                case 'F':
-                    if (!(footing = fopen(optarg, "w")))
-                        {
-                            perror(optarg);
-                            exit(1);
-                        }
-                    break;
-
-                case 'v':
-                    verboseFlag= 1;
-                    break;
-
-                default:
-                    fprintf(stderr, "for usage try: %s -h\n", argv[0]);
-                    exit(1);
-                }
-        }
-
-    argc -= optind;
-    argv += optind;
-
     theParser = malloc(sizeof(YYClass));
     yyInit(theParser);
 
     theParser->input_ = my_yy_input;
     theParser->debug_ = my_debugger;
+
+    input      = stdin;
+    fileName   = "<stdin>";
+    lineNumber = 1;
 
     if (!argc) {
         if (!yyParseFrom(theParser, yy_grammar, "grammar"))
@@ -174,21 +130,18 @@ int main(int argc, char **argv)
     } else {
         for (;  argc;  --argc, ++argv)
             {
-                if (!strcmp(*argv, "-"))
-                    {
-                        input= stdin;
-                        fileName= "<stdin>";
+                if (!strcmp(*argv, "-")) {
+                    input      = stdin;
+                    fileName   = "<stdin>";
+                    lineNumber = 1;
+                } else {
+                    if (!(input= fopen(*argv, "r"))) {
+                        perror(*argv);
+                        exit(1);
                     }
-                else
-                    {
-                        if (!(input= fopen(*argv, "r")))
-                            {
-                                perror(*argv);
-                                exit(1);
-                            }
-                        fileName= *argv;
-                    }
-                lineNumber = 1;
+                    fileName   = *argv;
+                    lineNumber = 1;
+                }
 
                 if (!yyParseFrom(theParser, yy_grammar, "grammar"))
                     yyerror("syntax error");
@@ -197,11 +150,33 @@ int main(int argc, char **argv)
                     fclose(input);
             }
     }
+}
 
-    if (verboseFlag) {
-        Node *node = rules;
-        for (;  node;  node = node->any.next)
-            Rule_print(node);
+static void output_rules()
+{
+    Node *node = rules;
+    for (;  node;  node = node->any.next)
+        Rule_print(node);
+}
+
+static void generate_parser(char* output_file, char* heading_file)
+{
+    if (!output_file) {
+        output = stdout;
+    } else {
+        if (!(output = fopen(output_file, "w"))) {
+            perror(output_file);
+            exit(1);
+        }
+    }
+
+    FILE* heading = 0;
+
+    if (heading_file) {
+        if (!(heading = fopen(heading_file, "w"))) {
+            perror(heading_file);
+            exit(1);
+        }
     }
 
     for (; headers;  headers = headers->next)
@@ -214,13 +189,143 @@ int main(int argc, char **argv)
         Rule_compile_c(rules);
     }
 
-    if (trailer)
-        fprintf(output, "%s\n", trailer);
-
+    if (trailer) fprintf(output, "%s\n", trailer);
 
     Rule_compile_c_heading(heading);
     Rule_compile_c_declare(heading, rules);
-    Rule_compile_c_footing(footing);
+
+    if (output_file) {
+        fclose(output);
+    }
+
+    if (heading_file) {
+        fclose(heading);
+    }
+}
+
+void generate_footer(int argc, char **argv,  char* output_file)
+{
+    FILE* footer = 0;
+
+    if (!output_file) {
+        footer = stdout;
+    } else {
+        if (!(footer = fopen(output_file, "w"))) {
+            perror(output_file);
+            exit(1);
+        }
+    }
+
+    Rule_compile_c_footing(footer);
+
+    if (output_file) {
+        fclose(footer);
+    }
+}
+
+int main(int argc, char **argv)
+{
+    input  = 0;
+    output = stdout;
+
+    int chr;
+    char* header_name = 0;
+    char* output_name = 0;
+
+    enum Task {
+        do_nothing,
+        do_version,
+        do_usage,
+        do_rules,
+        do_header,
+        do_body,
+        do_footer,
+        do_default
+    };
+
+    enum Task my_task = do_default;
+
+    while (-1 != (chr = getopt(argc, argv, "VhFRvo:H:")))
+        {
+            switch (chr) {
+            case 'H':
+                if (header_name) {
+                    fprintf(stderr, "for usage try: %s -h\n", argv[0]);
+                    exit(1);
+                }
+                header_name = optarg;
+                continue;
+
+            case 'v':
+                verboseFlag = 1;
+                continue;
+
+            case 'o':
+                if (output_name) {
+                    fprintf(stderr, "for usage try: %s -h\n", argv[0]);
+                    exit(1);
+                }
+                output_name = optarg;
+                continue;
+
+            default:
+                break;
+            }
+
+            switch (chr) {
+            case 'V':
+                my_task = do_version;
+                continue;
+
+            case 'h':
+                my_task = do_usage;
+                continue;
+
+            case 'R':
+                my_task = do_rules;
+                continue;
+
+            case 'F':
+                my_task = do_footer;
+                continue;
+
+            default:
+                fprintf(stderr, "for usage try: %s -h\n", argv[0]);
+                exit(1);
+            }
+        }
+
+    argc -= optind;
+    argv += optind;
+
+    switch (my_task) {
+    case do_nothing:
+        exit(0);
+
+    case do_version:
+        version(basename(argv[0]));
+        exit(0);
+
+    case do_usage:
+        usage(basename(argv[0]));
+        exit(0);
+
+    case do_rules:
+        parse_inputs(argc, argv);
+        output_rules();
+        exit(0);
+
+    case do_footer:
+        generate_footer(argc, argv, output_name);
+        exit(0);
+
+    case do_header:
+    case do_body:
+    default:
+        parse_inputs(argc, argv);
+        generate_parser(output_name, header_name);
+        exit(0);
+    }
 
     return 0;
 }

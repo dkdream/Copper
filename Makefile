@@ -76,7 +76,8 @@ copper-new : copper.o $(OBJS)
 # --
 
 stage.one.c : copper.cu copper-new
-	./copper-new -v -Hheader.one -Ffooting.one -o $@ copper.cu 2>stage.one.log
+	./copper-new -v -Hheader.one -o $@ copper.cu 2>stage.one.log
+	./copper-new -v -F -o footing.one 2>>stage.one.log
 
 stage.one.o : stage.one.c
 	$(CC) $(CFLAGS) -DSTAGE_ONE -c -o $@ $<
@@ -87,7 +88,8 @@ stage.one : stage.one.o $(OBJS)
 # --
 
 stage.two.c : copper.cu stage.one
-	./stage.one -v -Hheader.two -Ffooting.two -o $@ copper.cu 2>stage.two.log
+	./stage.one -v -Hheader.two -o $@ copper.cu 2>stage.two.log
+	./stage.one -v -F -o footing.two copper.cu 2>stage.two.log
 
 stage.two.o : stage.two.c
 	$(CC) $(CFLAGS) -DSTAGE_TWO -c -o $@ $<

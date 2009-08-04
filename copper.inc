@@ -41,6 +41,12 @@ enum RuleKind {
     rule_with_both,
 };
 
+static inline void declareRule(char *name) {
+    if (findRule(name)->rule.expression) {
+        fprintf(stderr, "rule '%s' defined\n", name);
+    }
+}
+
 static inline void defineRule(enum RuleKind kind) {
     Node* expression;
     Node* begin;

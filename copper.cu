@@ -6,9 +6,11 @@
 
 # Hierarchical syntax
 
-grammar=	- ( declaration | definition )+ trailer? end-of-file
+grammar=	- ( heading | declaration | definition )+ trailer? end-of-file
 
-declaration=	'%{' < ( !'%}' . )* > RPERCENT		{ makeHeader(yytext); }
+heading=	'%{' < ( !'%}' . )* > RPERCENT		{ makeHeader(yytext); }
+
+declaration=	'%declare' - identifier			{ declareRule(yytext); }
 
 trailer=	'%%' < .* >				{ makeTrailer(yytext); }
 
