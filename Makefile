@@ -10,15 +10,12 @@ DIFF   = diff
 CFLAGS = -g $(OFLAGS) $(XFLAGS)
 OFLAGS = -O3 -DNDEBUG -Wall
 
-OBJS = tree.o compile.o
+OBJS = tree.o compile.o copper_main.o
 
 all : copper
 new : copper-new
 
 echo : ; echo $(TIME) $(COPPER)
-
-copper-new : copper.o $(OBJS)
-	$(CC) $(CFLAGS) -o $@ copper.o $(OBJS)
 
 copper : check
 	cp copper-new copper
@@ -42,49 +39,72 @@ ascii2hex.x : ascii2hex.c
 	$(CC) $(CFLAGS) -o $@ $<
 	@./test_ascii2hex.sh "$(CC) $(CFLAGS)"
 
-copper.c : copper.cu $(COPPER)
-	$(COPPER) -o $@ $<
-
 check : copper-new .FORCE
 	$(MAKE) stage.two.c
 	$(DIFF) --ignore-blank-lines  --show-c-function stage.one.c stage.two.c
+	$(DIFF) --ignore-blank-lines  --show-c-function header.one header.two
+	$(DIFF) --ignore-blank-lines  --show-c-function copper.c stage.two.c
 	$(MAKE) test
 	-@rm -f stage.one  stage.one.c stage.one.o stage.two stage.two.c stage.two.o
 	echo PASSED
 
 push : .FORCE
+	mv header_orig.inc header_orig.inc.BAK
 	mv copper_orig.c copper_orig.c.BAK
+	mv header.inc header_orig.inc
 	cp copper.c copper_orig.c
 	$(MAKE) bootstrap
 
 test examples : copper-new .FORCE
 	$(SHELL) -ec '(cd examples;  $(MAKE))'
 
-stage.one.o : stage.one.c
+
+# --
+
+copper.c : copper.cu $(COPPER)
+	$(COPPER) -v -Hheader.inc -o $@ copper.cu 2>stage.one.log
+
+copper.o : copper.c
+	$(CC) $(CFLAGS) -DSTAGE_ZERO -c -o $@ $<
+
+copper-new : copper.o $(OBJS)
+	$(CC) $(CFLAGS) -o $@ copper.o $(OBJS)
+
+# --
+
 stage.one.c : copper.cu copper-new
-	./copper-new -v -o $@ copper.cu 2>stage.one.log
+	./copper-new -v -Hheader.one -o $@ copper.cu 2>stage.one.log
+
+stage.one.o : stage.one.c
+	$(CC) $(CFLAGS) -DSTAGE_ONE -c -o $@ $<
 
 stage.one : stage.one.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ stage.one.o $(OBJS)
 
-stage.two.o : stage.two.c
+# --
+
 stage.two.c : copper.cu stage.one
-	./stage.one -v -o $@ copper.cu 2>stage.two.log
+	./stage.one -v -Hheader.two -o $@ copper.cu 2>stage.two.log
+
+stage.two.o : stage.two.c
+	$(CC) $(CFLAGS) -DSTAGE_TWO -c -o $@ $<
 
 stage.two : stage.two.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ stage.one.o $(OBJS)
 
+# --
+
 clean : .FORCE
-	rm -f *~ *.o copper.[cd] copper copper-new compile.inc
+	rm -f *~ *.o copper copper-new compile.inc header.inc header.one header.two
 	rm -f stage.one  stage.one.c  stage.one.log  stage.one.o  stage.two  stage.two.c  stage.two.log  stage.two.o
 	$(SHELL) -ec '(cd examples;  $(MAKE) $@)'
 
 clear : .FORCE
-	rm -f my_copper.o copper-new
+	rm -f copper.o copper-new header.one header.two
 	rm -f stage.one  stage.one.c  stage.one.log  stage.one.o  stage.two  stage.two.c  stage.two.log  stage.two.o
 
 scrub spotless : clean .FORCE
-	rm -f copper.x ascii2hex.x
+	rm -f copper.x ascii2hex.x copper.[cd]
 	$(SHELL) -ec '(cd examples;  $(MAKE) $@)'
 
 ##
@@ -105,5 +125,8 @@ copper.x :
 
 bootstrap : copper_orig.o $(OBJS)
 	$(CC) $(CFLAGS) -o copper.x copper_orig.o $(OBJS)
+
+copper_orig.o : copper_orig.c
+	$(CC) $(CFLAGS) -DSTAGE_BOOTSTRAP -c -o $@ $<
 
 .FORCE :

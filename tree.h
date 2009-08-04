@@ -28,7 +28,7 @@ enum {
 
 typedef union Node Node;
 
-struct Rule	 { int type;  Node *next;   char *name;	 Node *variables;  Node *expression;  int id;  int flags; char* begin; char* end; };
+struct Rule	 { int type;  Node *next;   char *name;	 char *scope; Node *variables;  Node *expression;  int id;  int flags; char* begin; char* end; };
 struct Variable	 { int type;  Node *next;   char *name;  Node *value;  int offset;					};
 struct Name	 { int type;  Node *next;   Node *rule;  Node *variable;						};
 struct Dot	 { int type;  Node *next;										};
@@ -74,9 +74,10 @@ extern Node *actions;
 extern Node *rules;
 extern Node *start;
 
-extern int   ruleCount;
+extern int ruleCount;
 
 extern FILE *output;
+extern FILE *include;
 
 extern Node *makeRule(char *name);
 extern Node *findRule(char *name);
@@ -105,8 +106,10 @@ extern Node *push(Node *node);
 extern Node *top(void);
 extern Node *pop(void);
 
-extern void  Rule_compile_c_header(void);
-extern void  Rule_compile_c(Node *node);
+extern void Rule_compile_c_heading(FILE* ofile);
+extern void Rule_compile_c_declare(FILE* ofile, Node *node);
+extern void Rule_compile_c(Node *node);
+extern void Rule_compile_c_footing(FILE* ofile);
 
 extern void  Node_print(Node *node);
 extern void  Rule_print(Node *node);

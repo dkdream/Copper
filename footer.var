@@ -1,10 +1,184 @@
 /*-*- mode: c;-*-*/
+#ifndef YY_FOOTER
+#define YY_FOOTER
 
-#ifndef YY_PART
+#ifndef YY_CACHE_SLOTS
+#define YY_CACHE_SLOTS 1023
+#endif
 
-static YYClass* theParser = ((YYClass*)0);
+static inline void yyStart(YYClass* yySelf) {
+    if (yySelf->buflen) return;
 
-static int yyParseFrom(YYClass* yySelf, YYRule yystart, const char* name)
+    yySelf->buflen    = 1024;
+    yySelf->buf       = malloc(yySelf->buflen);
+    yySelf->textlen   = 1024;
+    yySelf->text      = malloc(yySelf->textlen);
+    yySelf->thunkslen = 10;
+    yySelf->thunks    = malloc(sizeof(YYThunk) * yySelf->thunkslen);
+    yySelf->valslen   = 2;
+    yySelf->vals      = malloc(sizeof(YYSTYPE) * yySelf->valslen);
+    yySelf->begin     = yySelf->end = yySelf->pos = yySelf->limit = yySelf->thunkpos = 0;
+    yySelf->text[0]   = '\0';
+    yySelf->frame     = 0;
+}
+
+void yyClearCache(YYClass* yySelf) {
+    YY_SEND(debug_,"     yyClearCache\n");
+    if (!yySelf->cache) {
+        yySelf->cache = malloc(sizeof(struct _yycache) + (sizeof(YYCacheNode*) * YY_CACHE_SLOTS));
+        yySelf->cache->size = YY_CACHE_SLOTS;
+        int size = yySelf->cache->size;
+        for (; size--;) {
+            yySelf->cache->slot[size] = 0;
+        }
+    } else {
+        int size = yySelf->cache->size;
+        for (; size--;) {
+            YYCacheNode* node = yySelf->cache->slot[size];
+            yyFreeList(node);
+            yySelf->cache->slot[size] = 0;
+        }
+    }
+}
+
+void yyCommit(YYClass* yySelf) {
+
+    if ((yySelf->limit -= yySelf->pos)) {
+        memmove(yySelf->buf, yySelf->buf + yySelf->pos, yySelf->limit);
+    }
+
+    yySelf->buf[yySelf->limit] = 0;
+
+    yySelf->begin -= yySelf->pos;
+    yySelf->end   -= yySelf->pos;
+
+    if (0 > yySelf->begin) yySelf->begin = 0;
+    if (0 > yySelf->end)   yySelf->end = 0;
+
+    yySelf->pos = yySelf->thunkpos = 0;
+
+    yyClearCache(yySelf);
+}
+
+int yyAccept(YYClass* yySelf, YYStack* yystack) {
+    int tp0 = yystack->begin.thunkpos;
+
+    if (tp0) {
+        fprintf(stderr, "accept denied at %d", tp0);
+        return 0;
+    } else {
+        YY_SEND(debug_,"    yyAccept begin\n");
+        yyDone(yySelf);
+        yyCommit(yySelf);
+        YY_SEND(debug_,"    yyAccept end\n");
+    }
+    return 1;
+}
+
+static void save_method(YYClass* yySelf, YYState* state) {
+    state->pos = yySelf->pos;
+    state->thunkpos = yySelf->thunkpos;
+}
+
+static void restore_method(YYClass* yySelf, YYState* state) {
+    yySelf->pos = state->pos;
+    yySelf->thunkpos = state->thunkpos;
+}
+
+static void begin_method(YYClass* yySelf, YYStack* yystack) {
+    yySelf->begin = yySelf->pos;
+    yySelf->end   = yySelf->pos;
+
+    YY_SEND(debug_,"BEGIN %d\n", yySelf->begin);
+}
+
+static void end_method(YYClass* yySelf, YYStack* yystack) {
+    yySelf->end = yySelf->pos;
+
+    YY_SEND(debug_,"BEGIN %d END %d\n", yySelf->begin, yySelf->end);
+}
+
+static int input_method(YYClass* yySelf, char* buffer, int max_size) {
+    int yyc = getchar();
+    if (EOF == yyc) return 0;
+    buffer[0] = yyc;
+    return 1;
+}
+
+static void debug_method(YYClass* yySelf, const char* format, ...) {
+    /* default action do nothing */
+}
+
+static void mark_method(YYClass* yySelf, const char* yyrulename) {
+    /* default action do nothing */
+}
+
+static void collect_method(YYClass* yySelf, const char* yyrulename) {
+    /* default action do nothing */
+}
+
+static int apply_method(YYClass* yySelf, YYStack* yystack, YYRule function, const char* name) {
+    YYStack yytop;
+
+    yytop.next    = yystack;
+    yytop.current = function;
+    yytop.name    = name;
+
+    YY_SEND(save_, &(yytop.begin));
+
+    YY_SEND(debug_,"start(%i) %s @ %s\n", yytop.begin.pos, name, yySelf->buf+yytop.begin.pos);
+
+    int result;
+
+    if (yyCheckNode(yySelf, &yytop, &result)) {
+        return result;
+    } else {
+        result = function(yySelf, &yytop);
+    }
+
+    yyAddNode(yySelf, &yytop, result);
+
+    if (result) {
+        YY_SEND(debug_,"  ok(%i)   %s @ %s\n", yytop.begin.pos, name, yySelf->buf+yytop.begin.pos);
+    } else {
+        YY_SEND(debug_,"  fail(%i) %s @ %s\n", yytop.begin.pos, name, yySelf->buf+yytop.begin.pos);
+        YY_SEND(restore_, &(yytop.begin));
+    }
+
+    return result;
+}
+
+void yyInit(YYClass* yySelf) {
+    yySelf->buf       = 0;
+    yySelf->buflen    = 0;
+    yySelf->pos       = 0;
+    yySelf->limit     = 0;
+    yySelf->text      = 0;
+    yySelf->textlen   = 0;
+    yySelf->begin     = 0;
+    yySelf->end       = 0;
+    yySelf->textmax   = 0;
+    yySelf->thunks    = 0;
+    yySelf->thunkslen = 0;
+    yySelf->thunkpos  = 0;
+    yySelf->frame     = 0;
+    yySelf->vals      = 0;
+    yySelf->valslen   = 0;
+    yySelf->cache     = 0;
+
+    yySelf->input_   = input_method;
+    yySelf->save_    = save_method;
+    yySelf->restore_ = restore_method;
+    yySelf->begin_   = begin_method;
+    yySelf->end_     = end_method;
+    yySelf->debug_   = debug_method;
+    yySelf->mark_    = mark_method;
+    yySelf->collect_ = collect_method;
+    yySelf->apply_   = apply_method;
+}
+
+
+int yyParseFrom(YYClass* yySelf, YYRule yystart, const char* name)
 {
     int yyok;
 
@@ -23,25 +197,7 @@ static int yyParseFrom(YYClass* yySelf, YYRule yystart, const char* name)
     yyCommit(yySelf);
 
     return yyok;
-
-    // for references ONLY
-    (void)yyPush;
-    (void)yyPop;
-    (void)yySet;
-    (void)yymatchDot;
-    (void)yymatchChar;
-    (void)yymatchString;
-    (void)yymatchClass;
-    (void)yyDo;
-    (void)yyAccept;
-}
-
-int yyparse(void) {
-    if (!theParser) {
-        theParser = malloc(sizeof(YYClass));
-        yyInit(theParser);
-    }
-    return yyParseFrom(theParser, yy_%s, "%s");
 }
 
 #endif
+/*-- end of footer --*/

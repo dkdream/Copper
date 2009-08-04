@@ -23,16 +23,17 @@
 
 #include "tree.h"
 
-Node *actions= 0;
-Node *rules= 0;
-Node *thisRule= 0;
-Node *start= 0;
+Node *actions  = 0;
+Node *rules    = 0;
+Node *thisRule = 0;
+Node *start    = 0;
 
-FILE *output= 0;
+FILE *output  = 0;
+FILE *include = 0;
 
-int actionCount= 0;
-int ruleCount= 0;
-int lastToken= -1;
+int actionCount = 0;
+int ruleCount   = 0;
+int lastToken   = -1;
 
 static inline Node *_newNode(int type, int size)
 {
@@ -41,16 +42,17 @@ static inline Node *_newNode(int type, int size)
   return node;
 }
 
-#define newNode(T)	_newNode(T, sizeof(struct T))
+#define newNode(T) _newNode(T, sizeof(struct T))
 
 Node *makeRule(char *name)
 {
-  Node *node= newNode(Rule);
-  node->rule.name= strdup(name);
-  node->rule.id= ++ruleCount;
-  node->rule.flags= 0;
-  node->rule.next= rules;
-  rules= node;
+  Node *node = newNode(Rule);
+  node->rule.scope = "extern";
+  node->rule.name  = strdup(name);
+  node->rule.id    = ++ruleCount;
+  node->rule.flags = 0;
+  node->rule.next  = rules;
+  rules = node;
   return node;
 }
 

@@ -1,3 +1,4 @@
+start = Stmt
 
 Stmt	= - e:Expr EOL			{ printf("%d\n", e); }
 	| ( !EOL . )* EOL		{ printf("error\n"); }

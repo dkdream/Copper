@@ -12,11 +12,20 @@ int push(int n) { return stack[++stackp]= n; }
 int pop(void)   { return stack[stackp--]; }
 int top(void)   { return stack[stackp]; }
 
+#include "../header.var"
+
 #include INCLUDE
+
+#include "../footer.var"
 
 int main()
 {
-  while (yyparse());
 
-  return 0;
+    YYClass* theParser = malloc(sizeof(YYClass));
+
+    yyInit(theParser);
+
+    while (yyParseFrom(theParser, yy_start, "start"));
+
+    return 0;
 }

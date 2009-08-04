@@ -40,9 +40,7 @@ static void text_to_hex(int chr) {
 }
 
 static void doParse() {
-    int max       = SIZE - 1;
-    int asciiSize = 0;
-    int chr       = 0;
+    int chr = 0;
 
     if (!do_begin) {
         fprintf(output, "static const char %s[] = {", varname);

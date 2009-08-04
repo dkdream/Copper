@@ -1,5 +1,7 @@
 # Grammar
 
+start = Stmt
+
 Stmt	= SPACE Expr EOL			{ printf("%d\n", pop()); }
 	 | (!EOL .)* EOL			{ printf("error\n"); }
 

@@ -18,6 +18,8 @@
 # 
 # Last edited: 2007-05-14 11:32:49 by piumarta on emilia
 
+start = line
+
 line = - s:statement CR
 |      - n:number < ( !CR . )* CR >			{ accept(n.number, yytext); }
 |      - CR

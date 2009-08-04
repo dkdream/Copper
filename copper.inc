@@ -1,4 +1,8 @@
 /*-*- mode: c;-*-*/
+/*-- end of copper.inc --*/
+#ifndef COPPER_INC
+#define COPPER_INC
+
 #include "tree.h"
 #include "version.h"
 
@@ -17,18 +21,11 @@ struct Header {
     Header *next;
 };
 
-FILE *input = 0;
-
-int verboseFlag = 0;
-
-static int	 lineNumber = 0;
-static char	*fileName   = 0;
-static char	*trailer    = 0;
-static Header	*headers    = 0;
+extern FILE *input;
+extern int verboseFlag;
 
 void makeHeader(char *text);
 void makeTrailer(char *text);
-
 void yyerror(char *message);
 
 static inline void checkRule(char *name) {
@@ -97,4 +94,21 @@ static inline void defineRule(enum RuleKind kind) {
     }
 }
 
+#ifdef STAGE_BOOTSTRAP
+#include "header_orig.inc"
+#endif
+
+#ifdef STAGE_ZERO
+#include "header.inc"
+#endif
+
+#ifdef STAGE_ONE
+#include "header.one"
+#endif
+
+#ifdef STAGE_TWO
+#include "header.two"
+#endif
+
+#endif
 /*-- end of copper.inc --*/
