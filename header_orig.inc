@@ -157,6 +157,7 @@ extern int yy_RPERCENT (YYClass* yySelf, YYStack* yystack);
 extern int yy_end_of_file (YYClass* yySelf, YYStack* yystack);
 extern int yy_trailer (YYClass* yySelf, YYStack* yystack);
 extern int yy_definition (YYClass* yySelf, YYStack* yystack);
+extern int yy_exportation (YYClass* yySelf, YYStack* yystack);
 extern int yy_declaration (YYClass* yySelf, YYStack* yystack);
 extern int yy_heading (YYClass* yySelf, YYStack* yystack);
 extern int yy__ (YYClass* yySelf, YYStack* yystack);

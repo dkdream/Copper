@@ -42,8 +42,26 @@ enum RuleKind {
 };
 
 static inline void declareRule(char *name) {
-    if (findRule(name)->rule.expression) {
+    Node* node = findRule(name);
+
+    if (node->rule.expression) {
         fprintf(stderr, "rule '%s' defined\n", name);
+        return;
+    }
+
+    if (!(RuleDeclared & node->rule.flags)) {
+        node->rule.flags |= RuleDeclared;
+    } else {
+        fprintf(stderr, "rule '%s' declared twice\n", name);
+    }
+}
+
+static inline void exportRule(char *name) {
+    Node* node = findRule(name);
+    if (!(RuleExported & node->rule.flags)) {
+        node->rule.flags |= RuleExported;
+    } else {
+        fprintf(stderr, "rule '%s' exported twice\n", name);
     }
 }
 

@@ -1,16 +1,20 @@
 # Copper Grammar for copper
 
+%export grammar
+
 %{
 #include "copper.inc"
 %}
 
 # Hierarchical syntax
 
-grammar=	- ( heading | declaration | definition )+ trailer? end-of-file
+grammar=	- ( heading | declaration | exportation | definition )+ trailer? end-of-file
 
 heading=	'%{' < ( !'%}' . )* > RPERCENT		{ makeHeader(yytext); }
 
 declaration=	'%declare' - identifier			{ declareRule(yytext); }
+
+exportation=	'%export' - identifier			{ exportRule(yytext); }
 
 trailer=	'%%' < .* >				{ makeTrailer(yytext); }
 

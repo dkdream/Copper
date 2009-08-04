@@ -389,6 +389,7 @@ static void yy_3_definition (YYClass* yySelf, YYThunk thunk);
 static void yy_2_definition (YYClass* yySelf, YYThunk thunk);
 static void yy_1_definition (YYClass* yySelf, YYThunk thunk);
 static void yy_1_trailer (YYClass* yySelf, YYThunk thunk);
+static void yy_1_exportation (YYClass* yySelf, YYThunk thunk);
 static void yy_1_declaration (YYClass* yySelf, YYThunk thunk);
 static void yy_1_heading (YYClass* yySelf, YYThunk thunk);
 
@@ -950,6 +951,27 @@ static void yy_1_trailer(YYClass* yySelf, YYThunk thunk)
   YY_SEND(debug_, "do yy_1_trailer (%s) '%s'\n", yyrulename, yytext);
 
    makeTrailer(yytext); ;
+#undef yy
+#undef yythunkpos
+
+  // for references ONLY
+  (void)yyrulename;
+  (void)yyleng;
+  (void)yytext;
+  (void)yypos;
+}
+static void yy_1_exportation(YYClass* yySelf, YYThunk thunk)
+{
+  static const char* yyrulename = "exportation";
+  int   yyleng = yyThunkText(yySelf, thunk);
+  char* yytext = yySelf->text;
+  int   yypos  = yySelf->pos;
+
+#define yy yySelf->result
+#define yythunkpos yySelf->thunkpos
+  YY_SEND(debug_, "do yy_1_exportation (%s) '%s'\n", yyrulename, yytext);
+
+   exportRule(yytext); ;
 #undef yy
 #undef yythunkpos
 
@@ -2007,6 +2029,28 @@ int yy_definition(YYClass* yySelf, YYStack* yystack)
   if (0) goto start_rule;
 }
 
+int yy_exportation(YYClass* yySelf, YYStack* yystack)
+{
+  static const char* yyrulename = "exportation";
+
+  YYState yystate0 = yystack->begin;
+
+  start_rule:;
+  if (!yymatchString(yySelf, "%export")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;  if (!YY_SEND(apply_, yystack, &yy_identifier, "identifier")) goto failed;  yyDo(yySelf, " yy_1_exportation", yy_1_exportation, 0, yystate0);
+  goto passed;
+
+  passed:
+  return 1;
+  goto failed;
+
+  failed:
+  return 0;
+  // for references ONLY
+  (void)yyrulename;
+  (void)yystate0;
+  if (0) goto start_rule;
+}
+
 int yy_declaration(YYClass* yySelf, YYStack* yystack)
 {
   static const char* yyrulename = "declaration";
@@ -2101,25 +2145,29 @@ int yy_grammar(YYClass* yySelf, YYStack* yystack)
   l86:;	
   YY_SEND(restore_, &yystate85);  if (!YY_SEND(apply_, yystack, &yy_declaration, "declaration")) goto l87; goto l85;
   l87:;	
+  YY_SEND(restore_, &yystate85);  if (!YY_SEND(apply_, yystack, &yy_exportation, "exportation")) goto l88; goto l85;
+  l88:;	
   YY_SEND(restore_, &yystate85);  if (!YY_SEND(apply_, yystack, &yy_definition, "definition")) goto failed;
   l85:;	
   l83:;	
   YYState yystate84;
   YY_SEND(save_, &yystate84);
-  YYState yystate88;
-  YY_SEND(save_, &yystate88);  if (!YY_SEND(apply_, yystack, &yy_heading, "heading")) goto l89; goto l88;
-  l89:;	
-  YY_SEND(restore_, &yystate88);  if (!YY_SEND(apply_, yystack, &yy_declaration, "declaration")) goto l90; goto l88;
+  YYState yystate89;
+  YY_SEND(save_, &yystate89);  if (!YY_SEND(apply_, yystack, &yy_heading, "heading")) goto l90; goto l89;
   l90:;	
-  YY_SEND(restore_, &yystate88);  if (!YY_SEND(apply_, yystack, &yy_definition, "definition")) goto l84;
-  l88:;	 goto l83;
+  YY_SEND(restore_, &yystate89);  if (!YY_SEND(apply_, yystack, &yy_declaration, "declaration")) goto l91; goto l89;
+  l91:;	
+  YY_SEND(restore_, &yystate89);  if (!YY_SEND(apply_, yystack, &yy_exportation, "exportation")) goto l92; goto l89;
+  l92:;	
+  YY_SEND(restore_, &yystate89);  if (!YY_SEND(apply_, yystack, &yy_definition, "definition")) goto l84;
+  l89:;	 goto l83;
   l84:;	
   YY_SEND(restore_, &yystate84);
-  YYState yystate91;
-  YY_SEND(save_, &yystate91);  if (!YY_SEND(apply_, yystack, &yy_trailer, "trailer")) goto l91; goto l92;
-  l91:;	
-  YY_SEND(restore_, &yystate91);
-  l92:;	  if (!YY_SEND(apply_, yystack, &yy_end_of_file, "end_of_file")) goto failed;
+  YYState yystate93;
+  YY_SEND(save_, &yystate93);  if (!YY_SEND(apply_, yystack, &yy_trailer, "trailer")) goto l93; goto l94;
+  l93:;	
+  YY_SEND(restore_, &yystate93);
+  l94:;	  if (!YY_SEND(apply_, yystack, &yy_end_of_file, "end_of_file")) goto failed;
   goto passed;
 
   passed:

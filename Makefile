@@ -88,8 +88,8 @@ stage.one : stage.one.o $(OBJS)
 # --
 
 stage.two.c : copper.cu stage.one
-	./stage.one -v -Hheader.two -o $@ copper.cu 2>stage.two.log
-	./stage.one -v -F -o footing.two copper.cu 2>stage.two.log
+	./stage.one -Hheader.two -o $@ copper.cu
+	./stage.one -F -o footing.two copper.cu
 
 stage.two.o : stage.two.c
 	$(CC) $(CFLAGS) -DSTAGE_TWO -c -o $@ $<

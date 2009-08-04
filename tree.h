@@ -24,6 +24,8 @@ enum {
   RuleUsed	= 1<<0,
   RuleReached	= 1<<1,
   LeftRecursion = 1<<2,
+  RuleDeclared  = 1<<3,
+  RuleExported  = 1<<4,
 };
 
 typedef union Node Node;
