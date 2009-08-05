@@ -13,46 +13,50 @@ all : $(EXAMPLES) .FORCE
 	@ls -l $(EXAMPLES)
 
 test : .FORCE
-	@MAKELEVEL=0 $(MAKE) TEMPLATE=simple_test.c ${@:%=%.x}
-	@MAKELEVEL=0 $(MAKE) ${@:%=%.check}
+	@$(MAKE) --no-print-directory TEMPLATE=simple_test.c ${@:%=%.x}
+	@$(MAKE) --no-print-directory ${@:%=%.check}
 
 rule : .FORCE
-	@MAKELEVEL=0 $(MAKE) TEMPLATE=simple_test.c ${@:%=%.x}
-	@MAKELEVEL=0 $(MAKE) ${@:%=%.check}
+	@$(MAKE) --no-print-directory TEMPLATE=simple_test.c ${@:%=%.x}
+	@$(MAKE) --no-print-directory ${@:%=%.check}
 
 accept : .FORCE
-	@MAKELEVEL=0 $(MAKE) TEMPLATE=simple_test.c ${@:%=%.x}
-	@MAKELEVEL=0 $(MAKE) ${@:%=%.check}
+	@$(MAKE) --no-print-directory TEMPLATE=simple_test.c ${@:%=%.x}
+	@$(MAKE) --no-print-directory ${@:%=%.check}
 
 dc : .FORCE
-	@MAKELEVEL=0 $(MAKE) TEMPLATE=simple_test.c ${@:%=%.x}
-	@MAKELEVEL=0 $(MAKE) ${@:%=%.check}
+	@$(MAKE) --no-print-directory TEMPLATE=simple_test.c ${@:%=%.x}
+	@$(MAKE) --no-print-directory ${@:%=%.check}
 
 dcv : .FORCE
-	@MAKELEVEL=0 $(MAKE) TEMPLATE=simple_test.c ${@:%=%.x}
-	@MAKELEVEL=0 $(MAKE) ${@:%=%.check}
+	@$(MAKE) --no-print-directory TEMPLATE=simple_test.c ${@:%=%.x}
+	@$(MAKE) --no-print-directory ${@:%=%.check}
 
 wc : .FORCE
-	@MAKELEVEL=0 $(MAKE) TEMPLATE=counter_test.c ${@:%=%.x}
-	@MAKELEVEL=0 $(MAKE) ${@:%=%.check}
+	@$(MAKE) --no-print-directory TEMPLATE=counter_test.c ${@:%=%.x}
+	@$(MAKE) --no-print-directory ${@:%=%.check}
 
 calc : .FORCE
-	@MAKELEVEL=0 $(MAKE) TEMPLATE=simple_test.c ${@:%=%.x}
-	@MAKELEVEL=0 $(MAKE) ${@:%=%.check}
+	@$(MAKE) --no-print-directory TEMPLATE=simple_test.c ${@:%=%.x}
+	@$(MAKE) --no-print-directory ${@:%=%.check}
 
 basic : .FORCE
-	@MAKELEVEL=0 $(MAKE) TEMPLATE=basic_test.c ${@:%=%.x}
-	@MAKELEVEL=0 $(MAKE) ${@:%=%.check}
+	@$(MAKE) --no-print-directory TEMPLATE=basic_test.c ${@:%=%.x}
+	@$(MAKE) --no-print-directory ${@:%=%.check}
 
 left : .FORCE
-	@MAKELEVEL=0 $(MAKE) TEMPLATE=basic_test.c ${@:%=%.x}
+	@$(MAKE) --no-print-directory TEMPLATE=basic_test.c ${@:%=%.x}
 
 thoms : .FORCE
-	@MAKELEVEL=0 $(MAKE) TEMPLATE=thoms_test.c ${@:%=%.x}
+	@$(MAKE) --no-print-directory TEMPLATE=thoms_test.c ${@:%=%.x}
 	./thoms_test.x thoms.in
 
+clear : .FORCE
+	-@rm -f *~ *.o *.x *.inc *.out *.out
+
 clean : .FORCE
-	rm -f *~ *.o *.x *.inc *.out *.out left thoms $(EXAMPLES)
+	-@rm -f *~ *.o *.x *.inc *.out *.out left thoms $(EXAMPLES)
+
 
 scrub spotless : clean
 

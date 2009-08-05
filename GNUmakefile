@@ -12,7 +12,8 @@ OFLAGS = -O3 -DNDEBUG -Wall
 
 OBJS = tree.o compile.o copper_main.o
 
-default : ; $(MAKE) --no-print-directory --keep-going clear all
+default :
+	-@$(MAKE) --no-print-directory clear all || true
 
 all : copper
 new : copper-new
@@ -51,7 +52,7 @@ check : copper-new .FORCE
 	$(MAKE) test
 	-@rm -f stage.one stage.one.c stage.one.o header.one footing.one
 	-@rm -f stage.two stage.two.c stage.two.o header.two footing.two
-	echo PASSED
+	@echo PASSED
 
 push : .FORCE
 	mv header_orig.inc header_orig.inc.BAK
