@@ -7,7 +7,7 @@ echo '#include <stdio.h>' > $TEST.c
 echo >> $TEST.c
 ./ascii2hex.x -lxxx ascii2hex.c >> $TEST.c
 echo >> $TEST.c
-echo 'int main(int argc, char **argv) { printf("%s", xxx); }' >> $TEST.c
+echo 'int main(int argc, char **argv) { printf("%s", xxx); return 0; }' >> $TEST.c
 $CC -o $TEST.x $TEST.c
 ./$TEST.x > $TEST.out
 rm -f $TEST.x $TEST.c

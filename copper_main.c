@@ -12,6 +12,8 @@
 #include "header.var"
 #include "preamble.var"
 #include "footer.var"
+
+#define COPPER_MAIN
 #include "copper.inc"
 
 FILE *input = 0;

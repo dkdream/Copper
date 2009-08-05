@@ -1,12 +1,16 @@
 PREFIX	= /tools/Copper
 BINDIR	= $(PREFIX)/bin
 
-TIME := $(shell date +T=%s.%N)
+TIME        := $(shell date +T=%s.%N)
+STAGE       := zero
+COPPER      := copper.x
+COPPER.test := copper-new
+Copper.ext  := cu
 
-COPPER     := ./copper.x
-Copper.ext := cu
+PATH := $(PATH):.
 
 DIFF   = diff
+CC     = gcc
 CFLAGS = -g $(OFLAGS) $(XFLAGS)
 OFLAGS = -O3 -DNDEBUG -Wall
 
@@ -43,22 +47,21 @@ ascii2hex.x : ascii2hex.c
 	@./test_ascii2hex.sh "$(CC) $(CFLAGS)"
 
 check : copper-new .FORCE
-	$(MAKE) stage.two.c
-	$(DIFF) --ignore-blank-lines  --show-c-function stage.one.c stage.two.c
-	$(DIFF) --ignore-blank-lines  --show-c-function header.one header.two
-	$(DIFF) --ignore-blank-lines  --show-c-function footing.one footing.two
+	-@rm -f stage.*
+	$(MAKE) do.stage.two 
+	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.c stage.two.c
+	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.inc stage.two.inc
+	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.footing stage.two.footing
 	$(DIFF) --ignore-blank-lines  --show-c-function copper.c stage.two.c
-	$(DIFF) --ignore-blank-lines  --show-c-function header.inc header.two
+	$(DIFF) --ignore-blank-lines  --show-c-function header.inc stage.two.inc
 	$(MAKE) test
-	-@rm -f stage.one stage.one.c stage.one.o header.one footing.one
-	-@rm -f stage.two stage.two.c stage.two.o header.two footing.two
+	-@rm -f stage.*
 	@echo PASSED
 
 push : .FORCE
-	mv header_orig.inc header_orig.inc.BAK
-	mv copper_orig.c copper_orig.c.BAK
-	mv header.inc header_orig.inc
-	cp copper.c copper_orig.c
+	-mv header.bootstrap.inc copper.bootstrap.c Trash/
+	cp header.inc header.bootstrap.inc
+	cp copper.c copper.bootstrap.c
 	$(MAKE) bootstrap
 
 test examples : copper-new .FORCE
@@ -67,52 +70,42 @@ test examples : copper-new .FORCE
 
 # --
 
-copper.c : copper.cu $(COPPER)
-	$(COPPER) -v -Hheader.inc -o $@ copper.cu 2>copper.log
+copper.c   : copper.cu $(COPPER) ; $(COPPER) -v -Hheader.inc -o $@ copper.cu 2>copper.log
+copper.o   : copper.c            ; $(CC) $(CFLAGS) -DSTAGE=\"header.inc\" -c -o $@ $<
+copper-new : copper.o $(OBJS)    ; $(CC) $(CFLAGS) -o $@ copper.o $(OBJS)
 
-copper.o : copper.c
-	$(CC) $(CFLAGS) -DSTAGE_ZERO -c -o $@ $<
+# --
+current.stage : stage.$(STAGE) stage.$(STAGE).footing
 
-copper-new : copper.o $(OBJS)
-	$(CC) $(CFLAGS) -o $@ copper.o $(OBJS)
+stage.$(STAGE).c stage.$(STAGE).inc : copper.cu $(COPPER.test)
+	$(COPPER.test) -v -H stage.$(STAGE).inc -o stage.$(STAGE).c copper.cu 2>stage.$(STAGE).log
+
+stage.$(STAGE).footing : copper.cu $(COPPER.test)
+	$(COPPER.test) -v -F -o $@  2>>stage.$(STAGE).log
+
+stage.$(STAGE).o : stage.$(STAGE).c stage.$(STAGE).inc
+	$(CC) $(CFLAGS) -DSTAGE=\"stage.$(STAGE).inc\" -c -o $@ $<
+
+stage.$(STAGE) : stage.$(STAGE).o $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $+
 
 # --
 
-stage.one.c : copper.cu copper-new
-	./copper-new -v -Hheader.one -o $@ copper.cu 2>stage.one.log
-	./copper-new -v -F -o footing.one 2>>stage.one.log
-
-stage.one.o : stage.one.c
-	$(CC) $(CFLAGS) -DSTAGE_ONE -c -o $@ $<
-
-stage.one : stage.one.o $(OBJS)
-	$(CC) $(CFLAGS) -o $@ stage.one.o $(OBJS)
-
-# --
-
-stage.two.c : copper.cu stage.one
-	./stage.one -Hheader.two -o $@ copper.cu
-	./stage.one -F -o footing.two copper.cu
-
-stage.two.o : stage.two.c
-	$(CC) $(CFLAGS) -DSTAGE_TWO -c -o $@ $<
-
-stage.two : stage.two.o $(OBJS)
-	$(CC) $(CFLAGS) -o $@ stage.one.o $(OBJS)
+do.stage.zero : copper-new    ; @$(MAKE) --no-print-directory STAGE=zero COPPER.test=copper-new current.stage
+do.stage.one  : do.stage.zero ; @$(MAKE) --no-print-directory STAGE=one COPPER.test=stage.zero  current.stage
+do.stage.two  : do.stage.one  ; @$(MAKE) --no-print-directory STAGE=two COPPER.test=stage.one  current.stage
 
 # --
 
 clean : .FORCE
 	rm -f *~ *.o copper copper-new compile.inc
 	rm -f copper.c header.inc copper.log
-	rm -f stage.one  stage.one.c stage.one.log stage.one.o header.one footing.one
-	rm -f stage.two  stage.two.c stage.two.log stage.two.o header.two footing.one
+	rm -f stage.*
 	$(MAKE) --directory=examples --no-print-directory $@
 
 clear : .FORCE
 	rm -f copper.o copper-new header.one header.two
-	rm -f stage.one  stage.one.c  stage.one.log  stage.one.o
-	rm -f stage.two  stage.two.c  stage.two.log  stage.two.o
+	rm -f stage.*
 	$(MAKE) --directory=examples --no-print-directory $@
 
 scrub spotless : clean .FORCE
@@ -121,24 +114,16 @@ scrub spotless : clean .FORCE
 
 ##
 ##
-## patterns
-##
-##
-##
-
-##
-##
 ## bootstrap
 ##
 ##
 
-copper.x :
-	$(MAKE) bootstrap
+copper.x : ; $(MAKE) bootstrap
 
-bootstrap : copper_orig.o $(OBJS)
-	$(CC) $(CFLAGS) -o copper.x copper_orig.o $(OBJS)
+bootstrap : copper.bootstrap.o $(OBJS)
+	$(CC) $(CFLAGS) -o copper.x $+
 
-copper_orig.o : copper_orig.c
-	$(CC) $(CFLAGS) -DSTAGE_BOOTSTRAP -c -o $@ $<
+copper.bootstrap.o : copper.bootstrap.c header.bootstrap.inc
+	$(CC) $(CFLAGS) -DSTAGE=\"header.bootstrap.inc\" -c -o $@ $<
 
 .FORCE :
