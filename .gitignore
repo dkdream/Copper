@@ -1,10 +1,22 @@
-copper.c
-compile.inc
-*.x
-*.o
-*.log
-.#.*
-*~
 *.BAK
+*.d
+*.log
+*.o
+*.x
+*~
+.#.*
+.**
+compile.inc
+copper
+copper-new
+copper.c
+footing.one
+header.inc
+header.one
+header.two
+stage.one
+stage.one.c
+stage.two
+stage.two.c
 
 

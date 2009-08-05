@@ -173,11 +173,22 @@ static void generate_parser(char* output_file, char* heading_file)
     FILE* heading = 0;
 
     if (heading_file) {
-        if (!(heading = fopen(heading_file, "w"))) {
-            perror(heading_file);
-            exit(1);
+        if (!strcmp(heading_file, "-")) {
+            heading = stdout;
+        } else {
+            if (!strcmp(heading_file, output_file)) {
+                heading = output;
+            } else {
+                if (!(heading = fopen(heading_file, "w"))) {
+                    perror(heading_file);
+                    exit(1);
+                }
+            }
         }
     }
+
+    Rule_compile_c_heading(heading);
+    Rule_compile_c_declare(heading, rules);
 
     for (; headers;  headers = headers->next)
         fprintf(output, "%s\n", headers->text);
@@ -191,15 +202,18 @@ static void generate_parser(char* output_file, char* heading_file)
 
     if (trailer) fprintf(output, "%s\n", trailer);
 
-    Rule_compile_c_heading(heading);
-    Rule_compile_c_declare(heading, rules);
-
     if (output_file) {
-        fclose(output);
+        if (output != stdout) {
+            fclose(output);
+        }
     }
 
     if (heading_file) {
-        fclose(heading);
+        if (heading != stdout) {
+            if (output != heading) {
+                fclose(heading);
+            }
+        }
     }
 }
 

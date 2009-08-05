@@ -468,6 +468,8 @@ void Rule_compile_c_declare(FILE* ofile, Node *node) {
         fprintf(ofile, "%s int yy_%s (YYClass* yySelf, YYStack* yystack);\n",
                 current->rule.scope,
                 current->rule.name);
+
+    fprintf(ofile, "\n");
 }
 
 void Rule_compile_c(Node *node)

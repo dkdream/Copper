@@ -12,6 +12,8 @@ OFLAGS = -O3 -DNDEBUG -Wall
 
 OBJS = tree.o compile.o copper_main.o
 
+default : ; $(MAKE) --no-print-directory --keep-going clear all
+
 all : copper
 new : copper-new
 
@@ -59,7 +61,7 @@ push : .FORCE
 	$(MAKE) bootstrap
 
 test examples : copper-new .FORCE
-	$(SHELL) -ec '(cd examples; $(MAKE))'
+	$(MAKE) --directory=examples
 
 
 # --
@@ -104,15 +106,17 @@ clean : .FORCE
 	rm -f copper.c header.inc copper.log
 	rm -f stage.one  stage.one.c stage.one.log stage.one.o header.one footing.one
 	rm -f stage.two  stage.two.c stage.two.log stage.two.o header.two footing.one
-	$(SHELL) -ec '(cd examples;  $(MAKE) $@)'
+	$(MAKE) --directory=examples --no-print-directory $@
 
 clear : .FORCE
 	rm -f copper.o copper-new header.one header.two
-	rm -f stage.one  stage.one.c  stage.one.log  stage.one.o  stage.two  stage.two.c  stage.two.log  stage.two.o
+	rm -f stage.one  stage.one.c  stage.one.log  stage.one.o
+	rm -f stage.two  stage.two.c  stage.two.log  stage.two.o
+	$(MAKE) --directory=examples --no-print-directory $@
 
 scrub spotless : clean .FORCE
 	rm -f copper.x ascii2hex.x copper.[cd]
-	$(SHELL) -ec '(cd examples;  $(MAKE) $@)'
+	$(MAKE) --directory=examples --no-print-directory $@
 
 ##
 ##
