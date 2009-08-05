@@ -23,10 +23,12 @@
 
 #include "tree.h"
 
-Node *actions  = 0;
-Node *rules    = 0;
-Node *thisRule = 0;
-Node *start    = 0;
+Node *actions   = 0;
+Node *rules     = 0;
+Node *macros    = 0;
+Node *start     = 0;
+
+Node *thisRule  = 0;
 
 FILE *output  = 0;
 FILE *include = 0;
@@ -86,6 +88,34 @@ void Rule_setExpression(Node *node, Node *expression)
   node->rule.expression= expression;
   if (!start || !strcmp(node->rule.name, "start"))
     start= node;
+}
+
+Node *makeMacro(char *name)
+{
+  Node *node = newNode(Macro);
+
+  node->macro.name  = strdup(name);
+  node->macro.next  = macros;
+  node->macro.value = (char*) 0;
+  macros = node;
+
+  return node;
+}
+
+Node *findMacro(char *name)
+{
+  Node *node;
+  char *ptr;
+
+  for (ptr = name;  *ptr;  ptr++)
+      if ('-' == *ptr) *ptr= '_';
+
+  for (node = macros;  node;  node = node->any.next) {
+      assert(Macro == node->type);
+      if (!strcmp(name, node->macro.name)) return node;
+  }
+
+  return makeMacro(name);
 }
 
 Node *makeVariable(char *name)

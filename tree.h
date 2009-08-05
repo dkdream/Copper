@@ -18,7 +18,7 @@
 
 #include <stdio.h>
 
-enum { Unknown= 0, Rule, Variable, Name, Dot, Character, String, Class, Action, Predicate, Mark, Alternate, Sequence, PeekFor, PeekNot, Query, Star, Plus };
+enum { Unknown= 0, Rule, Macro, Variable, Name, Dot, Character, String, Class, Action, Predicate, Mark, Alternate, Sequence, PeekFor, PeekNot, Query, Star, Plus };
 
 enum {
   RuleUsed	= 1<<0,
@@ -31,6 +31,7 @@ enum {
 typedef union Node Node;
 
 struct Rule	 { int type;  Node *next;   char *name;	 char *scope; Node *variables;  Node *expression;  int id;  int flags; char* begin; char* end; };
+struct Macro     { int type;  Node *next;   char *name;  char *value;                                                   };
 struct Variable	 { int type;  Node *next;   char *name;  Node *value;  int offset;					};
 struct Name	 { int type;  Node *next;   Node *rule;  Node *variable;						};
 struct Dot	 { int type;  Node *next;										};
@@ -51,29 +52,31 @@ struct Any	 { int type;  Node *next;										};
 
 union Node
 {
-  int			type;
-  struct Rule		rule;
-  struct Variable	variable;
-  struct Name		name;
-  struct Dot		dot;
-  struct Character	character;
-  struct String		string;
-  struct Class		cclass;
-  struct Action		action;
-  struct Predicate	predicate;
-  struct Mark   	mark;
-  struct Alternate	alternate;
-  struct Sequence	sequence;
-  struct PeekFor	peekFor;
-  struct PeekNot	peekNot;
-  struct Query		query;
-  struct Star		star;
-  struct Plus		plus;
-  struct Any		any;
+    int			type;
+    struct Rule		rule;
+    struct Macro	macro;
+    struct Variable	variable;
+    struct Name		name;
+    struct Dot		dot;
+    struct Character	character;
+    struct String	string;
+    struct Class	cclass;
+    struct Action	action;
+    struct Predicate	predicate;
+    struct Mark   	mark;
+    struct Alternate	alternate;
+    struct Sequence	sequence;
+    struct PeekFor	peekFor;
+    struct PeekNot	peekNot;
+    struct Query	query;
+    struct Star		star;
+    struct Plus		plus;
+    struct Any		any;
 };
 
 extern Node *actions;
 extern Node *rules;
+extern Node *macros;
 extern Node *start;
 
 extern int ruleCount;
@@ -86,6 +89,9 @@ extern Node *findRule(char *name);
 extern Node *beginRule(Node *rule);
 extern void  Rule_setExpression(Node *rule, Node *expression);
 extern Node *Rule_beToken(Node *rule);
+extern Node *makeMacro(char *name);
+extern Node *findMacro(char *name);
+extern void  Macro_setValue(Node *macro, char *value);
 extern Node *makeVariable(char *name);
 extern Node *makeName(Node *rule);
 extern Node *makeDot(void);

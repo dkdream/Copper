@@ -8,28 +8,41 @@
 
 # Hierarchical syntax
 
-grammar     =  - ( heading | declaration | exportation | definition )+ trailer? end-of-file
+grammar     =  - ( heading
+                 | declaration
+                 | exportation
+                 | define-macro 
+                 | define-rule
+                 )+ trailer? end-of-file
 
 heading     =  '%{' < ( !'%}' . )* > RPERCENT { makeHeader(yytext); }
 declaration =  '%declare' - identifier        { declareRule(yytext); }
-exportation =  '%export' - identifier         { exportRule(yytext); }
+exportation =  '%export'  - identifier        { exportRule(yytext); }
 trailer     =  '%%' < .* >                    { makeTrailer(yytext); }
 
-definition  =  identifier                   { checkRule(yytext); }
+define-macro =  '%define' - macro  { checkMacro(yytext);   }
+                            action { defineMacro(yytext);  }
+
+define-rule =  identifier                   { checkRule(yytext); }
                EQUAL ( expression end       { defineRule(rule_with_end); }
                      | expression           { defineRule(simple_rule); }
                      | begin expression end { defineRule(rule_with_both); }
                      | begin expression     { defineRule(rule_with_begin); }
                      ) SEMICOLON?
 
-begin       = '%begin' - action             { push(makePredicate(yytext)); }
-end         = '%end'   - action             { push(makePredicate(yytext)); }
+begin       = '%begin' - ( action { push(makePredicate(yytext)); }
+                         | macro  { push(makePredicate(fetchMacro(yytext))); }
+                         )
+end         = '%end'   - ( action { push(makePredicate(yytext)); }
+                         | macro  { push(makePredicate(fetchMacro(yytext))); }
+                         )
 
 expression  = sequence (BAR sequence  { Node *f= pop();  push(Alternate_append(pop(), f)); }  )*
 
 sequence    = prefix (prefix          { Node *f= pop();  push(Sequence_append(pop(), f)); }   )*
 
 prefix      = AND action    { push(makePredicate(yytext)); }
+            | AND macro     { push(makePredicate(fetchMacro(yytext))); }
             | AND suffix    { push(makePeekFor(pop())); }
             | NOT suffix    { push(makePeekNot(pop())); }
             | suffix
@@ -47,6 +60,7 @@ primary    = identifier                 { push(makeVariable(yytext)); }
            | class                      { push(makeClass(yytext)); }
            | DOT                        { push(makeDot()); }
            | action                     { push(makeAction(yytext)); }
+           | macro                      { push(makeAction(fetchMacro(yytext))); }
            | BEGIN                      { push(makeMark("YY_SEND(begin_, yystack)")); }
            | END                        { push(makeMark("YY_SEND(end_, yystack)")); }
            | MARK                       { push(makeAction("YY_SEND(mark_, yyrulename);")); }
@@ -54,7 +68,9 @@ primary    = identifier                 { push(makeVariable(yytext)); }
 
 # Lexical syntax
 
-directives = '%{' | '%declare' | '%export' | '%%' | '%begin' | '%end' | '%}'
+macro      = !directive '%' < [-a-zA-Z_][-a-zA-Z_0-9]* > -
+
+directive  = '%{' | '%define' | '%declare' | '%export' | '%%' | '%begin' | '%end' | '%}'
 
 identifier =  < [-a-zA-Z_][-a-zA-Z_0-9]* > -
 

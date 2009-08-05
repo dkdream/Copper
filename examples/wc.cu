@@ -1,6 +1,10 @@
 
 start	= (line | word | char)
 
-line	= < (( '\n' '\r'* ) | ( '\r' '\n'* )) >	{ lines++;  chars += yyleng; }
-word	= < [a-zA-Z]+ >				{ words++;  chars += yyleng;  printf("<%s>\n", yytext); }
-char	= .					{ chars++; }
+%define %add-char { chars++; }
+%define %add-line { lines++; chars += yyleng; }
+%define %add-word { words++;  chars += yyleng;  printf("<%s>\n", yytext); }
+
+line	= < (( '\n' '\r'* ) | ( '\r' '\n'* )) >	%add-line
+word	= < [a-zA-Z]+ >				%add-word
+char	= .					%add-char

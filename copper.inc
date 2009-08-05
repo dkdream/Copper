@@ -34,6 +34,30 @@ static inline void checkRule(char *name) {
     }
 }
 
+static inline void checkMacro(char *name) {
+    Node *node = findMacro(name);
+    if (node->macro.value) {
+        fprintf(stderr, "macro '%s' redefined\n", name);
+    }
+    push(node);
+}
+
+static inline void defineMacro(char* value) {
+    Node *node = pop();
+    assert(Macro == node->type);
+    if (node->macro.value) {
+        free(node->macro.value);
+    }
+    node->macro.value = strdup(value);
+}
+
+static inline char* fetchMacro(char *name) {
+    Node *node = findMacro(name);
+    if (node->macro.value) return node->macro.value;
+    fprintf(stderr, "using undefined macro '%s' \n", name);
+    return "";
+}
+
 enum RuleKind {
     simple_rule,
     rule_with_begin,
