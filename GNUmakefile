@@ -11,7 +11,7 @@ PATH := $(PATH):.
 
 DIFF   = diff
 CC     = gcc
-CFLAGS = -g $(OFLAGS) $(XFLAGS)
+CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
 OFLAGS = -O3 -DNDEBUG -Wall
 
 OBJS = tree.o compile.o copper_main.o
