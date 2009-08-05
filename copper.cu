@@ -8,98 +8,94 @@
 
 # Hierarchical syntax
 
-grammar=	- ( heading | declaration | exportation | definition )+ trailer? end-of-file
+grammar     =  - ( heading | declaration | exportation | definition )+ trailer? end-of-file
 
-heading=	'%{' < ( !'%}' . )* > RPERCENT		{ makeHeader(yytext); }
+heading     =  '%{' < ( !'%}' . )* > RPERCENT { makeHeader(yytext); }
+declaration =  '%declare' - identifier        { declareRule(yytext); }
+exportation =  '%export' - identifier         { exportRule(yytext); }
+trailer     =  '%%' < .* >                    { makeTrailer(yytext); }
 
-declaration=	'%declare' - identifier			{ declareRule(yytext); }
+definition  =  identifier                   { checkRule(yytext); }
+               EQUAL ( expression end       { defineRule(rule_with_end); }
+                     | expression           { defineRule(simple_rule); }
+                     | begin expression end { defineRule(rule_with_both); }
+                     | begin expression     { defineRule(rule_with_begin); }
+                     ) SEMICOLON?
 
-exportation=	'%export' - identifier			{ exportRule(yytext); }
+begin       = '%begin' - action             { push(makePredicate(yytext)); }
+end         = '%end'   - action             { push(makePredicate(yytext)); }
 
-trailer=	'%%' < .* >				{ makeTrailer(yytext); }
+expression  = sequence (BAR sequence  { Node *f= pop();  push(Alternate_append(pop(), f)); }  )*
 
-definition=	identifier 				{ checkRule(yytext); }
-			EQUAL ( expression end        	{ defineRule(rule_with_end); }
-                              | expression              { defineRule(simple_rule); }
-                              | begin expression end    { defineRule(rule_with_both); }
-                              | begin expression        { defineRule(rule_with_begin); }
-                              ) SEMICOLON?
+sequence    = prefix (prefix          { Node *f= pop();  push(Sequence_append(pop(), f)); }   )*
 
-begin=          '%begin' - action                       { push(makePredicate(yytext)); }
-end=            '%end'   - action                       { push(makePredicate(yytext)); }
+prefix      = AND action    { push(makePredicate(yytext)); }
+            | AND suffix    { push(makePeekFor(pop())); }
+            | NOT suffix    { push(makePeekNot(pop())); }
+            | suffix
 
-expression=	sequence (BAR sequence			{ Node *f= pop();  push(Alternate_append(pop(), f)); }
-			    )*
+suffix     = primary (QUESTION { push(makeQuery(pop())); }
+                     | STAR    { push(makeStar (pop())); }
+                     | PLUS    { push(makePlus (pop())); }
+                     )?
 
-sequence=	prefix (prefix				{ Node *f= pop();  push(Sequence_append(pop(), f)); }
-			  )*
-
-prefix=		AND action				{ push(makePredicate(yytext)); }
-|		AND suffix				{ push(makePeekFor(pop())); }
-|		NOT suffix				{ push(makePeekNot(pop())); }
-|		    suffix
-
-suffix=		primary (QUESTION			{ push(makeQuery(pop())); }
-			     | STAR			{ push(makeStar (pop())); }
-			     | PLUS			{ push(makePlus (pop())); }
-			   )?
-
-primary=	identifier				{ push(makeVariable(yytext)); }
-			COLON identifier !EQUAL		{ Node *name= makeName(findRule(yytext));  name->name.variable= pop();  push(name); }
-|		identifier !EQUAL			{ push(makeName(findRule(yytext))); }
-|		OPEN expression CLOSE
-|		literal					{ push(makeString(yytext)); }
-|		class					{ push(makeClass(yytext)); }
-|		DOT					{ push(makeDot()); }
-|		action					{ push(makeAction(yytext)); }
-|		BEGIN					{ push(makeMark("YY_SEND(begin_, yystack)")); }
-|		END					{ push(makeMark("YY_SEND(end_, yystack)")); }
-|		MARK					{ push(makeAction("YY_SEND(mark_, yyrulename);")); }
-|		COLLECT					{ push(makeAction("YY_SEND(collect_, yyrulename);")); }
+primary    = identifier                 { push(makeVariable(yytext)); }
+                COLON identifier !EQUAL { Node *name= makeName(findRule(yytext));  name->name.variable= pop();  push(name); }
+           | identifier !EQUAL          { push(makeName(findRule(yytext))); }
+           | OPEN expression CLOSE
+           | literal                    { push(makeString(yytext)); }
+           | class                      { push(makeClass(yytext)); }
+           | DOT                        { push(makeDot()); }
+           | action                     { push(makeAction(yytext)); }
+           | BEGIN                      { push(makeMark("YY_SEND(begin_, yystack)")); }
+           | END                        { push(makeMark("YY_SEND(end_, yystack)")); }
+           | MARK                       { push(makeAction("YY_SEND(mark_, yyrulename);")); }
+           | COLLECT                    { push(makeAction("YY_SEND(collect_, yyrulename);")); }
 
 # Lexical syntax
 
-identifier=	< [-a-zA-Z_][-a-zA-Z_0-9]* > -
+directives = '%{' | '%declare' | '%export' | '%%' | '%begin' | '%end' | '%}'
 
-literal=	['] < ( !['] char )* > ['] -
-|		["] < ( !["] char )* > ["] -
+identifier =  < [-a-zA-Z_][-a-zA-Z_0-9]* > -
 
-class=		'[' < ( !']' range )* > ']' -
+literal    = ['] < ( !['] char )* > ['] -
+           | ["] < ( !["] char )* > ["] -
 
-range=		char '-' char | char
+class      = '[' < ( !']' range )* > ']' -
 
-char=		'\\' [abefnrtv'"\[\]\\]
-|		'\\' [0-3][0-7][0-7]
-|		'\\' [0-7][0-7]?
-|		!'\\' .
+range      = char '-' char
+           | char
 
-action=		'{' < braces* > '}' -
+char       = '\\' [abefnrtv'"\[\]\\]
+           | '\\' [0-3][0-7][0-7]
+           | '\\' [0-7][0-7]?
+           | !'\\' .
 
-braces=		'{' (!'}' .)* '}'
-|		!'}' .
+action     = '{' < braces* > '}' -
 
-EQUAL=		'=' -
-COLON=		':' -
-SEMICOLON=	';' -
-BAR=		'|' -
-AND=		'&' -
-NOT=		'!' -
-QUESTION=	'?' -
-STAR=		'*' -
-PLUS=		'+' -
-OPEN=		'(' -
-CLOSE=		')' -
-DOT=		'.' -
-BEGIN=		'<' -
-END=		'>' -
-MARK=           '@' -
-COLLECT=        '$' -
-RPERCENT=	'%}' -
+braces     =    '{' (!'}' .)* '}'
+           |    !'}' .
 
--=		(space | comment)*
-space=		' ' | '\t' | end-of-line
-comment=	'#' (!end-of-line .)* end-of-line
-end-of-line=	'\r\n' | '\n' | '\r'
-end-of-file=	!.
+EQUAL     = '=' -
+COLON     = ':' -
+SEMICOLON = ';' -
+BAR       = '|' -
+AND       = '&' -
+NOT       = '!' -
+QUESTION  = '?' -
+STAR      = '*' -
+PLUS      = '+' -
+OPEN      = '(' -
+CLOSE     = ')' -
+DOT       = '.' -
+BEGIN     = '<' -
+END       = '>' -
+MARK      = '@' -
+COLLECT   = '$' -
+RPERCENT  = '%}' -
 
-%%
+-           = (space | comment)*
+space       = ' ' | '\t' | end-of-line
+comment     = '#' (!end-of-line .)* end-of-line
+end-of-line = '\r\n' | '\n' | '\r'
+end-of-file = !.
