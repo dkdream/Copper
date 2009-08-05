@@ -59,9 +59,8 @@ check : copper-new .FORCE
 	@echo PASSED
 
 push : .FORCE
-	-mv header.bootstrap.inc copper.bootstrap.c Trash/
-	cp header.inc header.bootstrap.inc
-	cp copper.c copper.bootstrap.c
+	-@cmp --quiet header.inc header.bootstrap.inc || cp header.inc header.bootstrap.inc
+	-@cmp --quiet copper.c copper.bootstrap.c     || cp copper.c copper.bootstrap.c
 	$(MAKE) bootstrap
 
 test examples : copper-new .FORCE
