@@ -36,7 +36,7 @@ static inline void yyCheckDo(YYClass* yySelf) {
     for (pos = 0;  pos < end;  ++pos) {
         YYThunk *thunk = &(yySelf->thunks[pos]);
         if (thunk->action) continue;
-        YY_SEND(debug_,"     yyCheckDo [%d] error\n", pos);
+        YY_SEND(debug_, Debug_trace, "     yyCheckDo [%d] error\n", pos);
         yyStateError();
         break;
     }
@@ -52,7 +52,7 @@ static inline void yyResizeDo(YYClass* yySelf, int count) {
         yySelf->thunkslen *= 2;
     }
 
-    YY_SEND(debug_,"     yyResizeDo %d -> %d\n", old, yySelf->thunkslen);
+    YY_SEND(debug_, Debug_trace, "     yyResizeDo %d -> %d\n", old, yySelf->thunkslen);
 
     if (yySelf->thunks) {
         yySelf->thunks = realloc(yySelf->thunks, sizeof(YYThunk) * yySelf->thunkslen);
@@ -69,7 +69,7 @@ static inline void yyDo(YYClass* yySelf, const char* actionname, YYAction action
 
     YYThunk *thunk = &(yySelf->thunks[yySelf->thunkpos]);
 
-    YY_SEND(debug_,"     yyDo [%d] %p %s\n", yySelf->thunkpos, action, actionname);
+    YY_SEND(debug_, Debug_action_state, "     yyDo [%d] %p %s\n", yySelf->thunkpos, action, actionname);
 
     thunk->name     = actionname;
     thunk->begin    = yySelf->begin;
@@ -103,7 +103,7 @@ static inline void yyAddNode(YYClass* yySelf, YYStack *yystack, int result) {
             if (0 > count) return;
             // to many
             if (YY_CACHE_THUNKS < count) {
-                YY_SEND(debug_,"     not adding cache node (%s,@%d,%d) at %d for %s - to many thunks\n",
+                YY_SEND(debug_, Debug_cache_all, "     not adding cache node (%s,@%d,%d) at %d for %s - to many thunks\n",
                          (result ? "ok" : "fail"), yySelf->pos, count,
                          start.pos, name);
                 return;
@@ -136,7 +136,7 @@ static inline void yyAddNode(YYClass* yySelf, YYStack *yystack, int result) {
         node->count = 0;
     }
 
-    YY_SEND(debug_,"     adding cache node (%s,@%d,%d) at %d for %s\n",
+    YY_SEND(debug_, Debug_cache_all, "     adding cache node (%s,@%d,%d) at %d for %s\n",
              (node->result ? "ok" : "fail"), node->pos, node->count,
              node->location, name);
 
@@ -176,7 +176,7 @@ static inline int yyCheckNode(YYClass* yySelf, YYStack *yystack, int* result)
             }
         }
 
-        YY_SEND(debug_,"     using cache node (%s,@%d,%d) at %d for %s\n",
+        YY_SEND(debug_, Debug_cache_use, "     using cache node (%s,@%d,%d) at %d for %s\n",
                  (node->result ? "ok" : "fail"), node->pos, node->count,
                  node->location, name);
 
@@ -191,12 +191,13 @@ static inline void yyDone(YYClass* yySelf) {
     for (pos = 0;  pos < yySelf->thunkpos;  ++pos) {
         YYThunk *thunk = &yySelf->thunks[pos];
 
-        YY_SEND(debug_,"DO [%d] %p %s : ", pos, thunk->action, thunk->name);
+        // all action have yyThunkText as there first action so
+        YY_SEND(debug_, Debug_action_state, "DO [%d] %p %s : ", pos, thunk->action, thunk->name);
 
         if (thunk->action) {
             thunk->action(yySelf, yySelf->thunks[pos]);
         } else {
-            YY_SEND(debug_,"\n");
+            YY_SEND(debug_, Debug_action_state, "\n");
         }
     }
     yySelf->thunkpos = 0;
@@ -211,7 +212,7 @@ static inline void yyResizeVars(YYClass* yySelf, int count) {
         yySelf->valslen *= 2;
     }
 
-    YY_SEND(debug_,"do %s %d\n", "stack-resize", yySelf->valslen);
+    YY_SEND(debug_, Debug_trace, "do %s %d\n", "stack-resize", yySelf->valslen);
 
     if (yySelf->vals) {
         yySelf->vals = realloc(yySelf->vals, sizeof(YYSTYPE) * yySelf->valslen);
@@ -221,20 +222,29 @@ static inline void yyResizeVars(YYClass* yySelf, int count) {
 }
 
 static void yyPush(YYClass* yySelf, YYThunk thunk) {
-    YY_SEND(debug_,"do %s %d\n", "push", thunk.argument);
+    // instead of yyThunkText
+    YY_SEND(debug_, Debug_action_state, "\n");
+
+    YY_SEND(debug_, Debug_action, "do %s %d\n", "push", thunk.argument);
     /* need to check if yySelf->frame + thunk.argument >= yySelf->valslen */
     yyResizeVars(yySelf, thunk.argument);
     yySelf->frame += thunk.argument;
 }
 
 static void yyPop(YYClass* yySelf, YYThunk thunk) {
-    YY_SEND(debug_,"do %s %d\n", "pop", thunk.argument);
+    // instead of yyThunkText
+    YY_SEND(debug_, Debug_action_state, "\n");
+
+    YY_SEND(debug_, Debug_action, "do %s %d\n", "pop", thunk.argument);
     yySelf->frame -= thunk.argument;
     /* need to check if yySelf->frame < 0 */
 }
 
 static void yySet(YYClass* yySelf, YYThunk thunk) {
-    YY_SEND(debug_,"do %s v[%d] = %d\n", "set", thunk.argument,  yySelf->result);
+    // instead of yyThunkText
+    YY_SEND(debug_, Debug_action_state, "\n");
+
+    YY_SEND(debug_, Debug_action, "do %s v[%d] = %d\n", "set", thunk.argument,  yySelf->result);
     /* need to check if yySelf->frame + thunk.argument >= yySelf->valslen */
     yySelf->vals[yySelf->frame + thunk.argument] = yySelf->result;
 }
@@ -266,13 +276,13 @@ static inline int yyThunkText(YYClass* yySelf, YYThunk thunk) {
 
     yySelf->text[length]= '\0';
 
-    YY_SEND(debug_,"GET thunk text[%d,%d] = \'%s\'\n", begin, end,  yySelf->text);
+    YY_SEND(debug_, Debug_action_state, "GET thunk text[%d,%d] = \'%s\'\n", begin, end,  yySelf->text);
 
     return length;
 }
 
 static inline int yyrefill(YYClass* yySelf) {
-    YY_SEND(debug_,"     yyrefill\n");
+    YY_SEND(debug_, Debug_trace, "     yyrefill\n");
 
     if (yySelf->buflen - yySelf->pos < 512) {
         while (yySelf->buflen - yySelf->pos < 512) {
@@ -408,7 +418,7 @@ static void yy_12_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_12_primary (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_12_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeAction("YY_SEND(collect_, yyrulename);")); ;
 #undef yy
@@ -429,7 +439,7 @@ static void yy_11_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_11_primary (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_11_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeAction("YY_SEND(mark_, yyrulename);")); ;
 #undef yy
@@ -450,7 +460,7 @@ static void yy_10_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_10_primary (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_10_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeMark("YY_SEND(end_, yystack)")); ;
 #undef yy
@@ -471,7 +481,7 @@ static void yy_9_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_9_primary (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_9_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeMark("YY_SEND(begin_, yystack)")); ;
 #undef yy
@@ -492,7 +502,7 @@ static void yy_8_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_8_primary (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_8_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeAction(fetchMacro(yytext))); ;
 #undef yy
@@ -513,7 +523,7 @@ static void yy_7_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_7_primary (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_7_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeAction(yytext)); ;
 #undef yy
@@ -534,7 +544,7 @@ static void yy_6_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_6_primary (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_6_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeDot()); ;
 #undef yy
@@ -555,7 +565,7 @@ static void yy_5_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_5_primary (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_5_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeClass(yytext)); ;
 #undef yy
@@ -576,7 +586,7 @@ static void yy_4_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_4_primary (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_4_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeString(yytext)); ;
 #undef yy
@@ -597,7 +607,7 @@ static void yy_3_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_3_primary (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_3_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeName(findRule(yytext))); ;
 #undef yy
@@ -618,7 +628,7 @@ static void yy_2_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_2_primary (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_2_primary (%s) '%s'\n", yyrulename, yytext);
 
    Node *name= makeName(findRule(yytext));  name->name.variable= pop();  push(name); ;
 #undef yy
@@ -639,7 +649,7 @@ static void yy_1_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_1_primary (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_1_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeVariable(yytext)); ;
 #undef yy
@@ -660,7 +670,7 @@ static void yy_3_suffix(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_3_suffix (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_3_suffix (%s) '%s'\n", yyrulename, yytext);
 
    push(makePlus (pop())); ;
 #undef yy
@@ -681,7 +691,7 @@ static void yy_2_suffix(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_2_suffix (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_2_suffix (%s) '%s'\n", yyrulename, yytext);
 
    push(makeStar (pop())); ;
 #undef yy
@@ -702,7 +712,7 @@ static void yy_1_suffix(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_1_suffix (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_1_suffix (%s) '%s'\n", yyrulename, yytext);
 
    push(makeQuery(pop())); ;
 #undef yy
@@ -723,7 +733,7 @@ static void yy_4_prefix(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_4_prefix (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_4_prefix (%s) '%s'\n", yyrulename, yytext);
 
    push(makePeekNot(pop())); ;
 #undef yy
@@ -744,7 +754,7 @@ static void yy_3_prefix(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_3_prefix (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_3_prefix (%s) '%s'\n", yyrulename, yytext);
 
    push(makePeekFor(pop())); ;
 #undef yy
@@ -765,7 +775,7 @@ static void yy_2_prefix(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_2_prefix (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_2_prefix (%s) '%s'\n", yyrulename, yytext);
 
    push(makePredicate(fetchMacro(yytext))); ;
 #undef yy
@@ -786,7 +796,7 @@ static void yy_1_prefix(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_1_prefix (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_1_prefix (%s) '%s'\n", yyrulename, yytext);
 
    push(makePredicate(yytext)); ;
 #undef yy
@@ -807,7 +817,7 @@ static void yy_1_sequence(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_1_sequence (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_1_sequence (%s) '%s'\n", yyrulename, yytext);
 
    Node *f= pop();  push(Sequence_append(pop(), f)); ;
 #undef yy
@@ -828,7 +838,7 @@ static void yy_1_expression(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_1_expression (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_1_expression (%s) '%s'\n", yyrulename, yytext);
 
    Node *f= pop();  push(Alternate_append(pop(), f)); ;
 #undef yy
@@ -849,7 +859,7 @@ static void yy_2_end(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_2_end (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_2_end (%s) '%s'\n", yyrulename, yytext);
 
    push(makeMark(fetchMacro(yytext))); ;
 #undef yy
@@ -870,7 +880,7 @@ static void yy_1_end(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_1_end (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_1_end (%s) '%s'\n", yyrulename, yytext);
 
    push(makeMark(yytext)); ;
 #undef yy
@@ -891,7 +901,7 @@ static void yy_2_begin(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_2_begin (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_2_begin (%s) '%s'\n", yyrulename, yytext);
 
    push(makeMark(fetchMacro(yytext))); ;
 #undef yy
@@ -912,7 +922,7 @@ static void yy_1_begin(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_1_begin (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_1_begin (%s) '%s'\n", yyrulename, yytext);
 
    push(makeMark(yytext)); ;
 #undef yy
@@ -933,7 +943,7 @@ static void yy_5_define_rule(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_5_define_rule (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_5_define_rule (%s) '%s'\n", yyrulename, yytext);
 
    defineRule(rule_with_begin); ;
 #undef yy
@@ -954,7 +964,7 @@ static void yy_4_define_rule(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_4_define_rule (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_4_define_rule (%s) '%s'\n", yyrulename, yytext);
 
    defineRule(rule_with_both); ;
 #undef yy
@@ -975,7 +985,7 @@ static void yy_3_define_rule(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_3_define_rule (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_3_define_rule (%s) '%s'\n", yyrulename, yytext);
 
    defineRule(simple_rule); ;
 #undef yy
@@ -996,7 +1006,7 @@ static void yy_2_define_rule(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_2_define_rule (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_2_define_rule (%s) '%s'\n", yyrulename, yytext);
 
    defineRule(rule_with_end); ;
 #undef yy
@@ -1017,7 +1027,7 @@ static void yy_1_define_rule(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_1_define_rule (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_1_define_rule (%s) '%s'\n", yyrulename, yytext);
 
    checkRule(yytext); ;
 #undef yy
@@ -1038,7 +1048,7 @@ static void yy_2_define_macro(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_2_define_macro (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_2_define_macro (%s) '%s'\n", yyrulename, yytext);
 
    defineMacro(yytext);  ;
 #undef yy
@@ -1059,7 +1069,7 @@ static void yy_1_define_macro(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_1_define_macro (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_1_define_macro (%s) '%s'\n", yyrulename, yytext);
 
    checkMacro(yytext);   ;
 #undef yy
@@ -1080,7 +1090,7 @@ static void yy_1_trailer(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_1_trailer (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_1_trailer (%s) '%s'\n", yyrulename, yytext);
 
    makeTrailer(yytext); ;
 #undef yy
@@ -1101,7 +1111,7 @@ static void yy_1_exportation(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_1_exportation (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_1_exportation (%s) '%s'\n", yyrulename, yytext);
 
    exportRule(yytext); ;
 #undef yy
@@ -1122,7 +1132,7 @@ static void yy_1_declaration(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_1_declaration (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_1_declaration (%s) '%s'\n", yyrulename, yytext);
 
    declareRule(yytext); ;
 #undef yy
@@ -1143,7 +1153,7 @@ static void yy_1_heading(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, "do yy_1_heading (%s) '%s'\n", yyrulename, yytext);
+  YY_SEND(debug_, Debug_action, "do yy_1_heading (%s) '%s'\n", yyrulename, yytext);
 
    makeHeader(yytext); ;
 #undef yy

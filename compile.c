@@ -493,7 +493,7 @@ void Rule_compile_c(Node *node)
     {
       fprintf(output, "static void yy%s(YYClass* yySelf, YYThunk thunk)\n{\n", current->action.name);
       defineVariables(current->action.rule->rule.variables, current->action.rule->rule.name);
-      fprintf(output, "  YY_SEND(debug_, \"do yy%s (%%s) \'%%s\'\\n\", yyrulename, yytext);\n\n", current->action.name);
+      fprintf(output, "  YY_SEND(debug_, Debug_action, \"do yy%s (%%s) \'%%s\'\\n\", yyrulename, yytext);\n\n", current->action.name);
       fprintf(output, "  %s;\n", current->action.text);
       undefineVariables(current->action.rule->rule.variables);
 

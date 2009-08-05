@@ -17,7 +17,7 @@
 #include "copper.inc"
 
 FILE *input = 0;
-int verboseFlag = 0;
+int   debug = 0;
 
 extern int yy_grammar (YYClass* yySelf, YYStack* yystack);
 
@@ -36,8 +36,10 @@ static inline int my_yy_input(YYClass* yySelf, char* buffer, int max_size) {
     return 1;
 }
 
-static void my_debugger(YYClass* yySelf, const char* format, ...) {
-    if (!verboseFlag) return;
+static void my_debugger(YYClass* yySelf, DebugLevel level, const char* format, ...) {
+    if (!debug) return;
+    if (level > debug) return;
+
     va_list arguments;
     va_start(arguments, format);
     vfprintf(stderr, format, arguments);
@@ -273,7 +275,7 @@ int main(int argc, char **argv)
                 continue;
 
             case 'v':
-                verboseFlag = 1;
+                debug += 1;
                 continue;
 
             case 'o':
