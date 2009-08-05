@@ -30,11 +30,11 @@ define-rule =  identifier                   { checkRule(yytext); }
                      | begin expression     { defineRule(rule_with_begin); }
                      ) SEMICOLON?
 
-begin       = '%begin' - ( action { push(makePredicate(yytext)); }
-                         | macro  { push(makePredicate(fetchMacro(yytext))); }
+begin       = '%begin' - ( action { push(makeMark(yytext)); }
+                         | macro  { push(makeMark(fetchMacro(yytext))); }
                          )
-end         = '%end'   - ( action { push(makePredicate(yytext)); }
-                         | macro  { push(makePredicate(fetchMacro(yytext))); }
+end         = '%end'   - ( action { push(makeMark(yytext)); }
+                         | macro  { push(makeMark(fetchMacro(yytext))); }
                          )
 
 expression  = sequence (BAR sequence  { Node *f= pop();  push(Alternate_append(pop(), f)); }  )*

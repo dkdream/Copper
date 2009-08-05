@@ -110,8 +110,8 @@ static inline void defineRule(enum RuleKind kind) {
         begin      = pop();
         rule       = pop();
         assert(Rule == rule->type);
-        assert(Predicate == begin->type);
-        rule->rule.begin = begin->predicate.text;
+        assert(Mark == begin->type);
+        rule->rule.begin = begin->mark.text;
         rule->rule.end   = 0;
         Rule_setExpression(rule, expression);
         break;
@@ -121,9 +121,9 @@ static inline void defineRule(enum RuleKind kind) {
         expression = pop();
         rule       = pop();
         assert(Rule == rule->type);
-        assert(Predicate == end->type);
+        assert(Mark == end->type);
         rule->rule.begin = 0;
-        rule->rule.end   = end->predicate.text;
+        rule->rule.end   = end->mark.text;
         Rule_setExpression(rule, expression);
         break;
 
@@ -133,10 +133,10 @@ static inline void defineRule(enum RuleKind kind) {
         begin      = pop();
         rule       = pop();
         assert(Rule == rule->type);
-        assert(Predicate == begin->type);
-        assert(Predicate == end->type);
-        rule->rule.begin = begin->predicate.text;
-        rule->rule.end   = end->predicate.text;
+        assert(Mark == begin->type);
+        assert(Mark == end->type);
+        rule->rule.begin = begin->mark.text;
+        rule->rule.end   = end->mark.text;
         Rule_setExpression(rule, expression);
         break;
     }
