@@ -60,7 +60,6 @@ check : copper-new .FORCE
 	@echo PASSED
 
 push : .FORCE
-	-@cmp --quiet header.inc header.bootstrap.inc || cp header.inc header.bootstrap.inc
 	-@cmp --quiet copper.c copper.bootstrap.c     || cp copper.c copper.bootstrap.c
 	$(MAKE) bootstrap
 
@@ -126,7 +125,7 @@ copper.x : ; $(MAKE) bootstrap
 bootstrap : copper.bootstrap.o $(OBJS)
 	$(CC) $(CFLAGS) -o copper.x $+
 
-copper.bootstrap.o : copper.bootstrap.c header.bootstrap.inc
-	$(CC) $(CFLAGS) -DSTAGE=\"header.bootstrap.inc\" -c -o $@ $<
+copper.bootstrap.o : copper.bootstrap.c
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 .FORCE :
