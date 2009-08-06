@@ -50,15 +50,22 @@ typedef int  (*YYApply)(YYClass* yySelf,
 #endif
 
 struct  _yyclass {
+    /* input text buffer */
     char *    buf;
     int	      buflen;
     int	      pos;
     int	      limit;
+
+    /* thunk text buffer (zero terminated) */
     char *    text;
     int	      textlen;
+
+    /* yytext markers */
     int	      begin;
     int	      end;
-    int	      textmax;
+
+    /* what */
+    //    int	      textmax;
 
     /* action list */
     YYThunk * thunks;
@@ -71,7 +78,7 @@ struct  _yyclass {
     int       valslen;
     YYSTYPE * vals;
 
-    /**/
+    /* node cache */
     YYCache * cache;
 
     /*method table*/

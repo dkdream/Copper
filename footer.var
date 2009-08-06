@@ -149,21 +149,32 @@ static int apply_method(YYClass* yySelf, YYStack* yystack, YYRule function, cons
 }
 
 void yyInit(YYClass* yySelf) {
+    /* input text buffer */
     yySelf->buf       = 0;
     yySelf->buflen    = 0;
     yySelf->pos       = 0;
     yySelf->limit     = 0;
-    yySelf->text      = 0;
-    yySelf->textlen   = 0;
+
+    /* yytext markers */
     yySelf->begin     = 0;
     yySelf->end       = 0;
-    yySelf->textmax   = 0;
+
+    /* thunk text buffer (zero terminated) */
+    yySelf->text      = 0;
+    yySelf->textlen   = 0;
+
+    /* action list */
     yySelf->thunks    = 0;
     yySelf->thunkslen = 0;
     yySelf->thunkpos  = 0;
+
+    /* data stack */
+    // yySelf->result = 0;
     yySelf->frame     = 0;
     yySelf->vals      = 0;
     yySelf->valslen   = 0;
+
+    /* node cache */
     yySelf->cache     = 0;
 
     yySelf->input_   = input_method;

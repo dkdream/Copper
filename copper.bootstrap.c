@@ -6,7 +6,9 @@
 #ifndef YY_PREAMBLE
 #define YY_PREAMBLE
 
+#ifndef YY_SEND
 #define YY_SEND(method, args...) yySelf->method(yySelf, ## args)
+#endif
 
 #define	YYACCEPT yyAccept(yySelf, yystack)
 
@@ -245,6 +247,7 @@ static void yySet(YYClass* yySelf, YYThunk thunk) {
     YY_SEND(debug_, Debug_action_state, "\n");
 
     YY_SEND(debug_, Debug_action, "do %s v[%d] = %d\n", "set", thunk.argument,  yySelf->result);
+
     /* need to check if yySelf->frame + thunk.argument >= yySelf->valslen */
     yySelf->vals[yySelf->frame + thunk.argument] = yySelf->result;
 }
@@ -287,13 +290,15 @@ static inline int yyrefill(YYClass* yySelf) {
     if (yySelf->buflen - yySelf->pos < 512) {
         while (yySelf->buflen - yySelf->pos < 512) {
             yySelf->buflen *= 2;
-            yySelf->buf     = realloc(yySelf->buf, yySelf->buflen+2);
         }
+
+        yySelf->buf = realloc(yySelf->buf, yySelf->buflen+2);
         yySelf->buf[yySelf->limit] = 0;
     }
 
-    //    int yyn = YY_INPUT(yySelf->buf + yySelf->pos, yySelf->buflen - yySelf->pos);
-    int yyn = yySelf->input_(yySelf, yySelf->buf + yySelf->pos, yySelf->buflen - yySelf->pos);
+    //  int yyn = YY_INPUT(yySelf->buf + yySelf->pos, yySelf->buflen - yySelf->pos);
+    //  int yyn = yySelf->input_(yySelf, yySelf->buf + yySelf->pos, yySelf->buflen - yySelf->pos);
+    int yyn = YY_SEND(input_, yySelf->buf + yySelf->pos, yySelf->buflen - yySelf->pos);
 
     if (0 == yyn) return 0;
 
