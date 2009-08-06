@@ -327,8 +327,10 @@ static void Rule_compile_c2(Node *node, int export_all)
   assert(Rule == node->type);
 
   if (!node->rule.expression) {
-      if (!(RuleDeclared & node->rule.flags))
-          fprintf(stderr, "rule '%s' used but not defined\n", node->rule.name);
+      if (export_all) {
+          if (!(RuleDeclared & node->rule.flags))
+              fprintf(stderr, "rule '%s' used but not defined\n", node->rule.name);
+      }
   } else {
       if (export_all) {
           node->rule.flags |= RuleExported;
