@@ -460,6 +460,10 @@ void Rule_compile_c_heading(FILE* ofile)
 void Rule_compile_c_declare(FILE* ofile, Node *node) {
     if (!ofile) return;
 
+    fprintf(ofile, "#ifndef YY_HEADER\n");
+    fprintf(ofile, "typedef struct _yyclass YYClass;\n");
+    fprintf(ofile, "typedef struct _yystack  YYStack;\n");
+    fprintf(ofile, "#endif\n");
     fprintf(ofile, "\n");
     fprintf(ofile, "/* %s */\n", "rules");
 
@@ -482,6 +486,22 @@ void Rule_compile_c(Node *node)
   */
 
   fprintf(output, "%s", preamble);
+  fprintf(output, "\n");
+  fprintf(output, "#ifndef YY_DECLARED_RULES\n");
+  fprintf(output, "#define YY_DECLARED_RULES\n");
+  fprintf(output, "\n");
+  fprintf(output, "\n");
+  fprintf(output, "#ifndef YY_HEADER\n");
+  fprintf(output, "typedef struct _yyclass YYClass;\n");
+  fprintf(output, "typedef struct _yystack  YYStack;\n");
+  fprintf(output, "#endif\n");
+  fprintf(output, "\n");
+  fprintf(output, "/* %s */\n", "rules");
+  for (current = node; current;  current = current->rule.next)
+      fprintf(output, "int yy_%s (YYClass* yySelf, YYStack* yystack);\n",
+              current->rule.name);
+  fprintf(output, "\n");
+  fprintf(output, "#endif\n");
 
   fprintf(output, "\n/* %s */\n", "actions");
   for (current = actions;  current;  current = current->action.list)

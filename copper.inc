@@ -143,7 +143,7 @@ static inline void defineRule(enum RuleKind kind) {
 }
 
 #ifndef COPPER_MAIN
-#include STAGE
+#include "header.var"
 #endif
 
 #endif
