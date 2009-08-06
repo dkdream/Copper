@@ -330,14 +330,14 @@ static void Rule_compile_c2(Node *node, int export_all)
       if (!(RuleDeclared & node->rule.flags))
           fprintf(stderr, "rule '%s' used but not defined\n", node->rule.name);
   } else {
-      if (!(RuleUsed & node->rule.flags)) {
-          if (!(RuleExported & node->rule.flags)) {
-              fprintf(stderr, "rule '%s' defined but not used\n", node->rule.name);
-          }
-      }
-
       if (export_all) {
           node->rule.flags |= RuleExported;
+      } else {
+          if (!(RuleUsed & node->rule.flags)) {
+              if (!(RuleExported & node->rule.flags)) {
+                  fprintf(stderr, "rule '%s' defined but not used\n", node->rule.name);
+              }
+          }
       }
 
       int safe = ((Query == node->rule.expression->type) || (Star == node->rule.expression->type));
