@@ -143,6 +143,7 @@ static inline void defineRule(enum RuleKind kind) {
 }
 
 #include "header.var"
+#include "preamble.var"
 
 #endif
 /*-- end of copper.inc --*/

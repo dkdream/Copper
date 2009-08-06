@@ -53,12 +53,11 @@ check : copper-new .FORCE
 	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.inc stage.two.inc
 	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.heading stage.two.heading
 	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.footing stage.two.footing
-	$(DIFF) --ignore-blank-lines  --show-c-function copper.c stage.two.c
 	$(MAKE) test
-	-@rm -f stage.*
 	@echo PASSED
 
 push : .FORCE
+	-@cmp --quiet copper.c copper.bootstrap.c || echo cp copper.c copper.bootstrap.c
 	-@cmp --quiet copper.c copper.bootstrap.c || cp copper.c copper.bootstrap.c
 	$(MAKE) bootstrap
 
@@ -68,23 +67,27 @@ test examples : copper-new .FORCE
 
 # --
 
-copper.c   : copper.cu $(COPPER) ; $(COPPER) -v -o $@ copper.cu 2>copper.log
+copper.c   : copper.cu $(COPPER) ; $(COPPER) -C -o $@ copper.cu
 copper.o   : copper.c            ; $(CC) $(CFLAGS) -c -o $@ $<
 copper-new : copper.o $(OBJS)    ; $(CC) $(CFLAGS) -o $@ copper.o $(OBJS)
 
 copper.o $(OBJS) : header.var
 
 # --
-current.stage : stage.$(STAGE) stage.$(STAGE).heading stage.$(STAGE).footing
+current.stage : stage.$(STAGE) stage.$(STAGE).heading stage.$(STAGE).preamble stage.$(STAGE).footing
 
 stage.$(STAGE).c stage.$(STAGE).inc : copper.cu $(COPPER.test)
-	$(COPPER.test) -v -R stage.$(STAGE).inc -o stage.$(STAGE).c copper.cu 2>stage.$(STAGE).log
+	@rm -f stage.$(STAGE).c stage.$(STAGE).inc 
+	$(COPPER.test) -C -s -x -r stage.$(STAGE).inc -o stage.$(STAGE).c copper.cu
 
 stage.$(STAGE).heading : copper.cu $(COPPER.test)
-	$(COPPER.test) -H -o $@  2>>stage.$(STAGE).log
+	$(COPPER.test) -H -o $@
+
+stage.$(STAGE).preamble : copper.cu $(COPPER.test)
+	$(COPPER.test) -P -o $@
 
 stage.$(STAGE).footing : copper.cu $(COPPER.test)
-	$(COPPER.test) -F -o $@  2>>stage.$(STAGE).log
+	$(COPPER.test) -F -o $@
 
 stage.$(STAGE).o : stage.$(STAGE).c stage.$(STAGE).inc
 	$(CC) $(CFLAGS) -c -o $@ $<

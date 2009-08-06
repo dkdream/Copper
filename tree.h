@@ -115,9 +115,10 @@ extern Node *top(void);
 extern Node *pop(void);
 
 extern void Rule_compile_c_heading(FILE* ofile);
+extern void Rule_compile_c_preamble(FILE* ofile);
 extern void Rule_compile_c_declare(FILE* ofile, Node *node);
-extern void Rule_compile_c(Node *node);
+extern void Rule_compile_c(Node *node, int no_preamble, int export_all);
 extern void Rule_compile_c_footing(FILE* ofile);
 
-extern void  Node_print(Node *node);
-extern void  Rule_print(Node *node);
+extern void Node_print(Node *node);
+extern void Rule_print(Node *node);

@@ -92,22 +92,31 @@ static void version(char *name)
 static void usage(char *name)
 {
     version(name);
-    fprintf(stderr, "usage: %s [<option>...] [<ifile>...]\n", name);
+    fprintf(stderr, "usage: %s [-H|-P|-C|-F|-h] [<option>...] [<ifile>...]\n", name);
     fprintf(stderr, "   read input files and generate a parser\n");
     fprintf(stderr, "   where <option> can be\n");
+    fprintf(stderr, "     -s          strip the output of the preamble\n");
+    fprintf(stderr, "     -x          mark all defined rules for export\n");
+    fprintf(stderr, "     -r <hfile>  write rule declarations to <hfile>\n");
     fprintf(stderr, "     -o <ofile>  write output to <ofile>\n");
-    fprintf(stderr, "     -R <hfile>  write rule declarations to <hfile>\n");
     fprintf(stderr, "     -v          be verbose\n");
-    fprintf(stderr, "   if no <file>    is given,  input is read from stdin\n");
+    fprintf(stderr, "   if no <file>    is given, input is read from stdin\n");
     fprintf(stderr, "   if no <ofile>   is given, output is written to stdout\n");
-    fprintf(stderr, "   if <hfile>  == - then rule declarations are written to stdout\n");
+    fprintf(stderr, "   if <hfile> == <ofile> then no rule declarations are written\n");
+    fprintf(stderr, "   if <hfile> == -       then rule declarations are written to stdout\n");
 
     fprintf(stderr, "\n");
     fprintf(stderr, "usage: %s -H [<option>...] [<ofile>]\n", name);
     fprintf(stderr, "   output the copper common header\n");
     fprintf(stderr, "   where <option> can be\n");
     fprintf(stderr, "     -o <ofile>  write output to <ofile>\n");
-    fprintf(stderr, "     -v          be verbose\n");
+    fprintf(stderr, "   if no <ofile> is given, output is written to stdout\n");
+
+    fprintf(stderr, "\n");
+    fprintf(stderr, "usage: %s -P [<option>...] [<ofile>]\n", name);
+    fprintf(stderr, "   output the copper common preamble\n");
+    fprintf(stderr, "   where <option> can be\n");
+    fprintf(stderr, "     -o <ofile>  write output to <ofile>\n");
     fprintf(stderr, "   if no <ofile> is given, output is written to stdout\n");
 
     fprintf(stderr, "\n");
@@ -115,7 +124,6 @@ static void usage(char *name)
     fprintf(stderr, "   output the copper common function\n");
     fprintf(stderr, "   where <option> can be\n");
     fprintf(stderr, "     -o <ofile>  write output to <ofile>\n");
-    fprintf(stderr, "     -v          be verbose\n");
     fprintf(stderr, "   if no <ofile> is given, output is written to stdout\n");
 
     fprintf(stderr, "\n");
@@ -170,11 +178,13 @@ static void parse_inputs(int argc, char **argv)
 static void output_rules()
 {
     Node *node = rules;
-    for (;  node;  node = node->any.next)
+    for (;  node;  node = node->any.next) {
         Rule_print(node);
+    }
 }
 
-static void generate_parser(char* output_file, char* rules_file)
+static void generate_parser(char* output_file, char* rules_file,
+                            int no_preamble, int export_all)
 {
     if (!output_file) {
         output = stdout;
@@ -200,18 +210,18 @@ static void generate_parser(char* output_file, char* rules_file)
         }
     }
 
-    if (output != heading) {
-        Rule_compile_c_declare(heading, rules);
-    }
-
     for (; headers;  headers = headers->next)
         fprintf(output, "%s\n", headers->text);
 
     if (rules) {
-        Rule_compile_c(rules);
+        Rule_compile_c(rules, no_preamble, export_all);
     }
 
     if (trailer) fprintf(output, "%s\n", trailer);
+
+    if (output != heading) {
+        Rule_compile_c_declare(heading, rules);
+    }
 
     if (output_file) {
         if (output != stdout) {
@@ -228,55 +238,31 @@ static void generate_parser(char* output_file, char* rules_file)
     }
 }
 
-void generate_header(int argc, char **argv, char* output_file)
-{
-    FILE* header = 0;
+typedef void (*Writer)(FILE* ofile);
 
-    if (!output_file) {
+void generate(Writer section, int argc, char **argv, char* output_name)
+{
+    FILE* output_file = 0;
+
+    if (!output_name) {
         if (argc) {
-            output_file = *argv;
+            output_name = *argv;
         }
     }
 
-    if (!output_file) {
-        // header = stdout;
+    if (!output_name) {
+        output_file = stdout;
     } else {
-        if (!(header = fopen(output_file, "w"))) {
-            perror(output_file);
+        if (!(output_file = fopen(output_name, "w"))) {
+            perror(output_name);
             exit(1);
         }
     }
 
-    Rule_compile_c_heading(header);
+    section(output_file);
 
-    if (output_file) {
-        fclose(header);
-    }
-}
-
-void generate_footer(int argc, char **argv, char* output_file)
-{
-    FILE* footer = 0;
-
-    if (!output_file) {
-        if (argc) {
-            output_file = *argv;
-        }
-    }
-
-    if (!output_file) {
-        footer = stdout;
-    } else {
-        if (!(footer = fopen(output_file, "w"))) {
-            perror(output_file);
-            exit(1);
-        }
-    }
-
-    Rule_compile_c_footing(footer);
-
-    if (output_file) {
-        fclose(footer);
+    if (output_name) {
+        fclose(output_file);
     }
 }
 
@@ -285,10 +271,12 @@ int main(int argc, char **argv)
     input  = 0;
     output = stdout;
 
-    int chr;
+    int   chr;
+    int   no_preamble  = 0;
+    int   export_all   = 0;
     char* program_name = basename(argv[0]);
-    char* rules_name  = 0;
-    char* output_name = 0;
+    char* rules_name   = 0;
+    char* output_name  = 0;
 
     enum Task {
         do_nothing,
@@ -296,17 +284,18 @@ int main(int argc, char **argv)
         do_usage,
         do_rules,
         do_header,
-        do_body,
+        do_preamble,
+        do_compile,
         do_footer,
         do_default
     };
 
     enum Task my_task = do_default;
 
-    while (-1 != (chr = getopt(argc, argv, "VhFvo:H:R:")))
+    while (-1 != (chr = getopt(argc, argv, "VHPCFhvsxo:r:")))
         {
             switch (chr) {
-            case 'R':
+            case 'r':
                 if (rules_name) {
                     fprintf(stderr, "for usage try: %s -h\n", argv[0]);
                     exit(1);
@@ -316,6 +305,14 @@ int main(int argc, char **argv)
 
             case 'v':
                 debug += 1;
+                continue;
+
+            case 's':
+                no_preamble = 1;
+                continue;
+
+            case 'x':
+                export_all = 1;
                 continue;
 
             case 'o':
@@ -335,16 +332,24 @@ int main(int argc, char **argv)
                 my_task = do_version;
                 continue;
 
-            case 'h':
-                my_task = do_usage;
-                continue;
-
             case 'H':
                 my_task = do_header;
                 continue;
 
+            case 'P':
+                my_task = do_preamble;
+                continue;
+
+            case 'C':
+                my_task = do_compile;
+                continue;
+
             case 'F':
                 my_task = do_footer;
+                continue;
+
+            case 'h':
+                my_task = do_usage;
                 continue;
 
             default:
@@ -374,17 +379,21 @@ int main(int argc, char **argv)
         exit(0);
 
     case do_header:
-        generate_header(argc, argv, output_name);
+        generate(Rule_compile_c_heading, argc, argv, output_name);
+        exit(0);
+
+    case do_preamble:
+        generate(Rule_compile_c_preamble, argc, argv, output_name);
         exit(0);
 
     case do_footer:
-        generate_footer(argc, argv, output_name);
+        generate(Rule_compile_c_footing, argc, argv, output_name);
         exit(0);
 
-    case do_body:
+    case do_compile:
     default:
         parse_inputs(argc, argv);
-        generate_parser(output_name, rules_name);
+        generate_parser(output_name, rules_name, no_preamble, export_all);
         exit(0);
     }
 
