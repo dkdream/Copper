@@ -54,13 +54,12 @@ check : copper-new .FORCE
 	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.heading stage.two.heading
 	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.footing stage.two.footing
 	$(DIFF) --ignore-blank-lines  --show-c-function copper.c stage.two.c
-	$(DIFF) --ignore-blank-lines  --show-c-function header.inc stage.two.inc
 	$(MAKE) test
 	-@rm -f stage.*
 	@echo PASSED
 
 push : .FORCE
-	-@cmp --quiet copper.c copper.bootstrap.c     || cp copper.c copper.bootstrap.c
+	-@cmp --quiet copper.c copper.bootstrap.c || cp copper.c copper.bootstrap.c
 	$(MAKE) bootstrap
 
 test examples : copper-new .FORCE
@@ -69,9 +68,11 @@ test examples : copper-new .FORCE
 
 # --
 
-copper.c   : copper.cu $(COPPER) ; $(COPPER) -v -R header.inc -o $@ copper.cu 2>copper.log
+copper.c   : copper.cu $(COPPER) ; $(COPPER) -v -o $@ copper.cu 2>copper.log
 copper.o   : copper.c            ; $(CC) $(CFLAGS) -c -o $@ $<
 copper-new : copper.o $(OBJS)    ; $(CC) $(CFLAGS) -o $@ copper.o $(OBJS)
+
+copper.o $(OBJS) : header.var
 
 # --
 current.stage : stage.$(STAGE) stage.$(STAGE).heading stage.$(STAGE).footing

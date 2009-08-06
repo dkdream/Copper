@@ -11,10 +11,7 @@ int lines= 0, words= 0, chars= 0;
 
 int main()
 {
-
-    YYClass* theParser = malloc(sizeof(YYClass));
-
-    yyInit(theParser);
+    YYClass* theParser = yyMakeParser();
 
     while (yyParseFrom(theParser, yy_start, "start"));
 

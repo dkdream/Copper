@@ -21,9 +21,7 @@ int top(void)   { return stack[stackp]; }
 int main()
 {
 
-    YYClass* theParser = malloc(sizeof(YYClass));
-
-    yyInit(theParser);
+    YYClass* theParser = yyMakeParser();
 
     while (yyParseFrom(theParser, yy_start, "start"));
 

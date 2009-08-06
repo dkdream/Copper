@@ -130,8 +130,7 @@ static void usage(char *name)
 
 static void parse_inputs(int argc, char **argv)
 {
-    theParser = malloc(sizeof(YYClass));
-    yyInit(theParser);
+    theParser = yyMakeParser();
 
     theParser->input_ = my_yy_input;
     theParser->debug_ = my_debugger;

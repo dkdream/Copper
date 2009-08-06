@@ -2,6 +2,8 @@
 #ifndef YY_FOOTER
 #define YY_FOOTER
 
+#include <assert.h>
+
 #ifndef YY_CACHE_SLOTS
 #define YY_CACHE_SLOTS 1023
 #endif
@@ -148,7 +150,24 @@ static int apply_method(YYClass* yySelf, YYStack* yystack, YYRule function, cons
     return result;
 }
 
-void yyInit(YYClass* yySelf) {
+YYClass* yyMakeParser() {
+    int fullsize = sizeof(YYClass);
+
+    YYClass *result = malloc(sizeof(YYClass));
+
+    yyInit(result, 0, fullsize);
+
+    return result;
+}
+
+void yyInit(YYClass* yySelf, int type, int fullsize) {
+    const int base_size = sizeof(YYClass);
+
+    assert(base_size <= fullsize);
+
+    yySelf->type    = type;
+    yySelf->size_of = fullsize;
+
     /* input text buffer */
     yySelf->buf       = 0;
     yySelf->buflen    = 0;

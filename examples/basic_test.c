@@ -259,8 +259,7 @@ int main(int argc, char **argv)
             pc= 0;
         }
 
-    YYClass* theParser = malloc(sizeof(YYClass));
-    yyInit(theParser);
+    YYClass* theParser = yyMakeParser();
 
     theParser->input_ = my_yy_input;
 

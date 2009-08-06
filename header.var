@@ -19,11 +19,11 @@ typedef enum {
     Debug_trace          // show a detailed trace of the parser run
 } DebugLevel;
 
-typedef struct _yyclass  YYClass;
-typedef struct _yystack  YYStack;
-typedef struct _yystate  YYState;
-typedef struct _yythunk  YYThunk;
-typedef struct _yycache  YYCache;
+typedef struct _yyclass YYClass;
+typedef struct _yystack YYStack;
+typedef struct _yystate YYState;
+typedef struct _yythunk YYThunk;
+typedef struct _yycache YYCache;
 typedef struct _yycache_node YYCacheNode;
 
 typedef int  (*YYRule)(YYClass* yySelf, YYStack* stack);
@@ -48,19 +48,23 @@ typedef int  (*YYApply)(YYClass* yySelf,
 #endif
 
 struct  _yyclass {
+    /* allow the user mark the type */
+    int type;
+    int size_of;
+
     /* input text buffer */
     char *    buf;
     int	      buflen;
     int	      pos;
     int	      limit;
 
-    /* thunk text buffer (zero terminated) */
-    char *    text;
-    int	      textlen;
-
     /* yytext markers */
     int	      begin;
     int	      end;
+
+    /* thunk text buffer (zero terminated) */
+    char *    text;
+    int	      textlen;
 
     /* action list */
     YYThunk * thunks;
@@ -124,11 +128,13 @@ struct _yycache {
     YYCacheNode* slot[0];
 };
 
-extern void yyInit(YYClass* yySelf);
+extern YYClass* yyMakeParser();
+extern void yyInit(YYClass* yySelf, int type, int fullsize);
 extern void yyClearCache(YYClass* yySelf);
 extern int yyParseFrom(YYClass* yySelf, YYRule yystart, const char* name);
 extern void yyCommit(YYClass* yySelf);
 extern int yyAccept(YYClass* yySelf, YYStack* yystack);
+
 #endif
 /*-- end of header --*/
 
