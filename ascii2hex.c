@@ -11,8 +11,9 @@
 static FILE *input  = 0;
 static FILE *output = 0;
 
-static int  do_debug = 0;
-static int  do_begin = 0;
+static int  do_debug  = 0;
+static int  do_extern = 0;
+static int  do_begin  = 0;
 static const char* varname = "varname";
 
 static void usage(char *name) {
@@ -43,7 +44,11 @@ static void doParse() {
     int chr = 0;
 
     if (!do_begin) {
-        fprintf(output, "static const char %s[] = {", varname);
+        if (do_extern) {
+            fprintf(output, "const char %s[] = {", varname);
+        } else {
+            fprintf(output, "static const char %s[] = {", varname);
+        }
         do_begin = 1;
     }
 
@@ -75,7 +80,7 @@ int main(int argc, char **argv) {
     output = stdout;
     input  = stdin;
 
-    while (-1 != (chr = getopt(argc, argv, "ho:vl:"))) {
+    while (-1 != (chr = getopt(argc, argv, "hvxo:l:"))) {
         switch (chr) {
         case 'h':
             usage(argv[0]);
@@ -85,16 +90,22 @@ int main(int argc, char **argv) {
             ++do_debug;
             break;
 
-        case 'o':
-            if (!(output= fopen(optarg, "w"))) {
-                perror(optarg);
-                exit(1);
-            }
-            notSOUT = 1;
+        case 'x':
+            ++do_extern;
             break;
 
         case 'l':
             varname = optarg;
+            break;
+
+        case 'o':
+            if (strcmp(optarg, "-")) {
+                if (!(output= fopen(optarg, "w"))) {
+                    perror(optarg);
+                    exit(1);
+                }
+                notSOUT = 1;
+            }
             break;
 
         default:

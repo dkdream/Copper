@@ -38,9 +38,9 @@ uninstall : .FORCE
 compile.o : compile.inc
 
 compile.inc : ascii2hex.x header.var footer.var preamble.var
-	./ascii2hex.x -lheader   header.var >$@
-	./ascii2hex.x -lfooter   footer.var >>$@
-	./ascii2hex.x -lpreamble preamble.var >>$@
+	./ascii2hex.x -x -lheader   header.var >$@
+	./ascii2hex.x -x -lpreamble preamble.var >>$@
+	./ascii2hex.x -x -lfooter   footer.var >>$@
 
 ascii2hex.x : ascii2hex.c
 	$(CC) $(CFLAGS) -o $@ $<
@@ -53,8 +53,10 @@ check : copper-new .FORCE
 	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.inc stage.two.inc
 	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.heading stage.two.heading
 	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.footing stage.two.footing
+	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.all.c stage.two.all.c
 	$(MAKE) test
 	@echo PASSED
+	-@$(DIFF) --ignore-blank-lines  --show-c-function  copper.c stage.two.c
 
 push : .FORCE
 	-@cmp --quiet copper.c copper.bootstrap.c || echo cp copper.c copper.bootstrap.c
@@ -67,18 +69,28 @@ test examples : copper-new .FORCE
 
 # --
 
-copper.c   : copper.cu $(COPPER) ; $(COPPER) -C -o $@ copper.cu
+copper.c   : copper.cu $(COPPER) ; $(COPPER) -C -s -o $@ copper.cu
 copper.o   : copper.c            ; $(CC) $(CFLAGS) -c -o $@ $<
 copper-new : copper.o $(OBJS)    ; $(CC) $(CFLAGS) -o $@ copper.o $(OBJS)
 
 copper.o $(OBJS) : header.var
 
 # --
-current.stage : stage.$(STAGE) stage.$(STAGE).heading stage.$(STAGE).preamble stage.$(STAGE).footing
+TEMPS =
+TEMPS += stage.$(STAGE).heading
+TEMPS += stage.$(STAGE).preamble
+TEMPS += stage.$(STAGE).footing
+TEMPS += stage.$(STAGE).all.o
+TEMPS += stage.$(STAGE)
+
+current.stage : $(TEMPS)
 
 stage.$(STAGE).c stage.$(STAGE).inc : copper.cu $(COPPER.test)
 	@rm -f stage.$(STAGE).c stage.$(STAGE).inc 
 	$(COPPER.test) -C -s -x -r stage.$(STAGE).inc -o stage.$(STAGE).c copper.cu
+
+stage.$(STAGE).all.c : copper.cu $(COPPER.test)
+	$(COPPER.test) -C -o $@ $<
 
 stage.$(STAGE).heading : copper.cu $(COPPER.test)
 	$(COPPER.test) -H -o $@
@@ -98,8 +110,8 @@ stage.$(STAGE) : stage.$(STAGE).o $(OBJS)
 # --
 
 do.stage.zero : copper-new    ; @$(MAKE) --no-print-directory STAGE=zero COPPER.test=copper-new current.stage
-do.stage.one  : do.stage.zero ; @$(MAKE) --no-print-directory STAGE=one COPPER.test=stage.zero  current.stage
-do.stage.two  : do.stage.one  ; @$(MAKE) --no-print-directory STAGE=two COPPER.test=stage.one  current.stage
+do.stage.one  : do.stage.zero ; @$(MAKE) --no-print-directory STAGE=one  COPPER.test=stage.zero current.stage
+do.stage.two  : do.stage.one  ; @$(MAKE) --no-print-directory STAGE=two  COPPER.test=stage.one  current.stage
 
 # --
 
