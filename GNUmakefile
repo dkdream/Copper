@@ -122,7 +122,7 @@ clean : .FORCE
 	$(MAKE) --directory=examples --no-print-directory $@
 
 clear : .FORCE
-	rm -f copper.o copper-new header.one header.two
+	rm -f *.o copper-new
 	rm -f stage.*
 	$(MAKE) --directory=examples --no-print-directory $@
 
