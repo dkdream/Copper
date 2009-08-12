@@ -10,7 +10,7 @@
 #define	YYACCEPT yyAccept(yySelf, yystack)
 
 #ifndef YY_CACHE_THUNKS
-#define YY_CACHE_THUNKS 10
+#define YY_CACHE_THUNKS 100
 #endif
 
 static inline void yyStateError() {
