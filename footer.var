@@ -90,8 +90,6 @@ static void restore_method(YYClass* yySelf, YYState* state) {
 static void begin_method(YYClass* yySelf, YYStack* yystack) {
     yySelf->begin = yySelf->pos;
     yySelf->end   = yySelf->pos;
-
-    YY_SEND(debug_, Debug_action_state, "BEGIN %d\n", yySelf->begin);
 }
 
 static void end_method(YYClass* yySelf, YYStack* yystack) {

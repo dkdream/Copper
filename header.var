@@ -8,13 +8,13 @@
 
 typedef enum {
     Debug_action = 1,    // show actions run
-    Debug_action_yytext, // show the BEGIN index END index (parsing) action
     Debug_action_state,  // show the action state (DO [index] address name ...)
     Debug_rule_ok,       // show matching rules 'ok'
     Debug_action_added,  // show actions added
+    Debug_rule_match,    // show both matching (ok) and mismatching (fail) rules
     Debug_cache_use,     // show use of a cached node
     Debug_cache_all,     // show cache nodes added / not added
-    Debug_rule_match,    // show both matching (ok) and mismatching (fail) rules
+    Debug_action_yytext, // show the BEGIN index END index (parsing) action
     Debug_rule_all,      // show started, matching (ok) and mismatching (fail) rules
     Debug_trace          // show a detailed trace of the parser run
 } DebugLevel;
