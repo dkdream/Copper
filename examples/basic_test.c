@@ -14,7 +14,7 @@ int   numLines= 0;
 int   pc= -1, epc= -1;
 int   batch= 0;
 
-int getline(char *buf, int max);
+static int get_line(char *buf, int max);
 
 # define min(x, y) ((x) < (y) ? (x) : (y))
 
@@ -93,7 +93,7 @@ static inline int my_yy_input(YYClass* yySelf, char* buf, int max_size) {
         result= min(max_size, linep->length);
         memcpy(buf, linep->text, result);
     } else {
-        result = getline(buf, max_size);
+        result = get_line(buf, max_size);
     }
     return result;
 }
@@ -103,7 +103,7 @@ static inline int my_yy_input(YYClass* yySelf, char* buf, int max_size) {
 # include <readline/history.h>
 #endif
 
-int getline(char *buf, int max)
+static int get_line(char *buf, int max)
 {
     pc= -1;
     if (batch) exit(0);

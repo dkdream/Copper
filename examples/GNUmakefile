@@ -55,8 +55,7 @@ clear : .FORCE
 	-@rm -f *~ *.o *.x *.inc *.out *.out
 
 clean : .FORCE
-	-@rm -f *~ *.o *.x *.inc *.out *.out left thoms $(EXAMPLES)
-
+	-@rm -f *~ *.o *.x *.inc *.out *.out left thoms $(EXAMPLES) $(EXAMPLES:%=%.c)
 
 scrub spotless : clean
 
