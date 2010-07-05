@@ -220,6 +220,10 @@ int yyParseFrom(YYClass* yySelf, YYRule yystart, const char* name)
 
     yyok = YY_SEND(apply_, (YYStack*) 0, yystart, name);
 
+    if (yySelf->pos != yySelf->limit) {
+        if (!yySelf->pos) yyok = 0;
+    }
+
     if (yyok) yyDone(yySelf);
 
     yyCommit(yySelf);
