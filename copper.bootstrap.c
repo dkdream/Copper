@@ -107,9 +107,9 @@ static void yy_12_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_12_primary (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_12_primary (%s) '%s'\n", yyrulename, yytext);
 
-   push(makeAction("YY_SEND(collect_, yyrulename);")); ;
+   push(makeAction("yySelf->collect_(yySelf, yyrulename);")); ;
 #undef yy
 #undef yythunkpos
 
@@ -128,9 +128,9 @@ static void yy_11_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_11_primary (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_11_primary (%s) '%s'\n", yyrulename, yytext);
 
-   push(makeAction("YY_SEND(mark_, yyrulename);")); ;
+   push(makeAction("yySelf->mark_(yySelf, yyrulename);")); ;
 #undef yy
 #undef yythunkpos
 
@@ -149,9 +149,9 @@ static void yy_10_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_10_primary (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_10_primary (%s) '%s'\n", yyrulename, yytext);
 
-   push(makeMark("YY_SEND(end_, yystack)")); ;
+   push(makeMark("yySelf->end_(yySelf, yystack)")); ;
 #undef yy
 #undef yythunkpos
 
@@ -170,9 +170,9 @@ static void yy_9_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_9_primary (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_9_primary (%s) '%s'\n", yyrulename, yytext);
 
-   push(makeMark("YY_SEND(begin_, yystack)")); ;
+   push(makeMark("yySelf->begin_(yySelf, yystack)")); ;
 #undef yy
 #undef yythunkpos
 
@@ -191,7 +191,7 @@ static void yy_8_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_8_primary (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_8_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeAction(fetchMacro(yytext))); ;
 #undef yy
@@ -212,7 +212,7 @@ static void yy_7_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_7_primary (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_7_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeAction(yytext)); ;
 #undef yy
@@ -233,7 +233,7 @@ static void yy_6_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_6_primary (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_6_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeDot()); ;
 #undef yy
@@ -254,7 +254,7 @@ static void yy_5_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_5_primary (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_5_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeClass(yytext)); ;
 #undef yy
@@ -275,7 +275,7 @@ static void yy_4_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_4_primary (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_4_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeString(yytext)); ;
 #undef yy
@@ -296,7 +296,7 @@ static void yy_3_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_3_primary (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_3_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeName(findRule(yytext))); ;
 #undef yy
@@ -317,7 +317,7 @@ static void yy_2_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_2_primary (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_2_primary (%s) '%s'\n", yyrulename, yytext);
 
    Node *name= makeName(findRule(yytext));  name->name.variable= pop();  push(name); ;
 #undef yy
@@ -338,7 +338,7 @@ static void yy_1_primary(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_1_primary (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_1_primary (%s) '%s'\n", yyrulename, yytext);
 
    push(makeVariable(yytext)); ;
 #undef yy
@@ -359,7 +359,7 @@ static void yy_3_suffix(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_3_suffix (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_3_suffix (%s) '%s'\n", yyrulename, yytext);
 
    push(makePlus (pop())); ;
 #undef yy
@@ -380,7 +380,7 @@ static void yy_2_suffix(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_2_suffix (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_2_suffix (%s) '%s'\n", yyrulename, yytext);
 
    push(makeStar (pop())); ;
 #undef yy
@@ -401,7 +401,7 @@ static void yy_1_suffix(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_1_suffix (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_1_suffix (%s) '%s'\n", yyrulename, yytext);
 
    push(makeQuery(pop())); ;
 #undef yy
@@ -422,7 +422,7 @@ static void yy_4_prefix(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_4_prefix (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_4_prefix (%s) '%s'\n", yyrulename, yytext);
 
    push(makePeekNot(pop())); ;
 #undef yy
@@ -443,7 +443,7 @@ static void yy_3_prefix(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_3_prefix (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_3_prefix (%s) '%s'\n", yyrulename, yytext);
 
    push(makePeekFor(pop())); ;
 #undef yy
@@ -464,7 +464,7 @@ static void yy_2_prefix(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_2_prefix (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_2_prefix (%s) '%s'\n", yyrulename, yytext);
 
    push(makePredicate(fetchMacro(yytext))); ;
 #undef yy
@@ -485,7 +485,7 @@ static void yy_1_prefix(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_1_prefix (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_1_prefix (%s) '%s'\n", yyrulename, yytext);
 
    push(makePredicate(yytext)); ;
 #undef yy
@@ -506,7 +506,7 @@ static void yy_1_sequence(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_1_sequence (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_1_sequence (%s) '%s'\n", yyrulename, yytext);
 
    Node *f= pop();  push(Sequence_append(pop(), f)); ;
 #undef yy
@@ -527,7 +527,7 @@ static void yy_1_expression(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_1_expression (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_1_expression (%s) '%s'\n", yyrulename, yytext);
 
    Node *f= pop();  push(Alternate_append(pop(), f)); ;
 #undef yy
@@ -548,7 +548,7 @@ static void yy_2_end(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_2_end (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_2_end (%s) '%s'\n", yyrulename, yytext);
 
    push(makeMark(fetchMacro(yytext))); ;
 #undef yy
@@ -569,7 +569,7 @@ static void yy_1_end(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_1_end (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_1_end (%s) '%s'\n", yyrulename, yytext);
 
    push(makeMark(yytext)); ;
 #undef yy
@@ -590,7 +590,7 @@ static void yy_2_begin(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_2_begin (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_2_begin (%s) '%s'\n", yyrulename, yytext);
 
    push(makeMark(fetchMacro(yytext))); ;
 #undef yy
@@ -611,7 +611,7 @@ static void yy_1_begin(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_1_begin (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_1_begin (%s) '%s'\n", yyrulename, yytext);
 
    push(makeMark(yytext)); ;
 #undef yy
@@ -632,7 +632,7 @@ static void yy_5_define_rule(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_5_define_rule (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_5_define_rule (%s) '%s'\n", yyrulename, yytext);
 
    defineRule(rule_with_begin); ;
 #undef yy
@@ -653,7 +653,7 @@ static void yy_4_define_rule(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_4_define_rule (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_4_define_rule (%s) '%s'\n", yyrulename, yytext);
 
    defineRule(rule_with_both); ;
 #undef yy
@@ -674,7 +674,7 @@ static void yy_3_define_rule(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_3_define_rule (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_3_define_rule (%s) '%s'\n", yyrulename, yytext);
 
    defineRule(simple_rule); ;
 #undef yy
@@ -695,7 +695,7 @@ static void yy_2_define_rule(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_2_define_rule (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_2_define_rule (%s) '%s'\n", yyrulename, yytext);
 
    defineRule(rule_with_end); ;
 #undef yy
@@ -716,7 +716,7 @@ static void yy_1_define_rule(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_1_define_rule (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_1_define_rule (%s) '%s'\n", yyrulename, yytext);
 
    checkRule(yytext); ;
 #undef yy
@@ -737,7 +737,7 @@ static void yy_2_define_macro(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_2_define_macro (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_2_define_macro (%s) '%s'\n", yyrulename, yytext);
 
    defineMacro(yytext);  ;
 #undef yy
@@ -758,7 +758,7 @@ static void yy_1_define_macro(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_1_define_macro (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_1_define_macro (%s) '%s'\n", yyrulename, yytext);
 
    checkMacro(yytext);   ;
 #undef yy
@@ -779,7 +779,7 @@ static void yy_1_trailer(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_1_trailer (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_1_trailer (%s) '%s'\n", yyrulename, yytext);
 
    makeTrailer(yytext); ;
 #undef yy
@@ -800,7 +800,7 @@ static void yy_1_exportation(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_1_exportation (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_1_exportation (%s) '%s'\n", yyrulename, yytext);
 
    exportRule(yytext); ;
 #undef yy
@@ -821,7 +821,7 @@ static void yy_1_declaration(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_1_declaration (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_1_declaration (%s) '%s'\n", yyrulename, yytext);
 
    declareRule(yytext); ;
 #undef yy
@@ -842,7 +842,7 @@ static void yy_1_heading(YYClass* yySelf, YYThunk thunk)
 
 #define yy yySelf->result
 #define yythunkpos yySelf->thunkpos
-  YY_SEND(debug_, Debug_action, "do yy_1_heading (%s) '%s'\n", yyrulename, yytext);
+  yySelf->debug_(yySelf, Debug_action, "do yy_1_heading (%s) '%s'\n", yyrulename, yytext);
 
    makeHeader(yytext); ;
 #undef yy
@@ -861,22 +861,26 @@ int yy_end_of_line(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
 
   YYState yystate2;
-  YY_SEND(save_, &yystate2);  if (!yymatchString(yySelf, "\r\n")) goto l3; goto l2;
+  yySelf->save_(yySelf, &yystate2);  if (!yymatchString(yySelf, "\r\n")) goto l3; goto l2;
   l3:;	
-  YY_SEND(restore_, &yystate2);  if (!yymatchChar(yySelf, '\n')) goto l4; goto l2;
+  yySelf->restore_(yySelf, &yystate2);  if (!yymatchChar(yySelf, '\n')) goto l4; goto l2;
   l4:;	
-  YY_SEND(restore_, &yystate2);  if (!yymatchChar(yySelf, '\r')) goto failed;
+  yySelf->restore_(yySelf, &yystate2);  if (!yymatchChar(yySelf, '\r')) goto failed;
   l2:;	
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -890,24 +894,28 @@ int yy_comment(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
   if (!yymatchChar(yySelf, '#')) goto failed;
   l5:;	
   YYState yystate6;
-  YY_SEND(save_, &yystate6);
+  yySelf->save_(yySelf, &yystate6);
   YYState yystate7;
-  YY_SEND(save_, &yystate7);  if (!YY_SEND(apply_, yystack, &yy_end_of_line, "end_of_line")) goto l7; goto l6;
+  yySelf->save_(yySelf, &yystate7);  if (!yySelf->apply_(yySelf, yystack, &yy_end_of_line, "end_of_line")) goto l7; goto l6;
   l7:;	
-  YY_SEND(restore_, &yystate7);  if (!yymatchDot(yySelf)) goto l6; goto l5;
+  yySelf->restore_(yySelf, &yystate7);  if (!yymatchDot(yySelf)) goto l6; goto l5;
   l6:;	
-  YY_SEND(restore_, &yystate6);  if (!YY_SEND(apply_, yystack, &yy_end_of_line, "end_of_line")) goto failed;
+  yySelf->restore_(yySelf, &yystate6);  if (!yySelf->apply_(yySelf, yystack, &yy_end_of_line, "end_of_line")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -921,22 +929,26 @@ int yy_space(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
 
   YYState yystate8;
-  YY_SEND(save_, &yystate8);  if (!yymatchChar(yySelf, ' ')) goto l9; goto l8;
+  yySelf->save_(yySelf, &yystate8);  if (!yymatchChar(yySelf, ' ')) goto l9; goto l8;
   l9:;	
-  YY_SEND(restore_, &yystate8);  if (!yymatchChar(yySelf, '\t')) goto l10; goto l8;
+  yySelf->restore_(yySelf, &yystate8);  if (!yymatchChar(yySelf, '\t')) goto l10; goto l8;
   l10:;	
-  YY_SEND(restore_, &yystate8);  if (!YY_SEND(apply_, yystack, &yy_end_of_line, "end_of_line")) goto failed;
+  yySelf->restore_(yySelf, &yystate8);  if (!yySelf->apply_(yySelf, yystack, &yy_end_of_line, "end_of_line")) goto failed;
   l8:;	
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -950,33 +962,37 @@ int yy_braces(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
 
   YYState yystate11;
-  YY_SEND(save_, &yystate11);  if (!yymatchChar(yySelf, '{')) goto l12;
+  yySelf->save_(yySelf, &yystate11);  if (!yymatchChar(yySelf, '{')) goto l12;
   l13:;	
   YYState yystate14;
-  YY_SEND(save_, &yystate14);
+  yySelf->save_(yySelf, &yystate14);
   YYState yystate15;
-  YY_SEND(save_, &yystate15);  if (!yymatchChar(yySelf, '}')) goto l15; goto l14;
+  yySelf->save_(yySelf, &yystate15);  if (!yymatchChar(yySelf, '}')) goto l15; goto l14;
   l15:;	
-  YY_SEND(restore_, &yystate15);  if (!yymatchDot(yySelf)) goto l14; goto l13;
+  yySelf->restore_(yySelf, &yystate15);  if (!yymatchDot(yySelf)) goto l14; goto l13;
   l14:;	
-  YY_SEND(restore_, &yystate14);  if (!yymatchChar(yySelf, '}')) goto l12; goto l11;
+  yySelf->restore_(yySelf, &yystate14);  if (!yymatchChar(yySelf, '}')) goto l12; goto l11;
   l12:;	
-  YY_SEND(restore_, &yystate11);
+  yySelf->restore_(yySelf, &yystate11);
   YYState yystate16;
-  YY_SEND(save_, &yystate16);  if (!yymatchChar(yySelf, '}')) goto l16; goto failed;
+  yySelf->save_(yySelf, &yystate16);  if (!yymatchChar(yySelf, '}')) goto l16; goto failed;
   l16:;	
-  YY_SEND(restore_, &yystate16);  if (!yymatchDot(yySelf)) goto failed;
+  yySelf->restore_(yySelf, &yystate16);  if (!yymatchDot(yySelf)) goto failed;
   l11:;	
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -990,20 +1006,24 @@ int yy_range(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
 
   YYState yystate17;
-  YY_SEND(save_, &yystate17);  if (!YY_SEND(apply_, yystack, &yy_char, "char")) goto l18;  if (!yymatchChar(yySelf, '-')) goto l18;  if (!YY_SEND(apply_, yystack, &yy_char, "char")) goto l18; goto l17;
+  yySelf->save_(yySelf, &yystate17);  if (!yySelf->apply_(yySelf, yystack, &yy_char, "char")) goto l18;  if (!yymatchChar(yySelf, '-')) goto l18;  if (!yySelf->apply_(yySelf, yystack, &yy_char, "char")) goto l18; goto l17;
   l18:;	
-  YY_SEND(restore_, &yystate17);  if (!YY_SEND(apply_, yystack, &yy_char, "char")) goto failed;
+  yySelf->restore_(yySelf, &yystate17);  if (!yySelf->apply_(yySelf, yystack, &yy_char, "char")) goto failed;
   l17:;	
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1017,33 +1037,37 @@ int yy_char(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
 
   YYState yystate19;
-  YY_SEND(save_, &yystate19);  if (!yymatchChar(yySelf, '\\')) goto l20;  if (!yymatchClass(yySelf, "abefnrtv\'\"\\[\\]\\\\", (unsigned char *)"\000\000\000\000\204\000\000\000\000\000\000\070\146\100\124\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l20; goto l19;
+  yySelf->save_(yySelf, &yystate19);  if (!yymatchChar(yySelf, '\\')) goto l20;  if (!yymatchClass(yySelf, "abefnrtv\'\"\\[\\]\\\\", (unsigned char *)"\000\000\000\000\204\000\000\000\000\000\000\070\146\100\124\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l20; goto l19;
   l20:;	
-  YY_SEND(restore_, &yystate19);  if (!yymatchChar(yySelf, '\\')) goto l21;  if (!yymatchClass(yySelf, "0-3", (unsigned char *)"\000\000\000\000\000\000\017\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l21;  if (!yymatchClass(yySelf, "0-7", (unsigned char *)"\000\000\000\000\000\000\377\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l21;  if (!yymatchClass(yySelf, "0-7", (unsigned char *)"\000\000\000\000\000\000\377\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l21; goto l19;
+  yySelf->restore_(yySelf, &yystate19);  if (!yymatchChar(yySelf, '\\')) goto l21;  if (!yymatchClass(yySelf, "0-3", (unsigned char *)"\000\000\000\000\000\000\017\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l21;  if (!yymatchClass(yySelf, "0-7", (unsigned char *)"\000\000\000\000\000\000\377\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l21;  if (!yymatchClass(yySelf, "0-7", (unsigned char *)"\000\000\000\000\000\000\377\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l21; goto l19;
   l21:;	
-  YY_SEND(restore_, &yystate19);  if (!yymatchChar(yySelf, '\\')) goto l22;  if (!yymatchClass(yySelf, "0-7", (unsigned char *)"\000\000\000\000\000\000\377\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l22;
+  yySelf->restore_(yySelf, &yystate19);  if (!yymatchChar(yySelf, '\\')) goto l22;  if (!yymatchClass(yySelf, "0-7", (unsigned char *)"\000\000\000\000\000\000\377\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l22;
   YYState yystate23;
-  YY_SEND(save_, &yystate23);  if (!yymatchClass(yySelf, "0-7", (unsigned char *)"\000\000\000\000\000\000\377\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l23; goto l24;
+  yySelf->save_(yySelf, &yystate23);  if (!yymatchClass(yySelf, "0-7", (unsigned char *)"\000\000\000\000\000\000\377\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l23; goto l24;
   l23:;	
-  YY_SEND(restore_, &yystate23);
+  yySelf->restore_(yySelf, &yystate23);
   l24:;	 goto l19;
   l22:;	
-  YY_SEND(restore_, &yystate19);
+  yySelf->restore_(yySelf, &yystate19);
   YYState yystate25;
-  YY_SEND(save_, &yystate25);  if (!yymatchChar(yySelf, '\\')) goto l25; goto failed;
+  yySelf->save_(yySelf, &yystate25);  if (!yymatchChar(yySelf, '\\')) goto l25; goto failed;
   l25:;	
-  YY_SEND(restore_, &yystate25);  if (!yymatchDot(yySelf)) goto failed;
+  yySelf->restore_(yySelf, &yystate25);  if (!yymatchDot(yySelf)) goto failed;
   l19:;	
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1057,32 +1081,36 @@ int yy_directive(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
 
   YYState yystate26;
-  YY_SEND(save_, &yystate26);  if (!yymatchString(yySelf, "%{")) goto l27; goto l26;
+  yySelf->save_(yySelf, &yystate26);  if (!yymatchString(yySelf, "%{")) goto l27; goto l26;
   l27:;	
-  YY_SEND(restore_, &yystate26);  if (!yymatchString(yySelf, "%define")) goto l28; goto l26;
+  yySelf->restore_(yySelf, &yystate26);  if (!yymatchString(yySelf, "%define")) goto l28; goto l26;
   l28:;	
-  YY_SEND(restore_, &yystate26);  if (!yymatchString(yySelf, "%declare")) goto l29; goto l26;
+  yySelf->restore_(yySelf, &yystate26);  if (!yymatchString(yySelf, "%declare")) goto l29; goto l26;
   l29:;	
-  YY_SEND(restore_, &yystate26);  if (!yymatchString(yySelf, "%export")) goto l30; goto l26;
+  yySelf->restore_(yySelf, &yystate26);  if (!yymatchString(yySelf, "%export")) goto l30; goto l26;
   l30:;	
-  YY_SEND(restore_, &yystate26);  if (!yymatchString(yySelf, "%%")) goto l31; goto l26;
+  yySelf->restore_(yySelf, &yystate26);  if (!yymatchString(yySelf, "%%")) goto l31; goto l26;
   l31:;	
-  YY_SEND(restore_, &yystate26);  if (!yymatchString(yySelf, "%begin")) goto l32; goto l26;
+  yySelf->restore_(yySelf, &yystate26);  if (!yymatchString(yySelf, "%begin")) goto l32; goto l26;
   l32:;	
-  YY_SEND(restore_, &yystate26);  if (!yymatchString(yySelf, "%end")) goto l33; goto l26;
+  yySelf->restore_(yySelf, &yystate26);  if (!yymatchString(yySelf, "%end")) goto l33; goto l26;
   l33:;	
-  YY_SEND(restore_, &yystate26);  if (!yymatchString(yySelf, "%}")) goto failed;
+  yySelf->restore_(yySelf, &yystate26);  if (!yymatchString(yySelf, "%}")) goto failed;
   l26:;	
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1096,15 +1124,19 @@ int yy_COLLECT(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, '$')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchChar(yySelf, '$')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1118,15 +1150,19 @@ int yy_MARK(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, '@')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchChar(yySelf, '@')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1140,15 +1176,19 @@ int yy_END(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, '>')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchChar(yySelf, '>')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1162,15 +1202,19 @@ int yy_BEGIN(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, '<')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchChar(yySelf, '<')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1184,15 +1228,19 @@ int yy_DOT(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, '.')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchChar(yySelf, '.')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1206,24 +1254,28 @@ int yy_class(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, '[')) goto failed;  { YY_SEND(begin_, yystack); }
+  if (!yymatchChar(yySelf, '[')) goto failed;  { yySelf->begin_(yySelf, yystack); }
   l34:;	
   YYState yystate35;
-  YY_SEND(save_, &yystate35);
+  yySelf->save_(yySelf, &yystate35);
   YYState yystate36;
-  YY_SEND(save_, &yystate36);  if (!yymatchChar(yySelf, ']')) goto l36; goto l35;
+  yySelf->save_(yySelf, &yystate36);  if (!yymatchChar(yySelf, ']')) goto l36; goto l35;
   l36:;	
-  YY_SEND(restore_, &yystate36);  if (!YY_SEND(apply_, yystack, &yy_range, "range")) goto l35; goto l34;
+  yySelf->restore_(yySelf, &yystate36);  if (!yySelf->apply_(yySelf, yystack, &yy_range, "range")) goto l35; goto l34;
   l35:;	
-  YY_SEND(restore_, &yystate35);  { YY_SEND(end_, yystack); }  if (!yymatchChar(yySelf, ']')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  yySelf->restore_(yySelf, &yystate35);  { yySelf->end_(yySelf, yystack); }  if (!yymatchChar(yySelf, ']')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1237,38 +1289,42 @@ int yy_literal(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
 
   YYState yystate37;
-  YY_SEND(save_, &yystate37);  if (!yymatchClass(yySelf, "\'", (unsigned char *)"\000\000\000\000\200\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l38;  { YY_SEND(begin_, yystack); }
+  yySelf->save_(yySelf, &yystate37);  if (!yymatchClass(yySelf, "\'", (unsigned char *)"\000\000\000\000\200\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l38;  { yySelf->begin_(yySelf, yystack); }
   l39:;	
   YYState yystate40;
-  YY_SEND(save_, &yystate40);
+  yySelf->save_(yySelf, &yystate40);
   YYState yystate41;
-  YY_SEND(save_, &yystate41);  if (!yymatchClass(yySelf, "\'", (unsigned char *)"\000\000\000\000\200\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l41; goto l40;
+  yySelf->save_(yySelf, &yystate41);  if (!yymatchClass(yySelf, "\'", (unsigned char *)"\000\000\000\000\200\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l41; goto l40;
   l41:;	
-  YY_SEND(restore_, &yystate41);  if (!YY_SEND(apply_, yystack, &yy_char, "char")) goto l40; goto l39;
+  yySelf->restore_(yySelf, &yystate41);  if (!yySelf->apply_(yySelf, yystack, &yy_char, "char")) goto l40; goto l39;
   l40:;	
-  YY_SEND(restore_, &yystate40);  { YY_SEND(end_, yystack); }  if (!yymatchClass(yySelf, "\'", (unsigned char *)"\000\000\000\000\200\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l38;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto l38; goto l37;
+  yySelf->restore_(yySelf, &yystate40);  { yySelf->end_(yySelf, yystack); }  if (!yymatchClass(yySelf, "\'", (unsigned char *)"\000\000\000\000\200\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l38;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto l38; goto l37;
   l38:;	
-  YY_SEND(restore_, &yystate37);  if (!yymatchClass(yySelf, "\"", (unsigned char *)"\000\000\000\000\004\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;  { YY_SEND(begin_, yystack); }
+  yySelf->restore_(yySelf, &yystate37);  if (!yymatchClass(yySelf, "\"", (unsigned char *)"\000\000\000\000\004\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;  { yySelf->begin_(yySelf, yystack); }
   l42:;	
   YYState yystate43;
-  YY_SEND(save_, &yystate43);
+  yySelf->save_(yySelf, &yystate43);
   YYState yystate44;
-  YY_SEND(save_, &yystate44);  if (!yymatchClass(yySelf, "\"", (unsigned char *)"\000\000\000\000\004\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l44; goto l43;
+  yySelf->save_(yySelf, &yystate44);  if (!yymatchClass(yySelf, "\"", (unsigned char *)"\000\000\000\000\004\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l44; goto l43;
   l44:;	
-  YY_SEND(restore_, &yystate44);  if (!YY_SEND(apply_, yystack, &yy_char, "char")) goto l43; goto l42;
+  yySelf->restore_(yySelf, &yystate44);  if (!yySelf->apply_(yySelf, yystack, &yy_char, "char")) goto l43; goto l42;
   l43:;	
-  YY_SEND(restore_, &yystate43);  { YY_SEND(end_, yystack); }  if (!yymatchClass(yySelf, "\"", (unsigned char *)"\000\000\000\000\004\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  yySelf->restore_(yySelf, &yystate43);  { yySelf->end_(yySelf, yystack); }  if (!yymatchClass(yySelf, "\"", (unsigned char *)"\000\000\000\000\004\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   l37:;	
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1282,15 +1338,19 @@ int yy_CLOSE(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, ')')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchChar(yySelf, ')')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1304,15 +1364,19 @@ int yy_OPEN(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, '(')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchChar(yySelf, '(')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1326,15 +1390,19 @@ int yy_COLON(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, ':')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchChar(yySelf, ':')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1348,15 +1416,19 @@ int yy_PLUS(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, '+')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchChar(yySelf, '+')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1370,15 +1442,19 @@ int yy_STAR(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, '*')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchChar(yySelf, '*')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1392,15 +1468,19 @@ int yy_QUESTION(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, '?')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchChar(yySelf, '?')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1414,48 +1494,52 @@ int yy_primary(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
 
   YYState yystate45;
-  YY_SEND(save_, &yystate45);  if (!YY_SEND(apply_, yystack, &yy_identifier, "identifier")) goto l46;  yyDo(yySelf, " yy_1_primary", yy_1_primary, 0, yystate0);  if (!YY_SEND(apply_, yystack, &yy_COLON, "COLON")) goto l46;  if (!YY_SEND(apply_, yystack, &yy_identifier, "identifier")) goto l46;
+  yySelf->save_(yySelf, &yystate45);  if (!yySelf->apply_(yySelf, yystack, &yy_identifier, "identifier")) goto l46;  yyDo(yySelf, " yy_1_primary", yy_1_primary, 0, yystate0);  if (!yySelf->apply_(yySelf, yystack, &yy_COLON, "COLON")) goto l46;  if (!yySelf->apply_(yySelf, yystack, &yy_identifier, "identifier")) goto l46;
   YYState yystate47;
-  YY_SEND(save_, &yystate47);  if (!YY_SEND(apply_, yystack, &yy_EQUAL, "EQUAL")) goto l47; goto l46;
+  yySelf->save_(yySelf, &yystate47);  if (!yySelf->apply_(yySelf, yystack, &yy_EQUAL, "EQUAL")) goto l47; goto l46;
   l47:;	
-  YY_SEND(restore_, &yystate47);  yyDo(yySelf, " yy_2_primary", yy_2_primary, 0, yystate0); goto l45;
+  yySelf->restore_(yySelf, &yystate47);  yyDo(yySelf, " yy_2_primary", yy_2_primary, 0, yystate0); goto l45;
   l46:;	
-  YY_SEND(restore_, &yystate45);  if (!YY_SEND(apply_, yystack, &yy_identifier, "identifier")) goto l48;
+  yySelf->restore_(yySelf, &yystate45);  if (!yySelf->apply_(yySelf, yystack, &yy_identifier, "identifier")) goto l48;
   YYState yystate49;
-  YY_SEND(save_, &yystate49);  if (!YY_SEND(apply_, yystack, &yy_EQUAL, "EQUAL")) goto l49; goto l48;
+  yySelf->save_(yySelf, &yystate49);  if (!yySelf->apply_(yySelf, yystack, &yy_EQUAL, "EQUAL")) goto l49; goto l48;
   l49:;	
-  YY_SEND(restore_, &yystate49);  yyDo(yySelf, " yy_3_primary", yy_3_primary, 0, yystate0); goto l45;
+  yySelf->restore_(yySelf, &yystate49);  yyDo(yySelf, " yy_3_primary", yy_3_primary, 0, yystate0); goto l45;
   l48:;	
-  YY_SEND(restore_, &yystate45);  if (!YY_SEND(apply_, yystack, &yy_OPEN, "OPEN")) goto l50;  if (!YY_SEND(apply_, yystack, &yy_expression, "expression")) goto l50;  if (!YY_SEND(apply_, yystack, &yy_CLOSE, "CLOSE")) goto l50; goto l45;
+  yySelf->restore_(yySelf, &yystate45);  if (!yySelf->apply_(yySelf, yystack, &yy_OPEN, "OPEN")) goto l50;  if (!yySelf->apply_(yySelf, yystack, &yy_expression, "expression")) goto l50;  if (!yySelf->apply_(yySelf, yystack, &yy_CLOSE, "CLOSE")) goto l50; goto l45;
   l50:;	
-  YY_SEND(restore_, &yystate45);  if (!YY_SEND(apply_, yystack, &yy_literal, "literal")) goto l51;  yyDo(yySelf, " yy_4_primary", yy_4_primary, 0, yystate0); goto l45;
+  yySelf->restore_(yySelf, &yystate45);  if (!yySelf->apply_(yySelf, yystack, &yy_literal, "literal")) goto l51;  yyDo(yySelf, " yy_4_primary", yy_4_primary, 0, yystate0); goto l45;
   l51:;	
-  YY_SEND(restore_, &yystate45);  if (!YY_SEND(apply_, yystack, &yy_class, "class")) goto l52;  yyDo(yySelf, " yy_5_primary", yy_5_primary, 0, yystate0); goto l45;
+  yySelf->restore_(yySelf, &yystate45);  if (!yySelf->apply_(yySelf, yystack, &yy_class, "class")) goto l52;  yyDo(yySelf, " yy_5_primary", yy_5_primary, 0, yystate0); goto l45;
   l52:;	
-  YY_SEND(restore_, &yystate45);  if (!YY_SEND(apply_, yystack, &yy_DOT, "DOT")) goto l53;  yyDo(yySelf, " yy_6_primary", yy_6_primary, 0, yystate0); goto l45;
+  yySelf->restore_(yySelf, &yystate45);  if (!yySelf->apply_(yySelf, yystack, &yy_DOT, "DOT")) goto l53;  yyDo(yySelf, " yy_6_primary", yy_6_primary, 0, yystate0); goto l45;
   l53:;	
-  YY_SEND(restore_, &yystate45);  if (!YY_SEND(apply_, yystack, &yy_action, "action")) goto l54;  yyDo(yySelf, " yy_7_primary", yy_7_primary, 0, yystate0); goto l45;
+  yySelf->restore_(yySelf, &yystate45);  if (!yySelf->apply_(yySelf, yystack, &yy_action, "action")) goto l54;  yyDo(yySelf, " yy_7_primary", yy_7_primary, 0, yystate0); goto l45;
   l54:;	
-  YY_SEND(restore_, &yystate45);  if (!YY_SEND(apply_, yystack, &yy_macro, "macro")) goto l55;  yyDo(yySelf, " yy_8_primary", yy_8_primary, 0, yystate0); goto l45;
+  yySelf->restore_(yySelf, &yystate45);  if (!yySelf->apply_(yySelf, yystack, &yy_macro, "macro")) goto l55;  yyDo(yySelf, " yy_8_primary", yy_8_primary, 0, yystate0); goto l45;
   l55:;	
-  YY_SEND(restore_, &yystate45);  if (!YY_SEND(apply_, yystack, &yy_BEGIN, "BEGIN")) goto l56;  yyDo(yySelf, " yy_9_primary", yy_9_primary, 0, yystate0); goto l45;
+  yySelf->restore_(yySelf, &yystate45);  if (!yySelf->apply_(yySelf, yystack, &yy_BEGIN, "BEGIN")) goto l56;  yyDo(yySelf, " yy_9_primary", yy_9_primary, 0, yystate0); goto l45;
   l56:;	
-  YY_SEND(restore_, &yystate45);  if (!YY_SEND(apply_, yystack, &yy_END, "END")) goto l57;  yyDo(yySelf, " yy_10_primary", yy_10_primary, 0, yystate0); goto l45;
+  yySelf->restore_(yySelf, &yystate45);  if (!yySelf->apply_(yySelf, yystack, &yy_END, "END")) goto l57;  yyDo(yySelf, " yy_10_primary", yy_10_primary, 0, yystate0); goto l45;
   l57:;	
-  YY_SEND(restore_, &yystate45);  if (!YY_SEND(apply_, yystack, &yy_MARK, "MARK")) goto l58;  yyDo(yySelf, " yy_11_primary", yy_11_primary, 0, yystate0); goto l45;
+  yySelf->restore_(yySelf, &yystate45);  if (!yySelf->apply_(yySelf, yystack, &yy_MARK, "MARK")) goto l58;  yyDo(yySelf, " yy_11_primary", yy_11_primary, 0, yystate0); goto l45;
   l58:;	
-  YY_SEND(restore_, &yystate45);  if (!YY_SEND(apply_, yystack, &yy_COLLECT, "COLLECT")) goto failed;  yyDo(yySelf, " yy_12_primary", yy_12_primary, 0, yystate0);
+  yySelf->restore_(yySelf, &yystate45);  if (!yySelf->apply_(yySelf, yystack, &yy_COLLECT, "COLLECT")) goto failed;  yyDo(yySelf, " yy_12_primary", yy_12_primary, 0, yystate0);
   l45:;	
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1469,15 +1553,19 @@ int yy_NOT(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, '!')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchChar(yySelf, '!')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1491,27 +1579,31 @@ int yy_suffix(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!YY_SEND(apply_, yystack, &yy_primary, "primary")) goto failed;
+  if (!yySelf->apply_(yySelf, yystack, &yy_primary, "primary")) goto failed;
   YYState yystate59;
-  YY_SEND(save_, &yystate59);
+  yySelf->save_(yySelf, &yystate59);
   YYState yystate61;
-  YY_SEND(save_, &yystate61);  if (!YY_SEND(apply_, yystack, &yy_QUESTION, "QUESTION")) goto l62;  yyDo(yySelf, " yy_1_suffix", yy_1_suffix, 0, yystate0); goto l61;
+  yySelf->save_(yySelf, &yystate61);  if (!yySelf->apply_(yySelf, yystack, &yy_QUESTION, "QUESTION")) goto l62;  yyDo(yySelf, " yy_1_suffix", yy_1_suffix, 0, yystate0); goto l61;
   l62:;	
-  YY_SEND(restore_, &yystate61);  if (!YY_SEND(apply_, yystack, &yy_STAR, "STAR")) goto l63;  yyDo(yySelf, " yy_2_suffix", yy_2_suffix, 0, yystate0); goto l61;
+  yySelf->restore_(yySelf, &yystate61);  if (!yySelf->apply_(yySelf, yystack, &yy_STAR, "STAR")) goto l63;  yyDo(yySelf, " yy_2_suffix", yy_2_suffix, 0, yystate0); goto l61;
   l63:;	
-  YY_SEND(restore_, &yystate61);  if (!YY_SEND(apply_, yystack, &yy_PLUS, "PLUS")) goto l59;  yyDo(yySelf, " yy_3_suffix", yy_3_suffix, 0, yystate0);
+  yySelf->restore_(yySelf, &yystate61);  if (!yySelf->apply_(yySelf, yystack, &yy_PLUS, "PLUS")) goto l59;  yyDo(yySelf, " yy_3_suffix", yy_3_suffix, 0, yystate0);
   l61:;	 goto l60;
   l59:;	
-  YY_SEND(restore_, &yystate59);
+  yySelf->restore_(yySelf, &yystate59);
   l60:;	
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1525,15 +1617,19 @@ int yy_AND(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, '&')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchChar(yySelf, '&')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1547,26 +1643,30 @@ int yy_prefix(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
 
   YYState yystate64;
-  YY_SEND(save_, &yystate64);  if (!YY_SEND(apply_, yystack, &yy_AND, "AND")) goto l65;  if (!YY_SEND(apply_, yystack, &yy_action, "action")) goto l65;  yyDo(yySelf, " yy_1_prefix", yy_1_prefix, 0, yystate0); goto l64;
+  yySelf->save_(yySelf, &yystate64);  if (!yySelf->apply_(yySelf, yystack, &yy_AND, "AND")) goto l65;  if (!yySelf->apply_(yySelf, yystack, &yy_action, "action")) goto l65;  yyDo(yySelf, " yy_1_prefix", yy_1_prefix, 0, yystate0); goto l64;
   l65:;	
-  YY_SEND(restore_, &yystate64);  if (!YY_SEND(apply_, yystack, &yy_AND, "AND")) goto l66;  if (!YY_SEND(apply_, yystack, &yy_macro, "macro")) goto l66;  yyDo(yySelf, " yy_2_prefix", yy_2_prefix, 0, yystate0); goto l64;
+  yySelf->restore_(yySelf, &yystate64);  if (!yySelf->apply_(yySelf, yystack, &yy_AND, "AND")) goto l66;  if (!yySelf->apply_(yySelf, yystack, &yy_macro, "macro")) goto l66;  yyDo(yySelf, " yy_2_prefix", yy_2_prefix, 0, yystate0); goto l64;
   l66:;	
-  YY_SEND(restore_, &yystate64);  if (!YY_SEND(apply_, yystack, &yy_AND, "AND")) goto l67;  if (!YY_SEND(apply_, yystack, &yy_suffix, "suffix")) goto l67;  yyDo(yySelf, " yy_3_prefix", yy_3_prefix, 0, yystate0); goto l64;
+  yySelf->restore_(yySelf, &yystate64);  if (!yySelf->apply_(yySelf, yystack, &yy_AND, "AND")) goto l67;  if (!yySelf->apply_(yySelf, yystack, &yy_suffix, "suffix")) goto l67;  yyDo(yySelf, " yy_3_prefix", yy_3_prefix, 0, yystate0); goto l64;
   l67:;	
-  YY_SEND(restore_, &yystate64);  if (!YY_SEND(apply_, yystack, &yy_NOT, "NOT")) goto l68;  if (!YY_SEND(apply_, yystack, &yy_suffix, "suffix")) goto l68;  yyDo(yySelf, " yy_4_prefix", yy_4_prefix, 0, yystate0); goto l64;
+  yySelf->restore_(yySelf, &yystate64);  if (!yySelf->apply_(yySelf, yystack, &yy_NOT, "NOT")) goto l68;  if (!yySelf->apply_(yySelf, yystack, &yy_suffix, "suffix")) goto l68;  yyDo(yySelf, " yy_4_prefix", yy_4_prefix, 0, yystate0); goto l64;
   l68:;	
-  YY_SEND(restore_, &yystate64);  if (!YY_SEND(apply_, yystack, &yy_suffix, "suffix")) goto failed;
+  yySelf->restore_(yySelf, &yystate64);  if (!yySelf->apply_(yySelf, yystack, &yy_suffix, "suffix")) goto failed;
   l64:;	
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1580,15 +1680,19 @@ int yy_BAR(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, '|')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchChar(yySelf, '|')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1602,20 +1706,24 @@ int yy_sequence(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!YY_SEND(apply_, yystack, &yy_prefix, "prefix")) goto failed;
+  if (!yySelf->apply_(yySelf, yystack, &yy_prefix, "prefix")) goto failed;
   l69:;	
   YYState yystate70;
-  YY_SEND(save_, &yystate70);  if (!YY_SEND(apply_, yystack, &yy_prefix, "prefix")) goto l70;  yyDo(yySelf, " yy_1_sequence", yy_1_sequence, 0, yystate0); goto l69;
+  yySelf->save_(yySelf, &yystate70);  if (!yySelf->apply_(yySelf, yystack, &yy_prefix, "prefix")) goto l70;  yyDo(yySelf, " yy_1_sequence", yy_1_sequence, 0, yystate0); goto l69;
   l70:;	
-  YY_SEND(restore_, &yystate70);
+  yySelf->restore_(yySelf, &yystate70);
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1629,15 +1737,19 @@ int yy_SEMICOLON(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, ';')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchChar(yySelf, ';')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1651,20 +1763,24 @@ int yy_begin(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchString(yySelf, "%begin")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchString(yySelf, "%begin")) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   YYState yystate71;
-  YY_SEND(save_, &yystate71);  if (!YY_SEND(apply_, yystack, &yy_action, "action")) goto l72;  yyDo(yySelf, " yy_1_begin", yy_1_begin, 0, yystate0); goto l71;
+  yySelf->save_(yySelf, &yystate71);  if (!yySelf->apply_(yySelf, yystack, &yy_action, "action")) goto l72;  yyDo(yySelf, " yy_1_begin", yy_1_begin, 0, yystate0); goto l71;
   l72:;	
-  YY_SEND(restore_, &yystate71);  if (!YY_SEND(apply_, yystack, &yy_macro, "macro")) goto failed;  yyDo(yySelf, " yy_2_begin", yy_2_begin, 0, yystate0);
+  yySelf->restore_(yySelf, &yystate71);  if (!yySelf->apply_(yySelf, yystack, &yy_macro, "macro")) goto failed;  yyDo(yySelf, " yy_2_begin", yy_2_begin, 0, yystate0);
   l71:;	
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1678,20 +1794,24 @@ int yy_end(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchString(yySelf, "%end")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchString(yySelf, "%end")) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   YYState yystate73;
-  YY_SEND(save_, &yystate73);  if (!YY_SEND(apply_, yystack, &yy_action, "action")) goto l74;  yyDo(yySelf, " yy_1_end", yy_1_end, 0, yystate0); goto l73;
+  yySelf->save_(yySelf, &yystate73);  if (!yySelf->apply_(yySelf, yystack, &yy_action, "action")) goto l74;  yyDo(yySelf, " yy_1_end", yy_1_end, 0, yystate0); goto l73;
   l74:;	
-  YY_SEND(restore_, &yystate73);  if (!YY_SEND(apply_, yystack, &yy_macro, "macro")) goto failed;  yyDo(yySelf, " yy_2_end", yy_2_end, 0, yystate0);
+  yySelf->restore_(yySelf, &yystate73);  if (!yySelf->apply_(yySelf, yystack, &yy_macro, "macro")) goto failed;  yyDo(yySelf, " yy_2_end", yy_2_end, 0, yystate0);
   l73:;	
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1705,20 +1825,24 @@ int yy_expression(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!YY_SEND(apply_, yystack, &yy_sequence, "sequence")) goto failed;
+  if (!yySelf->apply_(yySelf, yystack, &yy_sequence, "sequence")) goto failed;
   l75:;	
   YYState yystate76;
-  YY_SEND(save_, &yystate76);  if (!YY_SEND(apply_, yystack, &yy_BAR, "BAR")) goto l76;  if (!YY_SEND(apply_, yystack, &yy_sequence, "sequence")) goto l76;  yyDo(yySelf, " yy_1_expression", yy_1_expression, 0, yystate0); goto l75;
+  yySelf->save_(yySelf, &yystate76);  if (!yySelf->apply_(yySelf, yystack, &yy_BAR, "BAR")) goto l76;  if (!yySelf->apply_(yySelf, yystack, &yy_sequence, "sequence")) goto l76;  yyDo(yySelf, " yy_1_expression", yy_1_expression, 0, yystate0); goto l75;
   l76:;	
-  YY_SEND(restore_, &yystate76);
+  yySelf->restore_(yySelf, &yystate76);
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1732,15 +1856,19 @@ int yy_EQUAL(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, '=')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchChar(yySelf, '=')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1754,20 +1882,24 @@ int yy_action(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchChar(yySelf, '{')) goto failed;  { YY_SEND(begin_, yystack); }
+  if (!yymatchChar(yySelf, '{')) goto failed;  { yySelf->begin_(yySelf, yystack); }
   l77:;	
   YYState yystate78;
-  YY_SEND(save_, &yystate78);  if (!YY_SEND(apply_, yystack, &yy_braces, "braces")) goto l78; goto l77;
+  yySelf->save_(yySelf, &yystate78);  if (!yySelf->apply_(yySelf, yystack, &yy_braces, "braces")) goto l78; goto l77;
   l78:;	
-  YY_SEND(restore_, &yystate78);  { YY_SEND(end_, yystack); }  if (!yymatchChar(yySelf, '}')) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  yySelf->restore_(yySelf, &yystate78);  { yySelf->end_(yySelf, yystack); }  if (!yymatchChar(yySelf, '}')) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1781,24 +1913,28 @@ int yy_macro(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
 
   YYState yystate79;
-  YY_SEND(save_, &yystate79);  if (!YY_SEND(apply_, yystack, &yy_directive, "directive")) goto l79; goto failed;
+  yySelf->save_(yySelf, &yystate79);  if (!yySelf->apply_(yySelf, yystack, &yy_directive, "directive")) goto l79; goto failed;
   l79:;	
-  YY_SEND(restore_, &yystate79);  if (!yymatchChar(yySelf, '%')) goto failed;  { YY_SEND(begin_, yystack); }  if (!yymatchClass(yySelf, "-a-zA-Z_", (unsigned char *)"\000\000\000\000\000\040\000\000\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;
+  yySelf->restore_(yySelf, &yystate79);  if (!yymatchChar(yySelf, '%')) goto failed;  { yySelf->begin_(yySelf, yystack); }  if (!yymatchClass(yySelf, "-a-zA-Z_", (unsigned char *)"\000\000\000\000\000\040\000\000\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;
   l80:;	
   YYState yystate81;
-  YY_SEND(save_, &yystate81);  if (!yymatchClass(yySelf, "-a-zA-Z_0-9", (unsigned char *)"\000\000\000\000\000\040\377\003\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l81; goto l80;
+  yySelf->save_(yySelf, &yystate81);  if (!yymatchClass(yySelf, "-a-zA-Z_0-9", (unsigned char *)"\000\000\000\000\000\040\377\003\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l81; goto l80;
   l81:;	
-  YY_SEND(restore_, &yystate81);  { YY_SEND(end_, yystack); }  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  yySelf->restore_(yySelf, &yystate81);  { yySelf->end_(yySelf, yystack); }  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1812,20 +1948,24 @@ int yy_identifier(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  { YY_SEND(begin_, yystack); }  if (!yymatchClass(yySelf, "-a-zA-Z_", (unsigned char *)"\000\000\000\000\000\040\000\000\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;
+  { yySelf->begin_(yySelf, yystack); }  if (!yymatchClass(yySelf, "-a-zA-Z_", (unsigned char *)"\000\000\000\000\000\040\000\000\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto failed;
   l82:;	
   YYState yystate83;
-  YY_SEND(save_, &yystate83);  if (!yymatchClass(yySelf, "-a-zA-Z_0-9", (unsigned char *)"\000\000\000\000\000\040\377\003\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l83; goto l82;
+  yySelf->save_(yySelf, &yystate83);  if (!yymatchClass(yySelf, "-a-zA-Z_0-9", (unsigned char *)"\000\000\000\000\000\040\377\003\376\377\377\207\376\377\377\007\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")) goto l83; goto l82;
   l83:;	
-  YY_SEND(restore_, &yystate83);  { YY_SEND(end_, yystack); }  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  yySelf->restore_(yySelf, &yystate83);  { yySelf->end_(yySelf, yystack); }  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1839,15 +1979,19 @@ int yy_RPERCENT(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchString(yySelf, "%}")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yymatchString(yySelf, "%}")) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1861,19 +2005,23 @@ int yy_end_of_file(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
 
   YYState yystate84;
-  YY_SEND(save_, &yystate84);  if (!yymatchDot(yySelf)) goto l84; goto failed;
+  yySelf->save_(yySelf, &yystate84);  if (!yymatchDot(yySelf)) goto l84; goto failed;
   l84:;	
-  YY_SEND(restore_, &yystate84);
+  yySelf->restore_(yySelf, &yystate84);
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1887,20 +2035,24 @@ int yy_trailer(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchString(yySelf, "%%")) goto failed;  { YY_SEND(begin_, yystack); }
+  if (!yymatchString(yySelf, "%%")) goto failed;  { yySelf->begin_(yySelf, yystack); }
   l85:;	
   YYState yystate86;
-  YY_SEND(save_, &yystate86);  if (!yymatchDot(yySelf)) goto l86; goto l85;
+  yySelf->save_(yySelf, &yystate86);  if (!yymatchDot(yySelf)) goto l86; goto l85;
   l86:;	
-  YY_SEND(restore_, &yystate86);  { YY_SEND(end_, yystack); }  yyDo(yySelf, " yy_1_trailer", yy_1_trailer, 0, yystate0);
+  yySelf->restore_(yySelf, &yystate86);  { yySelf->end_(yySelf, yystack); }  yyDo(yySelf, " yy_1_trailer", yy_1_trailer, 0, yystate0);
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1914,29 +2066,33 @@ int yy_define_rule(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!YY_SEND(apply_, yystack, &yy_identifier, "identifier")) goto failed;  yyDo(yySelf, " yy_1_define_rule", yy_1_define_rule, 0, yystate0);  if (!YY_SEND(apply_, yystack, &yy_EQUAL, "EQUAL")) goto failed;
+  if (!yySelf->apply_(yySelf, yystack, &yy_identifier, "identifier")) goto failed;  yyDo(yySelf, " yy_1_define_rule", yy_1_define_rule, 0, yystate0);  if (!yySelf->apply_(yySelf, yystack, &yy_EQUAL, "EQUAL")) goto failed;
   YYState yystate87;
-  YY_SEND(save_, &yystate87);  if (!YY_SEND(apply_, yystack, &yy_expression, "expression")) goto l88;  if (!YY_SEND(apply_, yystack, &yy_end, "end")) goto l88;  yyDo(yySelf, " yy_2_define_rule", yy_2_define_rule, 0, yystate0); goto l87;
+  yySelf->save_(yySelf, &yystate87);  if (!yySelf->apply_(yySelf, yystack, &yy_expression, "expression")) goto l88;  if (!yySelf->apply_(yySelf, yystack, &yy_end, "end")) goto l88;  yyDo(yySelf, " yy_2_define_rule", yy_2_define_rule, 0, yystate0); goto l87;
   l88:;	
-  YY_SEND(restore_, &yystate87);  if (!YY_SEND(apply_, yystack, &yy_expression, "expression")) goto l89;  yyDo(yySelf, " yy_3_define_rule", yy_3_define_rule, 0, yystate0); goto l87;
+  yySelf->restore_(yySelf, &yystate87);  if (!yySelf->apply_(yySelf, yystack, &yy_expression, "expression")) goto l89;  yyDo(yySelf, " yy_3_define_rule", yy_3_define_rule, 0, yystate0); goto l87;
   l89:;	
-  YY_SEND(restore_, &yystate87);  if (!YY_SEND(apply_, yystack, &yy_begin, "begin")) goto l90;  if (!YY_SEND(apply_, yystack, &yy_expression, "expression")) goto l90;  if (!YY_SEND(apply_, yystack, &yy_end, "end")) goto l90;  yyDo(yySelf, " yy_4_define_rule", yy_4_define_rule, 0, yystate0); goto l87;
+  yySelf->restore_(yySelf, &yystate87);  if (!yySelf->apply_(yySelf, yystack, &yy_begin, "begin")) goto l90;  if (!yySelf->apply_(yySelf, yystack, &yy_expression, "expression")) goto l90;  if (!yySelf->apply_(yySelf, yystack, &yy_end, "end")) goto l90;  yyDo(yySelf, " yy_4_define_rule", yy_4_define_rule, 0, yystate0); goto l87;
   l90:;	
-  YY_SEND(restore_, &yystate87);  if (!YY_SEND(apply_, yystack, &yy_begin, "begin")) goto failed;  if (!YY_SEND(apply_, yystack, &yy_expression, "expression")) goto failed;  yyDo(yySelf, " yy_5_define_rule", yy_5_define_rule, 0, yystate0);
+  yySelf->restore_(yySelf, &yystate87);  if (!yySelf->apply_(yySelf, yystack, &yy_begin, "begin")) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy_expression, "expression")) goto failed;  yyDo(yySelf, " yy_5_define_rule", yy_5_define_rule, 0, yystate0);
   l87:;	
   YYState yystate91;
-  YY_SEND(save_, &yystate91);  if (!YY_SEND(apply_, yystack, &yy_SEMICOLON, "SEMICOLON")) goto l91; goto l92;
+  yySelf->save_(yySelf, &yystate91);  if (!yySelf->apply_(yySelf, yystack, &yy_SEMICOLON, "SEMICOLON")) goto l91; goto l92;
   l91:;	
-  YY_SEND(restore_, &yystate91);
+  yySelf->restore_(yySelf, &yystate91);
   l92:;	
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1950,15 +2106,19 @@ int yy_define_macro(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchString(yySelf, "%define")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;  if (!YY_SEND(apply_, yystack, &yy_macro, "macro")) goto failed;  yyDo(yySelf, " yy_1_define_macro", yy_1_define_macro, 0, yystate0);  if (!YY_SEND(apply_, yystack, &yy_action, "action")) goto failed;  yyDo(yySelf, " yy_2_define_macro", yy_2_define_macro, 0, yystate0);
+  if (!yymatchString(yySelf, "%define")) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy_macro, "macro")) goto failed;  yyDo(yySelf, " yy_1_define_macro", yy_1_define_macro, 0, yystate0);  if (!yySelf->apply_(yySelf, yystack, &yy_action, "action")) goto failed;  yyDo(yySelf, " yy_2_define_macro", yy_2_define_macro, 0, yystate0);
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1972,15 +2132,19 @@ int yy_exportation(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchString(yySelf, "%export")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;  if (!YY_SEND(apply_, yystack, &yy_identifier, "identifier")) goto failed;  yyDo(yySelf, " yy_1_exportation", yy_1_exportation, 0, yystate0);
+  if (!yymatchString(yySelf, "%export")) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy_identifier, "identifier")) goto failed;  yyDo(yySelf, " yy_1_exportation", yy_1_exportation, 0, yystate0);
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -1994,15 +2158,19 @@ int yy_declaration(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchString(yySelf, "%declare")) goto failed;  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;  if (!YY_SEND(apply_, yystack, &yy_identifier, "identifier")) goto failed;  yyDo(yySelf, " yy_1_declaration", yy_1_declaration, 0, yystate0);
+  if (!yymatchString(yySelf, "%declare")) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;  if (!yySelf->apply_(yySelf, yystack, &yy_identifier, "identifier")) goto failed;  yyDo(yySelf, " yy_1_declaration", yy_1_declaration, 0, yystate0);
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -2016,24 +2184,28 @@ int yy_heading(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!yymatchString(yySelf, "%{")) goto failed;  { YY_SEND(begin_, yystack); }
+  if (!yymatchString(yySelf, "%{")) goto failed;  { yySelf->begin_(yySelf, yystack); }
   l93:;	
   YYState yystate94;
-  YY_SEND(save_, &yystate94);
+  yySelf->save_(yySelf, &yystate94);
   YYState yystate95;
-  YY_SEND(save_, &yystate95);  if (!yymatchString(yySelf, "%}")) goto l95; goto l94;
+  yySelf->save_(yySelf, &yystate95);  if (!yymatchString(yySelf, "%}")) goto l95; goto l94;
   l95:;	
-  YY_SEND(restore_, &yystate95);  if (!yymatchDot(yySelf)) goto l94; goto l93;
+  yySelf->restore_(yySelf, &yystate95);  if (!yymatchDot(yySelf)) goto l94; goto l93;
   l94:;	
-  YY_SEND(restore_, &yystate94);  { YY_SEND(end_, yystack); }  if (!YY_SEND(apply_, yystack, &yy_RPERCENT, "RPERCENT")) goto failed;  yyDo(yySelf, " yy_1_heading", yy_1_heading, 0, yystate0);
+  yySelf->restore_(yySelf, &yystate94);  { yySelf->end_(yySelf, yystack); }  if (!yySelf->apply_(yySelf, yystack, &yy_RPERCENT, "RPERCENT")) goto failed;  yyDo(yySelf, " yy_1_heading", yy_1_heading, 0, yystate0);
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;
@@ -2047,21 +2219,24 @@ int yy__(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
 
   l96:;	
   YYState yystate97;
-  YY_SEND(save_, &yystate97);
+  yySelf->save_(yySelf, &yystate97);
   YYState yystate98;
-  YY_SEND(save_, &yystate98);  if (!YY_SEND(apply_, yystack, &yy_space, "space")) goto l99; goto l98;
+  yySelf->save_(yySelf, &yystate98);  if (!yySelf->apply_(yySelf, yystack, &yy_space, "space")) goto l99; goto l98;
   l99:;	
-  YY_SEND(restore_, &yystate98);  if (!YY_SEND(apply_, yystack, &yy_comment, "comment")) goto l97;
+  yySelf->restore_(yySelf, &yystate98);  if (!yySelf->apply_(yySelf, yystack, &yy_comment, "comment")) goto l97;
   l98:;	 goto l96;
   l97:;	
-  YY_SEND(restore_, &yystate97);
+  yySelf->restore_(yySelf, &yystate97);
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   // for references ONLY
   (void)yyrulename;
@@ -2075,47 +2250,51 @@ int yy_grammar(YYClass* yySelf, YYStack* yystack)
 
   YYState yystate0 = yystack->begin;
 
+  yySelf->debug_(yySelf, Debug_rule_match, "enter %s \n", yyrulename);
+
   start_rule:;
-  if (!YY_SEND(apply_, yystack, &yy__, "_")) goto failed;
+  if (!yySelf->apply_(yySelf, yystack, &yy__, "_")) goto failed;
   YYState yystate102;
-  YY_SEND(save_, &yystate102);  if (!YY_SEND(apply_, yystack, &yy_heading, "heading")) goto l103; goto l102;
+  yySelf->save_(yySelf, &yystate102);  if (!yySelf->apply_(yySelf, yystack, &yy_heading, "heading")) goto l103; goto l102;
   l103:;	
-  YY_SEND(restore_, &yystate102);  if (!YY_SEND(apply_, yystack, &yy_declaration, "declaration")) goto l104; goto l102;
+  yySelf->restore_(yySelf, &yystate102);  if (!yySelf->apply_(yySelf, yystack, &yy_declaration, "declaration")) goto l104; goto l102;
   l104:;	
-  YY_SEND(restore_, &yystate102);  if (!YY_SEND(apply_, yystack, &yy_exportation, "exportation")) goto l105; goto l102;
+  yySelf->restore_(yySelf, &yystate102);  if (!yySelf->apply_(yySelf, yystack, &yy_exportation, "exportation")) goto l105; goto l102;
   l105:;	
-  YY_SEND(restore_, &yystate102);  if (!YY_SEND(apply_, yystack, &yy_define_macro, "define_macro")) goto l106; goto l102;
+  yySelf->restore_(yySelf, &yystate102);  if (!yySelf->apply_(yySelf, yystack, &yy_define_macro, "define_macro")) goto l106; goto l102;
   l106:;	
-  YY_SEND(restore_, &yystate102);  if (!YY_SEND(apply_, yystack, &yy_define_rule, "define_rule")) goto failed;
+  yySelf->restore_(yySelf, &yystate102);  if (!yySelf->apply_(yySelf, yystack, &yy_define_rule, "define_rule")) goto failed;
   l102:;	
   l100:;	
   YYState yystate101;
-  YY_SEND(save_, &yystate101);
+  yySelf->save_(yySelf, &yystate101);
   YYState yystate107;
-  YY_SEND(save_, &yystate107);  if (!YY_SEND(apply_, yystack, &yy_heading, "heading")) goto l108; goto l107;
+  yySelf->save_(yySelf, &yystate107);  if (!yySelf->apply_(yySelf, yystack, &yy_heading, "heading")) goto l108; goto l107;
   l108:;	
-  YY_SEND(restore_, &yystate107);  if (!YY_SEND(apply_, yystack, &yy_declaration, "declaration")) goto l109; goto l107;
+  yySelf->restore_(yySelf, &yystate107);  if (!yySelf->apply_(yySelf, yystack, &yy_declaration, "declaration")) goto l109; goto l107;
   l109:;	
-  YY_SEND(restore_, &yystate107);  if (!YY_SEND(apply_, yystack, &yy_exportation, "exportation")) goto l110; goto l107;
+  yySelf->restore_(yySelf, &yystate107);  if (!yySelf->apply_(yySelf, yystack, &yy_exportation, "exportation")) goto l110; goto l107;
   l110:;	
-  YY_SEND(restore_, &yystate107);  if (!YY_SEND(apply_, yystack, &yy_define_macro, "define_macro")) goto l111; goto l107;
+  yySelf->restore_(yySelf, &yystate107);  if (!yySelf->apply_(yySelf, yystack, &yy_define_macro, "define_macro")) goto l111; goto l107;
   l111:;	
-  YY_SEND(restore_, &yystate107);  if (!YY_SEND(apply_, yystack, &yy_define_rule, "define_rule")) goto l101;
+  yySelf->restore_(yySelf, &yystate107);  if (!yySelf->apply_(yySelf, yystack, &yy_define_rule, "define_rule")) goto l101;
   l107:;	 goto l100;
   l101:;	
-  YY_SEND(restore_, &yystate101);
+  yySelf->restore_(yySelf, &yystate101);
   YYState yystate112;
-  YY_SEND(save_, &yystate112);  if (!YY_SEND(apply_, yystack, &yy_trailer, "trailer")) goto l112; goto l113;
+  yySelf->save_(yySelf, &yystate112);  if (!yySelf->apply_(yySelf, yystack, &yy_trailer, "trailer")) goto l112; goto l113;
   l112:;	
-  YY_SEND(restore_, &yystate112);
-  l113:;	  if (!YY_SEND(apply_, yystack, &yy_end_of_file, "end_of_file")) goto failed;
+  yySelf->restore_(yySelf, &yystate112);
+  l113:;	  if (!yySelf->apply_(yySelf, yystack, &yy_end_of_file, "end_of_file")) goto failed;
   goto passed;
 
   passed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (1)\n", yyrulename);
   return 1;
   goto failed;
 
   failed:
+  yySelf->debug_(yySelf, Debug_rule_match, "exiting %s (0)\n", yyrulename);
   return 0;
   // for references ONLY
   (void)yyrulename;

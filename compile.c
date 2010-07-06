@@ -113,12 +113,12 @@ static void jump(int n)
 static void save(int n)
 {
   fprintf(output, "\n  YYState yystate%d;", n);
-  fprintf(output, "\n  YY_SEND(save_, &yystate%d);", n);
+  fprintf(output, "\n  yySelf->save_(yySelf, &yystate%d);", n);
 }
 
 static void restore(int n)
 {
-   fprintf(output, "\n  YY_SEND(restore_, &yystate%d);", n);
+   fprintf(output, "\n  yySelf->restore_(yySelf, &yystate%d);", n);
 }
 
 static void Node_compile_c_ko(Node *node, int ko)
@@ -137,7 +137,7 @@ static void Node_compile_c_ko(Node *node, int ko)
       break;
 
     case Name:
-      fprintf(output, "  if (!YY_SEND(apply_, yystack, &yy_%s, \"%s\"))",
+      fprintf(output, "  if (!yySelf->apply_(yySelf, yystack, &yy_%s, \"%s\"))",
               node->name.rule->rule.name,
               node->name.rule->rule.name);
       jump(ko);
@@ -347,7 +347,7 @@ static void Rule_compile_c2(Node *node, int export_all)
       fprintf(output, "\nint yy_%s(YYClass* yySelf, YYStack* yystack)\n{", node->rule.name);
       fprintf(output, "\n  static const char* yyrulename = \"%s\";\n", node->rule.name);
       fprintf(output, "\n  YYState yystate0 = yystack->begin;\n");
-      fprintf(output, "\n  YY_SEND(debug_, Debug_rule_match, \"enter %%s \\n\", yyrulename);\n");
+      fprintf(output, "\n  yySelf->debug_(yySelf, Debug_rule_match, \"enter %%s \\n\", yyrulename);\n");
 
       if (node->rule.variables)
           fprintf(output, "  yyDo(yySelf, \"yyPush\", yyPush, %d, yystate0);\n", countVariables(node->rule.variables));
@@ -369,7 +369,7 @@ static void Rule_compile_c2(Node *node, int export_all)
       if (node->rule.variables)
           fprintf(output, "  yyDo(yySelf, \"yyPop\", yyPop, %d, yystate0);", countVariables(node->rule.variables));
 
-      fprintf(output, "\n  YY_SEND(debug_, Debug_rule_match, \"exiting %%s (1)\\n\", yyrulename);");
+      fprintf(output, "\n  yySelf->debug_(yySelf, Debug_rule_match, \"exiting %%s (1)\\n\", yyrulename);");
       fprintf(output, "\n  return 1;");
 
       if (!safe) {
@@ -378,7 +378,7 @@ static void Rule_compile_c2(Node *node, int export_all)
           if (node->rule.end)
               fprintf(output, "\n{ %s }\n", node->rule.end);
 
-          fprintf(output, "\n  YY_SEND(debug_, Debug_rule_match, \"exiting %%s (0)\\n\", yyrulename);");
+          fprintf(output, "\n  yySelf->debug_(yySelf, Debug_rule_match, \"exiting %%s (0)\\n\", yyrulename);");
           fprintf(output, "\n  return 0;");
       }
 
@@ -530,7 +530,7 @@ void Rule_compile_c(Node *node, int export_all)
     {
       fprintf(output, "static void yy%s(YYClass* yySelf, YYThunk thunk)\n{\n", current->action.name);
       defineVariables(current->action.rule->rule.variables, current->action.rule->rule.name);
-      fprintf(output, "  YY_SEND(debug_, Debug_action, \"do yy%s (%%s) \'%%s\'\\n\", yyrulename, yytext);\n\n", current->action.name);
+      fprintf(output, "  yySelf->debug_(yySelf, Debug_action, \"do yy%s (%%s) \'%%s\'\\n\", yyrulename, yytext);\n\n", current->action.name);
       fprintf(output, "  %s;\n", current->action.text);
       undefineVariables(current->action.rule->rule.variables);
 

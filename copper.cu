@@ -61,10 +61,10 @@ primary    = identifier                 { push(makeVariable(yytext)); }
            | DOT                        { push(makeDot()); }
            | action                     { push(makeAction(yytext)); }
            | macro                      { push(makeAction(fetchMacro(yytext))); }
-           | BEGIN                      { push(makeMark("YY_SEND(begin_, yystack)")); }
-           | END                        { push(makeMark("YY_SEND(end_, yystack)")); }
-           | MARK                       { push(makeAction("YY_SEND(mark_, yyrulename);")); }
-           | COLLECT                    { push(makeAction("YY_SEND(collect_, yyrulename);")); }
+           | BEGIN                      { push(makeMark("yySelf->begin_(yySelf, yystack)")); }
+           | END                        { push(makeMark("yySelf->end_(yySelf, yystack)")); }
+           | MARK                       { push(makeAction("yySelf->mark_(yySelf, yyrulename);")); }
+           | COLLECT                    { push(makeAction("yySelf->collect_(yySelf, yyrulename);")); }
 
 # Lexical syntax
 
