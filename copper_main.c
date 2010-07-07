@@ -151,7 +151,7 @@ static void usage()
 
 static void parse_inputs(int argc, char **argv)
 {
-    theParser = yyMakeParser();
+    theParser = yyMakeParser(0);
 
     theParser->input_ = my_yy_input;
     theParser->debug_ = my_debugger;

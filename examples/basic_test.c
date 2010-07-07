@@ -259,7 +259,7 @@ int main(int argc, char **argv)
             pc= 0;
         }
 
-    YYClass* theParser = yyMakeParser();
+    YYClass* theParser = yyMakeParser(0);
 
     theParser->input_ = my_yy_input;
 

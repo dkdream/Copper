@@ -11,7 +11,7 @@ int lines= 0, words= 0, chars= 0;
 
 int main()
 {
-    YYClass* theParser = yyMakeParser();
+    YYClass* theParser = yyMakeParser(0);
 
     while (yyParseFrom(theParser, yy_start, "start"));
 

@@ -129,12 +129,12 @@ struct _yycache {
     YYCacheNode* slot[0];
 };
 
-extern YYClass* yyMakeParser();
-extern void yyInit(YYClass* yySelf, int type, int fullsize);
-extern void yyClearCache(YYClass* yySelf);
-extern int yyParseFrom(YYClass* yySelf, YYRule yystart, const char* name);
-extern void yyCommit(YYClass* yySelf);
-extern int yyAccept(YYClass* yySelf, YYStack* yystack);
+extern YYClass* yyMakeParser(int fullsize); // allocate a YYClass (or an extention of YYClass)
+extern void     yyInit(YYClass* yySelf, int type, int fullsize); // initialize a YYClass (usefull for static one)
+extern void     yyClearCache(YYClass* yySelf);
+extern int      yyParseFrom(YYClass* yySelf, YYRule yystart, const char* name);
+extern void     yyCommit(YYClass* yySelf);
+extern int      yyAccept(YYClass* yySelf, YYStack* yystack);
 
 #endif
 /*-- end of header --*/

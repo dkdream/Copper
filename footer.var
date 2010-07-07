@@ -149,10 +149,15 @@ static int apply_method(YYClass* yySelf, YYStack* yystack, YYRule function, cons
     return result;
 }
 
-YYClass* yyMakeParser() {
-    int fullsize = sizeof(YYClass);
+YYClass* yyMakeParser(int fullsize) {
+    if (0 == fullsize) {
+        fullsize = sizeof(YYClass);
+    } else {
+        const int base_size = sizeof(YYClass);
+        assert(base_size <= fullsize);
+    }
 
-    YYClass *result = malloc(sizeof(YYClass));
+    YYClass *result = malloc(fullsize);
 
     yyInit(result, 0, fullsize);
 
