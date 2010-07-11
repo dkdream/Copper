@@ -58,18 +58,24 @@ static void my_debugger(YYClass* yySelf, DebugLevel level, const char* format, .
 
 void yyerror(char *message)
 {
+    int point = theParser->current.offset;
+
+    lineNumber = theParser->current.lineno;
+
     fprintf(stderr, "%s:%d: %s", fileName, lineNumber, message);
+
     if (theParser->text[0]) fprintf(stderr, " near token '%s'", theParser->text);
-    if (theParser->pos < theParser->limit || !feof(input))
+
+    if (point < theParser->limit || !feof(input))
         {
             theParser->buf[theParser->limit]= '\0';
             fprintf(stderr, " before text \"");
-            while (theParser->pos < theParser->limit)
+            while (point < theParser->limit)
                 {
-                    if ('\n' == theParser->buf[theParser->pos] || '\r' == theParser->buf[theParser->pos]) break;
-                    fputc(theParser->buf[theParser->pos++], stderr);
+                    if ('\n' == theParser->buf[point] || '\r' == theParser->buf[point]) break;
+                    fputc(theParser->buf[point++], stderr);
                 }
-            if (theParser->pos == theParser->limit)
+            if (point == theParser->limit)
                 {
                     int c;
                     while (EOF != (c= fgetc(input)) && '\n' != c && '\r' != c)
@@ -77,6 +83,7 @@ void yyerror(char *message)
                 }
             fputc('\"', stderr);
         }
+
     fprintf(stderr, "\n");
     exit(1);
 }

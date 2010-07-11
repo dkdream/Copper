@@ -19,6 +19,7 @@ typedef enum {
     Debug_trace          // show a detailed trace of the parser run
 } DebugLevel;
 
+typedef struct _yypoint YYPoint;
 typedef struct _yyclass YYClass;
 typedef struct _yystack YYStack;
 typedef struct _yystate YYState;
@@ -47,6 +48,12 @@ typedef int  (*YYApply)(YYClass* yySelf,
 #define YYSTYPE	int
 #endif
 
+struct _yypoint {
+    int lineno;
+    int position;
+    int offset;
+};
+
 struct  _yyclass {
     /* allow the user mark the type */
     int type;
@@ -55,13 +62,13 @@ struct  _yyclass {
     /* input text buffer */
     char *    buf;
     int	      buflen;
-    int	      pos;
     int	      limit;
-    int       reached;
 
-    /* yytext markers */
-    int	      begin;
-    int	      end;
+    /* locations */
+    YYPoint  current; // location of pos
+    YYPoint  begin;   // location of begin
+    YYPoint  end;     // location of end
+    YYPoint  reached; // last location seen
 
     /* thunk text buffer (zero terminated) */
     char *    text;
@@ -94,8 +101,8 @@ struct  _yyclass {
 };
 
 struct _yystate {
-    int pos;
-    int thunkpos;
+    YYPoint current;  // pos
+    int     thunkpos;
 };
 
 struct _yystack {
@@ -107,8 +114,8 @@ struct _yystack {
 
 struct _yythunk {
     const char* name;
-    int         begin;
-    int         end;
+    YYPoint     begin;
+    YYPoint     end;
     YYState     state;
     YYAction    action;
     int         argument;
@@ -116,10 +123,10 @@ struct _yythunk {
 
 struct _yycache_node {
     YYCacheNode* next;
-    int     location;
+    int     result; //
+    YYPoint begin;  // started at
+    YYPoint end;    // match upto
     void*   function;
-    int     result;
-    int     pos;
     int     count;
     YYThunk thunk[0];
 };

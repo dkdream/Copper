@@ -22,12 +22,6 @@ static inline void yyFreeList(YYCacheNode* node) {
     }
 }
 
-static inline void yyCheckReached(YYClass* yySelf) {
-    if (yySelf->reached < yySelf->pos) {
-        yySelf->reached = yySelf->pos;
-    }
-}
-
 static inline void yyCheckDo(YYClass* yySelf) {
     int end = yySelf->thunkpos;
 
@@ -101,7 +95,7 @@ static inline void yyAddNode(YYClass* yySelf, YYStack *yystack, int result) {
         // if no chars are consumed then
         // this may the result of a YYACCEPT not of an optional rule
         // -- skip it
-        if (start.pos == yySelf->pos) return;
+        if (start.current.offset == yySelf->current.offset) return;
 
         // if no thunks were added then check the length
         if (start.thunkpos != yySelf->thunkpos) {
@@ -113,29 +107,29 @@ static inline void yyAddNode(YYClass* yySelf, YYStack *yystack, int result) {
             // to many
             if (YY_CACHE_THUNKS < count) {
                 yySelf->debug_(yySelf, Debug_cache_all, "     not adding cache node (%s,@%d,%d) at %d for %s - to many thunks\n",
-                               (result ? "ok" : "fail"), yySelf->pos, count,
-                               start.pos, name);
+                               (result ? "ok" : "fail"), yySelf->current.offset, count,
+                               start.current.offset, name);
                 return;
             }
         }
     }
 
-    int index = start.pos % yySelf->cache->size;
+    int index = start.current.offset % yySelf->cache->size;
 
     YYCacheNode* node = malloc(sizeof(YYCacheNode) + (sizeof(YYThunk) * count));
 
     if (!node) return;
 
     node->next     = yySelf->cache->slot[index];
-    node->location = start.pos;
+    node->begin    = start.current;
     node->function = function;
     node->result   = result;
 
     if (!result) {
-        node->pos = start.pos;
+        node->end   = start.current;
         node->count = 0;
     } else {
-        node->pos   = yySelf->pos;
+        node->end   = yySelf->current;
         node->count = count;
         memcpy(node->thunk,
                &(yySelf->thunks[start.thunkpos]),
@@ -143,8 +137,11 @@ static inline void yyAddNode(YYClass* yySelf, YYStack *yystack, int result) {
     }
 
     yySelf->debug_(yySelf, Debug_cache_all, "     adding cache node (%s,@%d,%d) at %d for %s\n",
-                   (node->result ? "ok" : "fail"), node->pos, node->count,
-                   node->location, name);
+                   (node->result ? "ok" : "fail"),
+                   node->begin,
+                   node->count,
+                   node->end,
+                   name);
 
     yySelf->cache->slot[index] = node;
 }
@@ -157,16 +154,16 @@ static inline int yyCheckNode(YYClass* yySelf, YYStack *yystack, int* result)
     YYRule  function = yystack->current;
     YYState    start = yystack->begin;
 
-    int index = start.pos % yySelf->cache->size;
+    int index = start.current.offset % yySelf->cache->size;
 
     YYCacheNode* node = yySelf->cache->slot[index];
 
     for (; node; node = node->next) {
-        if (node->location != start.pos) continue;
-        if (node->function != function) continue;
+        if (node->begin.offset != start.current.offset) continue;
+        if (node->function     != function)             continue;
 
-        *result     = node->result;
-        yySelf->pos = node->pos;
+        *result         = node->result;
+        yySelf->current = node->end;
 
         int count = node->count;
 
@@ -183,8 +180,11 @@ static inline int yyCheckNode(YYClass* yySelf, YYStack *yystack, int* result)
         }
 
         yySelf->debug_(yySelf, Debug_cache_use, "     using cache node (%s,@%d,%d) at %d for %s\n",
-                       (node->result ? "ok" : "fail"), node->pos, node->count,
-                       node->location, name);
+                       (node->result ? "ok" : "fail"),
+                       node->begin.offset,
+                       node->count,
+                       node->end.offset,
+                       name);
 
         return 1;
     }
@@ -256,8 +256,8 @@ static void yySet(YYClass* yySelf, YYThunk thunk) {
 }
 
 static inline int yyThunkText(YYClass* yySelf, YYThunk thunk) {
-    int begin  = thunk.begin;
-    int end    = thunk.end;
+    int begin  = thunk.begin.offset;
+    int end    = thunk.end.offset;
     int length = end - begin;
 
     if (length <= 0)
@@ -290,70 +290,118 @@ static inline int yyThunkText(YYClass* yySelf, YYThunk thunk) {
 static inline int yyrefill(YYClass* yySelf) {
     yySelf->debug_(yySelf, Debug_trace, "     yyrefill\n");
 
-    if (yySelf->buflen - yySelf->pos < 512) {
-        while (yySelf->buflen - yySelf->pos < 512) {
-            yySelf->buflen *= 2;
+    int yyn = 0;
+
+    const int point  = yySelf->current.offset;
+    const int length = yySelf->buflen;
+
+    if (length - point > 512) {
+        yyn = yySelf->input_(yySelf, yySelf->buf + point, length - point);
+    } else {
+        int newsize = length;
+
+        while (newsize - point < 512) {
+            newsize *= 2;
         }
 
-        yySelf->buf = realloc(yySelf->buf, yySelf->buflen+2);
-        yySelf->buf[yySelf->limit] = 0;
+        yySelf->buf    = realloc(yySelf->buf, newsize+2);
+        yySelf->buflen = newsize;
+
+        yyn = yySelf->input_(yySelf, yySelf->buf + point, newsize - point);
     }
 
-    int yyn = yySelf->input_(yySelf, yySelf->buf + yySelf->pos, yySelf->buflen - yySelf->pos);
+    yySelf->buf[yySelf->limit + yyn] = 0;
 
     if (0 == yyn) return 0;
 
     yySelf->limit += yyn;
-    yySelf->buf[yySelf->limit] = 0;
 
     return 1;
 }
 
-static inline int yymatchDot(YYClass* yySelf) {
-    if (yySelf->pos >= yySelf->limit && !yyrefill(yySelf)) return 0;
-    yySelf->pos += 1;
+static inline int yyCheckBuffer(YYClass* yySelf) {
+    int point = yySelf->current.offset;
+    return (point >= yySelf->limit && !yyrefill(yySelf));
+}
+
+static inline void yyCheckReached(YYClass* yySelf) {
+    if (yySelf->reached.offset < yySelf->current.offset) {
+        yySelf->reached = yySelf->current;
+    }
+}
+
+static inline void yyCheckNewline(YYClass* yySelf) {
+    int point = yySelf->current.offset;
+    int chr   = yySelf->buf[point];
+
+    if ('\n' == chr) {
+        yySelf->current.lineno  += 1;
+        yySelf->current.position = 0;
+        return;
+    }
+
+    if ('\r' == chr) {
+        yySelf->current.lineno  += 1;
+        yySelf->current.position = 0;
+        return;
+    }
+
+    yySelf->current.position += 1;
+}
+
+static inline char yyCurrentChar(YYClass* yySelf) {
+    int point = yySelf->current.offset;
+    return yySelf->buf[point];
+}
+
+static inline void yyNextChar(YYClass* yySelf) {
+    yySelf->current.offset += 1;
+    yyCheckNewline(yySelf);
     yyCheckReached(yySelf);
+}
+
+static inline int yymatchDot(YYClass* yySelf) {
+    if (yyCheckBuffer(yySelf)) return 0;
+    yyNextChar(yySelf);
     return 1;
 }
 
 static inline int yymatchChar(YYClass* yySelf, int c) {
-    if (yySelf->pos >= yySelf->limit && !yyrefill(yySelf)) return 0;
+    if (yyCheckBuffer(yySelf)) return 0;
 
-    if (yySelf->buf[yySelf->pos] == c) {
-        yySelf->pos += 1;
-        yyCheckReached(yySelf);
+    if (yyCurrentChar(yySelf) == c) {
+        yyNextChar(yySelf);
         return 1;
     }
 
     return 0;
 }
 
-static inline int yymatchString(YYClass* yySelf, char *s) {
-    int yysav= yySelf->pos;
+static inline int yymatchString(YYClass* yySelf, const char *s) {
+    YYPoint yysav = yySelf->current;
+
     while (*s) {
-        if (yySelf->pos >= yySelf->limit && !yyrefill(yySelf)) {
-            yySelf->pos= yysav;
+        if (yyCheckBuffer(yySelf)) {
+            yySelf->current = yysav;
             return 0;
         }
-        if (yySelf->buf[yySelf->pos] != *s) {
-            yySelf->pos= yysav;
+        if (yyCurrentChar(yySelf) != *s) {
+            yySelf->current = yysav;
             return 0;
         }
         ++s;
-        yySelf->pos += 1;
+        yyNextChar(yySelf);
     }
     return 1;
 }
 
 static inline int yymatchClass(YYClass* yySelf, const char* cls, unsigned char *bits) {
-    int chr;
+    if (yyCheckBuffer(yySelf)) return 0;
 
-    if (yySelf->pos >= yySelf->limit && !yyrefill(yySelf)) return 0;
-
-    chr = yySelf->buf[yySelf->pos];
+    int chr = yyCurrentChar(yySelf);
 
     if (bits[chr >> 3] & (1 << (chr & 7))) {
-        ++yySelf->pos;
+        yyNextChar(yySelf);
         return 1;
     }
 

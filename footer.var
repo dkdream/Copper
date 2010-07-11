@@ -11,15 +11,22 @@
 static inline void yyStart(YYClass* yySelf) {
     if (yySelf->buflen) return;
 
+    YYPoint empty = { 0, 0, 0 };
+
     yySelf->buflen    = 1024;
     yySelf->buf       = malloc(yySelf->buflen);
+    yySelf->limit     = 0;
     yySelf->textlen   = 1024;
     yySelf->text      = malloc(yySelf->textlen);
     yySelf->thunkslen = 10;
     yySelf->thunks    = malloc(sizeof(YYThunk) * yySelf->thunkslen);
     yySelf->valslen   = 2;
     yySelf->vals      = malloc(sizeof(YYSTYPE) * yySelf->valslen);
-    yySelf->begin     = yySelf->end = yySelf->pos = yySelf->limit = yySelf->reached = yySelf->thunkpos = 0;
+    yySelf->current   = empty;
+    yySelf->begin     = empty;
+    yySelf->end       = empty;
+    yySelf->reached   = empty;
+    yySelf->thunkpos  = 0;
     yySelf->text[0]   = '\0';
     yySelf->frame     = 0;
 }
@@ -45,20 +52,27 @@ void yyClearCache(YYClass* yySelf) {
 
 void yyCommit(YYClass* yySelf) {
 
-    if ((yySelf->limit -= yySelf->pos)) {
-        memmove(yySelf->buf, yySelf->buf + yySelf->pos, yySelf->limit);
+    int point = yySelf->current.offset;
+
+    YYPoint empty = { 0, 0, 0 };
+
+    if ((yySelf->limit -= point)) {
+        memmove(yySelf->buf, yySelf->buf + point, yySelf->limit);
     }
 
     yySelf->buf[yySelf->limit] = 0;
 
-    yySelf->begin   -= yySelf->pos;
-    yySelf->end     -= yySelf->pos;
-    yySelf->reached -= yySelf->pos;
+    yySelf->begin.offset   -= point;
+    yySelf->end.offset     -= point;
+    yySelf->reached.offset -= point;
 
-    if (0 > yySelf->begin) yySelf->begin = 0;
-    if (0 > yySelf->end)   yySelf->end = 0;
+    if (0 > yySelf->begin.offset)   yySelf->begin.offset   = 0;
+    if (0 > yySelf->end.offset)     yySelf->end.offset     = 0;
+    if (0 > yySelf->reached.offset) yySelf->reached.offset = 0;
 
-    yySelf->pos = yySelf->reached = yySelf->thunkpos = 0;
+    yySelf->current.offset = 0;
+    yySelf->reached        = empty;
+    yySelf->thunkpos       = 0;
 
     yyClearCache(yySelf);
 }
@@ -79,24 +93,23 @@ int yyAccept(YYClass* yySelf, YYStack* yystack) {
 }
 
 static void save_method(YYClass* yySelf, YYState* state) {
-    state->pos      = yySelf->pos;
+    state->current  = yySelf->current;
     state->thunkpos = yySelf->thunkpos;
 }
 
 static void restore_method(YYClass* yySelf, YYState* state) {
-    yySelf->pos      = state->pos;
+    yySelf->current  = state->current;
     yySelf->thunkpos = state->thunkpos;
 }
 
 static void begin_method(YYClass* yySelf, YYStack* yystack) {
-    yySelf->begin = yySelf->pos;
-    yySelf->end   = yySelf->pos;
+    yySelf->begin = yySelf->current;
+    yySelf->end   = yySelf->current;
 }
 
 static void end_method(YYClass* yySelf, YYStack* yystack) {
-    yySelf->end = yySelf->pos;
-
-    yySelf->debug_(yySelf, Debug_action_yytext, "BEGIN %d END %d\n", yySelf->begin, yySelf->end);
+    yySelf->end = yySelf->current;
+    yySelf->debug_(yySelf, Debug_action_yytext, "BEGIN %d END %d\n", yySelf->begin.offset, yySelf->end.offset);
 }
 
 static int input_method(YYClass* yySelf, char* buffer, int max_size) {
@@ -127,7 +140,7 @@ static int apply_method(YYClass* yySelf, YYStack* yystack, YYRule function, cons
 
     yySelf->save_(yySelf, &(yytop.begin));
 
-    yySelf->debug_(yySelf, Debug_rule_all, "start(%i) %s @ %s\n", yytop.begin.pos, name, yySelf->buf+yytop.begin.pos);
+    yySelf->debug_(yySelf, Debug_rule_all, "start(%i) %s @ %s\n", yytop.begin.current.offset, name, yySelf->buf+yytop.begin.current.offset);
 
     int result;
 
@@ -140,9 +153,9 @@ static int apply_method(YYClass* yySelf, YYStack* yystack, YYRule function, cons
     yyAddNode(yySelf, &yytop, result);
 
     if (result) {
-        yySelf->debug_(yySelf, Debug_rule_ok, "  ok(%i)   %s @ %s\n", yytop.begin.pos, name, yySelf->buf+yytop.begin.pos);
+        yySelf->debug_(yySelf, Debug_rule_ok, "  ok(%i)   %s @ %s\n", yytop.begin.current.offset, name, yySelf->buf+yytop.begin.current.offset);
     } else {
-        yySelf->debug_(yySelf, Debug_rule_match,"  fail(%i) %s @ %s\n", yytop.begin.pos, name, yySelf->buf+yytop.begin.pos);
+        yySelf->debug_(yySelf, Debug_rule_match,"  fail(%i) %s @ %s\n", yytop.begin.current.offset, name, yySelf->buf+yytop.begin.current.offset);
         yySelf->restore_(yySelf, &(yytop.begin));
     }
 
@@ -169,19 +182,21 @@ void yyInit(YYClass* yySelf, int type, int fullsize) {
 
     assert(base_size <= fullsize);
 
+    YYPoint empty = { 0, 0, 0 };
+
     yySelf->type    = type;
     yySelf->size_of = fullsize;
 
     /* input text buffer */
     yySelf->buf       = 0;
     yySelf->buflen    = 0;
-    yySelf->pos       = 0;
     yySelf->limit     = 0;
-    yySelf->reached   = 0;
 
     /* yytext markers */
-    yySelf->begin     = 0;
-    yySelf->end       = 0;
+    yySelf->current = empty;
+    yySelf->begin   = empty;
+    yySelf->end     = empty;
+    yySelf->reached = empty;
 
     /* thunk text buffer (zero terminated) */
     yySelf->text      = 0;
@@ -221,14 +236,18 @@ int yyParseFrom(YYClass* yySelf, YYRule yystart, const char* name)
 
     yyClearCache(yySelf);
 
-    yySelf->begin    = yySelf->end = yySelf->pos;
+    yySelf->begin    = yySelf->current;
+    yySelf->end      = yySelf->current;
+    yySelf->reached  = yySelf->current;
     yySelf->thunkpos = 0;
     yySelf->frame    = 0;
 
     yyok = yySelf->apply_(yySelf, (YYStack*) 0, yystart, name);
 
-    if (yySelf->pos != yySelf->limit) {
-        if (!yySelf->pos) yyok = 0;
+    int point = yySelf->current.offset;
+
+    if (point != yySelf->limit) {
+        if (!point) yyok = 0;
     }
 
     if (yyok) yyDone(yySelf);

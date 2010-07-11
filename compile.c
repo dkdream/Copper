@@ -280,7 +280,7 @@ static void defineVariables(Node *node, const char* name)
     fprintf(output, "  static const char* yyrulename = \"%s\";\n", name);
     fprintf(output, "  int   yyleng = yyThunkText(yySelf, thunk);\n");
     fprintf(output, "  char* yytext = yySelf->text;\n");
-    fprintf(output, "  int   yypos  = yySelf->pos;\n\n");
+    fprintf(output, "  int   yypos  = yySelf->current.offset;\n\n");
 
     if (node) {
         int count = 0;
