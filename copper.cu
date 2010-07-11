@@ -3,7 +3,11 @@
 %export grammar
 
 %{
+#ifndef COPPER_BOOTSTRAP
 #include "copper.inc"
+#else
+#include "copper.bootstrap.inc"
+#endif
 %}
 
 # Hierarchical syntax

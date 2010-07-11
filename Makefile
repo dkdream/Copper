@@ -143,9 +143,9 @@ scrub spotless : clean .FORCE
 copper.x : ; $(MAKE) bootstrap
 
 bootstrap : copper.bootstrap.o $(OBJS)
-	$(CC) $(CFLAGS) -o copper.x $+
+	$(CC) $(CFLAGS) -DCOPPER_BOOTSTRAP -o copper.x $+
 
 copper.bootstrap.o : copper.bootstrap.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -DCOPPER_BOOTSTRAP -c -o $@ $<
 
 .FORCE :
