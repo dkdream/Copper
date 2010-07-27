@@ -54,8 +54,6 @@ void yyCommit(YYClass* yySelf) {
 
     int point = yySelf->current.offset;
 
-    YYPoint empty = { 0, 0, 0 };
-
     if ((yySelf->limit -= point)) {
         memmove(yySelf->buf, yySelf->buf + point, yySelf->limit);
     }
@@ -71,7 +69,6 @@ void yyCommit(YYClass* yySelf) {
     if (0 > yySelf->reached.offset) yySelf->reached.offset = 0;
 
     yySelf->current.offset = 0;
-    yySelf->reached        = empty;
     yySelf->thunkpos       = 0;
 
     yyClearCache(yySelf);
@@ -153,6 +150,7 @@ static int apply_method(YYClass* yySelf, YYStack* yystack, YYRule function, cons
     yyAddNode(yySelf, &yytop, result);
 
     if (result) {
+        yyCheckReached(yySelf, yytop.begin.current);
         yySelf->debug_(yySelf, Debug_rule_ok, "  ok(%i)   %s @ %s\n", yytop.begin.current.offset, name, yySelf->buf+yytop.begin.current.offset);
     } else {
         yySelf->debug_(yySelf, Debug_rule_match,"  fail(%i) %s @ %s\n", yytop.begin.current.offset, name, yySelf->buf+yytop.begin.current.offset);

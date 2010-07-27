@@ -324,9 +324,9 @@ static inline int yyCheckBuffer(YYClass* yySelf) {
     return (point >= yySelf->limit && !yyrefill(yySelf));
 }
 
-static inline void yyCheckReached(YYClass* yySelf) {
-    if (yySelf->reached.offset < yySelf->current.offset) {
-        yySelf->reached = yySelf->current;
+static inline void yyCheckReached(YYClass* yySelf, YYPoint here) {
+    if (yySelf->reached.offset < here.offset) {
+        yySelf->reached = here;
     }
 }
 
@@ -357,7 +357,6 @@ static inline char yyCurrentChar(YYClass* yySelf) {
 static inline void yyNextChar(YYClass* yySelf) {
     yySelf->current.offset += 1;
     yyCheckNewline(yySelf);
-    yyCheckReached(yySelf);
 }
 
 static inline int yymatchDot(YYClass* yySelf) {
