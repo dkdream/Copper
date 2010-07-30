@@ -241,8 +241,7 @@ Node *makeAlternate(Node *e)
       Node *node= newNode(Alternate);
       assert(e);
       assert(!e->any.next);
-      node->alternate.first=
-	node->alternate.last= e;
+      node->alternate.first = node->alternate.last = e;
       return node;
     }
   return e;
@@ -254,8 +253,8 @@ Node *Alternate_append(Node *a, Node *e)
   a= makeAlternate(a);
   assert(a->alternate.last);
   assert(e);
-  a->alternate.last->any.next= e;
-  a->alternate.last= e;
+  a->alternate.last->any.next = e;
+  a->alternate.last = e;
   return a;
 }
 

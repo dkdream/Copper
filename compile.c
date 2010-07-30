@@ -182,8 +182,8 @@ static void Node_compile_c_ko(Node *node, int ko)
       {
 	int ok = yyl();
 	save(ok);
-	for (node = node->alternate.first;  node;  node = node->alternate.next) {
-	  if (!node->alternate.next)
+	for (node = node->alternate.first;  node;  node = node->any.next) {
+	  if (!node->any.next)
               Node_compile_c_ko(node, ko);
 	  else {
               int next = yyl();
@@ -198,7 +198,7 @@ static void Node_compile_c_ko(Node *node, int ko)
       break;
 
     case Sequence:
-      for (node = node->sequence.first;  node;  node = node->sequence.next)
+      for (node = node->sequence.first;  node;  node = node->any.next)
 	Node_compile_c_ko(node, ko);
       break;
 

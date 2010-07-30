@@ -180,20 +180,18 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
 
 static bool Alternate_compile_vm(FILE* ofile, char* name, unsigned index, Node *node, unsigned* current)
 {
-    if (!node) {
-        return false;
-    }
+    if (!node) return false;
 
     unsigned right = 0;
 
-    if (!Alternate_compile_vm(ofile, name, index, node->alternate.next, &right)) {
+    if (!Alternate_compile_vm(ofile, name, index, node->any.next, &right)) {
         // start the tail;
-        return Node_compile_vm(ofile, name, index, node->alternate.first, current);
+        return Node_compile_vm(ofile, name, index, node, current);
     }
 
    unsigned left = 0;
 
-    if (!Node_compile_vm(ofile, name, right + 1, node->alternate.first, &left)) {
+    if (!Node_compile_vm(ofile, name, right + 1, node, &left)) {
         *current = right;
         return true;
     }
@@ -213,16 +211,17 @@ static bool Sequence_compile_vm(FILE* ofile, char* name, unsigned index, Node *n
 {
     if (!node) return false;
 
+
     unsigned right = 0;
 
-    if (!Sequence_compile_vm(ofile, name, index, node->sequence.next, &right)) {
+    if (!Sequence_compile_vm(ofile, name, index, node->any.next, &right)) {
         // start the tail;
-        return Node_compile_vm(ofile, name, index, node->sequence.first, current);
+        return Node_compile_vm(ofile, name, index, node, current);
     }
 
-    unsigned left = 0;
+   unsigned left = 0;
 
-    if (!Node_compile_vm(ofile, name, right + 1, node->sequence.first, &left)) {
+    if (!Node_compile_vm(ofile, name, right + 1, node, &left)) {
         *current = right;
         return true;
     }
@@ -230,7 +229,7 @@ static bool Sequence_compile_vm(FILE* ofile, char* name, unsigned index, Node *n
     fprintf(ofile,
             "static struct prs_pair ll_%s_%u_arg = { &ll_%s_%u, &ll_%s_%u };\n"
             "static struct prs_node ll_%s_%u     = { prs_Sequence, (union prs_arg) (&ll_%s_%u_arg) };\n",
-            name, left + 1, name, left, name, right,
+            name, left + 1,  name, left, name, right,
             name, left + 1,  name, left + 1
             );
 
@@ -240,6 +239,8 @@ static bool Sequence_compile_vm(FILE* ofile, char* name, unsigned index, Node *n
 
 static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node, unsigned* current)
 {
+    if (!node) return false;
+
     switch (node->type) {
     case Rule: return false;
 
@@ -320,6 +321,7 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
                     "static struct prs_node ll_%s_%u = { prs_Event, (union prs_arg) (&event_%s) };\n",
                     name, index, event
                     );
+            *current = index;
         }
         return true;
 
@@ -329,6 +331,7 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
                     "static struct prs_node ll_%s_%u = { prs_Predicate, (union prs_arg) ((PrsName)\"%s\") };\n",
                     name, index,  node->predicate.name
                     );
+            *current = index;
         }
         return true;
 
@@ -338,14 +341,15 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
                     "static struct prs_node ll_%s_%u = { prs_Action, (union prs_arg) ((PrsName)\"%s\") };\n",
                     name, index,   node->mark.name
                     );
+            *current = index;
         }
         return true;
 
     case Alternate:
-        return Alternate_compile_vm(ofile, name, index, node, current);
+        return Alternate_compile_vm(ofile, name, index, node->alternate.first, current);
 
     case Sequence:
-        return Sequence_compile_vm(ofile, name, index, node, current);
+        return Sequence_compile_vm(ofile, name, index, node->sequence.first, current);
 
     case PeekFor:
         {
