@@ -19,7 +19,7 @@ OBJS = tree.o compile.o copper_main.o copper_vm.o compile_vm.o
 default :
 	-@$(MAKE) --no-print-directory clear all || true
 
-all : copper
+all : copper vm_copper.o
 new : copper-new
 
 echo : ; echo $(TIME) $(COPPER)
@@ -80,6 +80,10 @@ copper-new : copper.o $(OBJS)    ; $(CC) $(CFLAGS) -o $@ copper.o $(OBJS)
 copper.o $(OBJS) : header.var
 
 # --
+
+vm_copper.c :  copper.cu copper-new ; ./copper-new -A -o $@ copper.cu
+
+# --
 TEMPS =
 TEMPS += stage.$(STAGE).heading
 TEMPS += stage.$(STAGE).preamble
@@ -126,7 +130,7 @@ clean : .FORCE
 	$(MAKE) --directory=examples --no-print-directory $@
 
 clear : .FORCE
-	rm -f *.o copper-new
+	rm -f *.o copper-new vm_copper.c
 	rm -f stage.*
 	$(MAKE) --directory=examples --no-print-directory $@
 

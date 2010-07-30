@@ -218,8 +218,11 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
     case Predicate:
         {
             fprintf(ofile,
-                    "static bool predicate_%s_%u(PrsInput) {\n"
+                    "static bool predicate_%s_%u(PrsInput input) {\n"
+                    "#if 0\n"
                     "  return %s;\n"
+                    "#endif\n"
+                    "  return false"
                     "}\n"
                     "static struct prs_node ll_%s_%u = { prs_Predicate, (union prs_arg) (&predicate_%s_%u) };\n",
                     name, index,
@@ -232,8 +235,10 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
     case Mark:
         {
             fprintf(ofile,
-                    "static void action_%s_%u(PrsInput) {\n"
+                    "static void action_%s_%u(PrsInput input) {\n"
+                    "#if 0\n"
                     "   %s\n"
+                    "#endif\n"
                     "}\n"
                     "static struct prs_node ll_%s_%u = { prs_Action, (union prs_arg) (&action_%s_%u) };\n",
                     name, index,
@@ -362,11 +367,11 @@ void Rule_compile_vm(FILE* ofile)
     fprintf(ofile, "\n\n\n");
 
     for (current = actions;  current;  current = current->action.list) {
-        fprintf(ofile, "static bool action_%s(PrsInput) {\n", current->action.name);
+        fprintf(ofile, "static bool event_%s(PrsInput input) {\n", current->action.name);
         fprintf(ofile, "#if 0\n");
         fprintf(ofile, "  %s;\n", current->action.text);
         fprintf(ofile, "#endif\n");
-        fprintf(ofile, "  return false\n");
+        fprintf(ofile, "  return false;\n");
         fprintf(ofile, "}\n");
     }
 
