@@ -15,58 +15,133 @@ static void charClassClear(unsigned char bits[], int c)	{ bits[c >> 3] &= ~(1 <<
 
 typedef void (*setter)(unsigned char bits[], int c);
 
+static unsigned char matchOne(unsigned char *cclass)
+{
+    if ('^' == *cclass) return 0;
+
+    unsigned char value   = 0;
+    unsigned char current = 0;
+    int           prev    = -1;
+
+    while ((current = *cclass++)) {
+        if ('-' == current && *cclass && prev >= 0)
+            {
+                unsigned next = *cclass++;
+                if (prev != next) return 0;
+                prev = -1;
+                continue;
+            }
+
+        if ('\\' != current)
+            {
+                if (value && (value != current)) return 0;
+                value = prev = current;
+                continue;
+            }
+
+        if (!*cclass)
+            {
+                if (value && (value != current)) return 0;
+                value = prev = current;
+                continue;
+            }
+
+        switch (current = *cclass++) {
+        case 'a':  current = '\a'; break; /* bel */
+        case 'b':  current = '\b'; break; /* bs */
+        case 'e':  current = '\e'; break; /* esc */
+        case 'f':  current = '\f'; break; /* ff */
+        case 'n':  current = '\n'; break; /* nl */
+        case 'r':  current = '\r'; break; /* cr */
+        case 't':  current = '\t'; break; /* ht */
+        case 'v':  current = '\v'; break; /* vt */
+        default: break;
+        }
+
+        if (value && (value != current)) return 0;
+        value = prev = current;
+    }
+
+    return value;
+}
+
+static char *makeChrText(unsigned char value)
+{
+    static char text[4];
+
+    switch (value) {
+    case '\a': return "\\a"; /* bel */
+    case '\b': return "\\b"; /* bs */
+    case '\e': return "\\e"; /* esc */
+    case '\f': return "\\f"; /* ff */
+    case '\n': return "\\n"; /* nl */
+    case '\r': return "\\r"; /* cr */
+    case '\t': return "\\t"; /* ht */
+    case '\v': return "\\v"; /* vt */
+    case '\'': return "\\'"; /* ' */
+    case '\"': return "\\\"";
+    case '\\': return "\\\\";
+    default:
+        break;
+    }
+
+    text[0] = (char) value;
+    text[1] = 0;
+    return text;
+}
+
 static char *makeCharClass(unsigned char *cclass)
 {
-  unsigned char	 bits[32];
-  setter	 set;
-  int		 c, prev= -1;
-  static char	 string[256];
-  char		*ptr;
+    unsigned char	 bits[32];
+    setter	 set;
+    int		 c, prev= -1;
+    static char	 string[256];
+    char		*ptr;
 
-  if ('^' == *cclass)
-    {
-      memset(bits, 255, 32);
-      set = charClassClear;
-      ++cclass;
-    }
-  else
-    {
-      memset(bits, 0, 32);
-      set= charClassSet;
-    }
-  while ((c= *cclass++))
-    {
-      if ('-' == c && *cclass && prev >= 0)
-	{
-	  for (c= *cclass++;  prev <= c;  ++prev)
-	    set(bits, prev);
-	  prev= -1;
-	}
-      else if ('\\' == c && *cclass)
-	{
-	  switch (c= *cclass++)
-	    {
-	    case 'a':  c= '\a'; break;	/* bel */
-	    case 'b':  c= '\b'; break;	/* bs */
-	    case 'e':  c= '\e'; break;	/* esc */
-	    case 'f':  c= '\f'; break;	/* ff */
-	    case 'n':  c= '\n'; break;	/* nl */
-	    case 'r':  c= '\r'; break;	/* cr */
-	    case 't':  c= '\t'; break;	/* ht */
-	    case 'v':  c= '\v'; break;	/* vt */
-	    default:		break;
-	    }
-	  set(bits, prev= c);
-	}
-      else
-	set(bits, prev= c);
-    }
+    if ('^' == *cclass)
+        {
+            memset(bits, 255, 32);
+            set = charClassClear;
+            ++cclass;
+        }
+    else
+        {
+            memset(bits, 0, 32);
+            set= charClassSet;
+        }
+    while ((c= *cclass++))
+        {
+            if ('-' == c && *cclass && prev >= 0)
+                {
+                    for (c= *cclass++;  prev <= c;  ++prev)
+                        set(bits, prev);
+                    prev= -1;
+                }
+            else if ('\\' == c && *cclass)
+                {
+                    switch (c= *cclass++)
+                        {
+                        case 'a':  c= '\a'; break;	/* bel */
+                        case 'b':  c= '\b'; break;	/* bs */
+                        case 'e':  c= '\e'; break;	/* esc */
+                        case 'f':  c= '\f'; break;	/* ff */
+                        case 'n':  c= '\n'; break;	/* nl */
+                        case 'r':  c= '\r'; break;	/* cr */
+                        case 't':  c= '\t'; break;	/* ht */
+                        case 'v':  c= '\v'; break;	/* vt */
+                        default:		break;
+                        }
+                    set(bits, prev= c);
+                }
+            else
+                set(bits, prev= c);
+        }
 
-  ptr= string;
-  for (c= 0;  c < 32;  ++c)
-    ptr += sprintf(ptr, "\\%03o", bits[c]);
+    ptr= string;
+    for (c= 0;  c < 32;  ++c)
+        ptr += sprintf(ptr, "\\%03o", bits[c]);
 
-  return string;
+    return string;
 }
 
 static char *makeCCName(unsigned char *cclass)
@@ -87,6 +162,18 @@ static char *makeCCName(unsigned char *cclass)
     }
     *ptr = 0;
     return string;
+}
+
+static unsigned textlen(char *text)
+{
+    unsigned len = 0;
+    for ( ; *text; ++text) {
+        if ('\\' == *text) {
+            text += 1;
+        }
+        len += 1;
+    }
+    return len;
 }
 
 static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node, unsigned* current);
@@ -183,25 +270,45 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
         return true;
 
     case String:
-        fprintf(ofile,
-                "static struct prs_string ll_%s_%u_arg = { %d, \"%s\" };\n"
-                "static struct prs_node   ll_%s_%u     = { prs_MatchString, (union prs_arg) (&ll_%s_%u_arg) };\n",
-                name, index,  strlen(node->string.value), node->string.value,
-                name, index,  name, index
-                );
-        *current = index;
+        {
+            unsigned tlen = textlen(node->string.value);
+            if (1 < tlen) {
+                fprintf(ofile,
+                        "static struct prs_string ll_%s_%u_arg = { %u, \"%s\" };\n"
+                        "static struct prs_node   ll_%s_%u     = { prs_MatchString, (union prs_arg) (&ll_%s_%u_arg) };\n",
+                        name, index,  textlen(node->string.value), node->string.value,
+                        name, index,  name, index
+                        );
+            } else {
+                fprintf(ofile,
+                        "static struct prs_node ll_%s_%u = { prs_MatchChar, (union prs_arg) ((PrsChar)\'%s\') };\n",
+                        name, index,
+                        node->string.value
+                        );
+            }
+            *current = index;
+        }
         return true;
 
     case Class:
         {
-            const char* label    = makeCCName(node->cclass.value);
-            const char* bitfield = makeCharClass(node->cclass.value);
-            fprintf(ofile,
-                    "static struct prs_set  ll_%s_%u_arg = { \"%s\", \"%s\" };\n"
-                    "static struct prs_node ll_%s_%u     = { prs_MatchSet, (union prs_arg) (&ll_%s_%u_arg) };\n",
-                    name, index,  label,      bitfield,
-                    name, index,  name, index
-                    );
+            const unsigned char value = matchOne(node->cclass.value);
+            if (0 < value) {
+                fprintf(ofile,
+                        "static struct prs_node ll_%s_%u = { prs_MatchChar, (union prs_arg) ((PrsChar)'%s') };\n",
+                        name, index,
+                        makeChrText(value)
+                        );
+            } else {
+                const char* label    = makeCCName(node->cclass.value);
+                const char* bitfield = makeCharClass(node->cclass.value);
+                fprintf(ofile,
+                        "static struct prs_set  ll_%s_%u_arg = { \"%s\", \"%s\" };\n"
+                        "static struct prs_node ll_%s_%u     = { prs_MatchSet, (union prs_arg) (&ll_%s_%u_arg) };\n",
+                        name, index,  label,      bitfield,
+                        name, index,  name, index
+                        );
+            }
             *current = index;
         }
         return true;

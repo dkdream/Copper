@@ -155,7 +155,7 @@ static void yy_10_primary(YYClass* yySelf, YYThunk thunk)
 #define yythunkpos yySelf->thunkpos
   yySelf->debug_(yySelf, Debug_action, "do yy_10_primary (%s) '%s'\n", yyrulename, yytext);
 
-   push(makeMark("yySelf->end_(yySelf, yystack)")); ;
+   push(makeMark("end", "yySelf->end_(yySelf, yystack)")); ;
 #undef yy
 #undef yythunkpos
 
@@ -176,7 +176,7 @@ static void yy_9_primary(YYClass* yySelf, YYThunk thunk)
 #define yythunkpos yySelf->thunkpos
   yySelf->debug_(yySelf, Debug_action, "do yy_9_primary (%s) '%s'\n", yyrulename, yytext);
 
-   push(makeMark("yySelf->begin_(yySelf, yystack)")); ;
+   push(makeMark("begin", "yySelf->begin_(yySelf, yystack)")); ;
 #undef yy
 #undef yythunkpos
 
@@ -470,7 +470,7 @@ static void yy_2_prefix(YYClass* yySelf, YYThunk thunk)
 #define yythunkpos yySelf->thunkpos
   yySelf->debug_(yySelf, Debug_action, "do yy_2_prefix (%s) '%s'\n", yyrulename, yytext);
 
-   push(makePredicate(fetchMacro(yytext))); ;
+   push(makePredicate(yytext, fetchMacro(yytext))); ;
 #undef yy
 #undef yythunkpos
 
@@ -491,7 +491,7 @@ static void yy_1_prefix(YYClass* yySelf, YYThunk thunk)
 #define yythunkpos yySelf->thunkpos
   yySelf->debug_(yySelf, Debug_action, "do yy_1_prefix (%s) '%s'\n", yyrulename, yytext);
 
-   push(makePredicate(yytext)); ;
+   push(makePredicate(0, yytext)); ;
 #undef yy
 #undef yythunkpos
 
@@ -554,7 +554,7 @@ static void yy_2_end(YYClass* yySelf, YYThunk thunk)
 #define yythunkpos yySelf->thunkpos
   yySelf->debug_(yySelf, Debug_action, "do yy_2_end (%s) '%s'\n", yyrulename, yytext);
 
-   push(makeMark(fetchMacro(yytext))); ;
+   push(makeMark(yytext, fetchMacro(yytext))); ;
 #undef yy
 #undef yythunkpos
 
@@ -575,7 +575,7 @@ static void yy_1_end(YYClass* yySelf, YYThunk thunk)
 #define yythunkpos yySelf->thunkpos
   yySelf->debug_(yySelf, Debug_action, "do yy_1_end (%s) '%s'\n", yyrulename, yytext);
 
-   push(makeMark(yytext)); ;
+   push(makeMark(0, yytext)); ;
 #undef yy
 #undef yythunkpos
 
@@ -596,7 +596,7 @@ static void yy_2_begin(YYClass* yySelf, YYThunk thunk)
 #define yythunkpos yySelf->thunkpos
   yySelf->debug_(yySelf, Debug_action, "do yy_2_begin (%s) '%s'\n", yyrulename, yytext);
 
-   push(makeMark(fetchMacro(yytext))); ;
+   push(makeMark(yytext, fetchMacro(yytext))); ;
 #undef yy
 #undef yythunkpos
 
@@ -617,7 +617,7 @@ static void yy_1_begin(YYClass* yySelf, YYThunk thunk)
 #define yythunkpos yySelf->thunkpos
   yySelf->debug_(yySelf, Debug_action, "do yy_1_begin (%s) '%s'\n", yyrulename, yytext);
 
-   push(makeMark(yytext)); ;
+   push(makeMark(0, yytext)); ;
 #undef yy
 #undef yythunkpos
 
