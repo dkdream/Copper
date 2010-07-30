@@ -34,19 +34,19 @@ define-rule =  identifier                   { checkRule(yytext); }
                      | begin expression     { defineRule(rule_with_begin); }
                      ) SEMICOLON?
 
-begin       = '%begin' - ( action { push(makeMark(yytext)); }
-                         | macro  { push(makeMark(fetchMacro(yytext))); }
+begin       = '%begin' - ( action { push(makeMark(0, yytext)); }
+                         | macro  { push(makeMark(yytext, fetchMacro(yytext))); }
                          )
-end         = '%end'   - ( action { push(makeMark(yytext)); }
-                         | macro  { push(makeMark(fetchMacro(yytext))); }
+end         = '%end'   - ( action { push(makeMark(0, yytext)); }
+                         | macro  { push(makeMark(yytext, fetchMacro(yytext))); }
                          )
 
 expression  = sequence (BAR sequence  { Node *f= pop();  push(Alternate_append(pop(), f)); }  )*
 
 sequence    = prefix (prefix          { Node *f= pop();  push(Sequence_append(pop(), f)); }   )*
 
-prefix      = AND action    { push(makePredicate(yytext)); }
-            | AND macro     { push(makePredicate(fetchMacro(yytext))); }
+prefix      = AND action    { push(makePredicate(0, yytext)); }
+            | AND macro     { push(makePredicate(yytext, fetchMacro(yytext))); }
             | AND suffix    { push(makePeekFor(pop())); }
             | NOT suffix    { push(makePeekNot(pop())); }
             | suffix
@@ -65,8 +65,8 @@ primary    = identifier                 { push(makeVariable(yytext)); }
            | DOT                        { push(makeDot()); }
            | action                     { push(makeAction(yytext)); }
            | macro                      { push(makeAction(fetchMacro(yytext))); }
-           | BEGIN                      { push(makeMark("yySelf->begin_(yySelf, yystack)")); }
-           | END                        { push(makeMark("yySelf->end_(yySelf, yystack)")); }
+           | BEGIN                      { push(makeMark("begin", "yySelf->begin_(yySelf, yystack)")); }
+           | END                        { push(makeMark("end", "yySelf->end_(yySelf, yystack)")); }
            | MARK                       { push(makeAction("yySelf->mark_(yySelf, yyrulename);")); }
            | COLLECT                    { push(makeAction("yySelf->collect_(yySelf, yyrulename);")); }
 

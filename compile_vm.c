@@ -4,6 +4,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 #include "version.h"
 #include "tree.h"
@@ -213,40 +214,25 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
                     name, index, event
                     );
         }
-        return false;
+        return true;
 
     case Predicate:
         {
             fprintf(ofile,
-                    "static bool predicate_%s_%u(PrsInput input) {\n"
-                    "#if 0\n"
-                    "  return %s;\n"
-                    "#endif\n"
-                    "  return false"
-                    "}\n"
-                    "static struct prs_node ll_%s_%u = { prs_Predicate, (union prs_arg) (&predicate_%s_%u) };\n",
-                    name, index,
-                    node->predicate.text,
-                    name, index, name, index
+                    "static struct prs_node ll_%s_%u = { prs_Predicate, (union prs_arg) ((PrsName)\"%s\") };\n",
+                    name, index,  node->predicate.name
                     );
         }
-        return false;
+        return true;
 
     case Mark:
         {
             fprintf(ofile,
-                    "static void action_%s_%u(PrsInput input) {\n"
-                    "#if 0\n"
-                    "   %s\n"
-                    "#endif\n"
-                    "}\n"
-                    "static struct prs_node ll_%s_%u = { prs_Action, (union prs_arg) (&action_%s_%u) };\n",
-                    name, index,
-                    node->predicate.text,
-                    name, index, name, index
+                    "static struct prs_node ll_%s_%u = { prs_Action, (union prs_arg) ((PrsName)\"%s\") };\n",
+                    name, index,   node->mark.name
                     );
         }
-        return false;
+        return true;
 
     case Alternate:
         return Alternate_compile_vm(ofile, name, index, node, current);
@@ -325,7 +311,7 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
     }
 }
 
-void Rule_compile_vm(FILE* ofile)
+void Rule_compile_vm(FILE* ofile, const char* label)
 {
     Node *current = 0;
 
@@ -333,11 +319,20 @@ void Rule_compile_vm(FILE* ofile)
     fprintf(ofile, "#include \"copper_vm.h\"\n");
     fprintf(ofile, "\n\n\n");
 
-    // rules
-    for (current = rules; current;  current = current->rule.next) {
-        fprintf(ofile,
-                "extern PrsNode node_%s;\n",
-                current->rule.name);
+    // predicates
+    for (current = predicates;  current;  current = current->predicate.list) {
+        if (current->predicate.rule) {
+            fprintf(ofile, "static bool %s(PrsInput);\n", current->predicate.name);
+        }
+    }
+
+    fprintf(ofile, "\n\n\n");
+
+    // action
+    for (current = marks;  current;  current = current->mark.list) {
+        if (current->mark.rule) {
+            fprintf(ofile, "static void %s(PrsInput);\n", current->mark.name);
+        }
     }
 
     fprintf(ofile, "\n\n\n");
@@ -354,13 +349,40 @@ void Rule_compile_vm(FILE* ofile)
         unsigned last = 0;
         if (!Node_compile_vm(ofile, current->rule.name, 0, current->rule.expression, &last)) {
             fprintf(ofile,
-                    "PrsNode node_%s = 0;\n",
+                    "static PrsNode node_%s = 0;\n",
                     current->rule.name);
         } else {
             fprintf(ofile,
-                    "PrsNode node_%s = &ll_%s_%u;\n",
+                    "static PrsNode node_%s = &ll_%s_%u;\n",
                     current->rule.name,
                     current->rule.name, last);
+        }
+    }
+
+    fprintf(ofile, "\n\n\n");
+
+    // predicates
+    for (current = predicates;  current;  current = current->predicate.list) {
+        if (current->predicate.rule) {
+            fprintf(ofile, "static bool %s(PrsInput) {\n", current->predicate.name);
+            fprintf(ofile, "#if 0\n");
+            fprintf(ofile, "  %s;\n", current->predicate.text);
+            fprintf(ofile, "#endif\n");
+            fprintf(ofile, "  return false;\n");
+            fprintf(ofile, "}\n");
+        }
+    }
+
+    fprintf(ofile, "\n\n\n");
+
+    // action
+    for (current = marks;  current;  current = current->mark.list) {
+        if (current->mark.rule) {
+            fprintf(ofile, "static void %s(PrsInput);\n", current->mark.name);
+            fprintf(ofile, "#if 0\n");
+            fprintf(ofile, "  %s;\n", current->mark.text);
+            fprintf(ofile, "#endif\n");
+            fprintf(ofile, "}\n");
         }
     }
 
@@ -375,4 +397,53 @@ void Rule_compile_vm(FILE* ofile)
         fprintf(ofile, "}\n");
     }
 
+    fprintf(ofile, "\n\n\n");
+
+    fprintf(ofile, "extern bool init__");
+    for (; *label; ++label) {
+        if (isalnum(*label)) {
+            fprintf(ofile, "%c", *label);
+        } else {
+            fprintf(ofile, "_");
+        }
+    }
+    fprintf(ofile, "(PrsInput input) {\n");
+    fprintf(ofile, "  inline bool attach(PrsName name,    PrsNode value)      { return input->attach(input, name, value); }\n");
+    fprintf(ofile, "  inline bool predicate(PrsName name, PrsPredicate value) { return input->set_p(input, name, value); }\n");
+    fprintf(ofile, "  inline bool action(PrsName name,    PrsAction value)    { return input->set_a(input, name, value); }\n");
+    fprintf(ofile, "  inline bool event(PrsName name,     PrsEvent value)     { return input->set_e(input, name, value); }\n");
+    fprintf(ofile, "\n");
+
+    for (current = rules; current;  current = current->rule.next) {
+        fprintf(ofile, "   attach(\"%s\", node_%s);\n",
+                current->rule.name, current->rule.name);
+    }
+
+    fprintf(ofile, "\n");
+    for (current = predicates;  current;  current = current->predicate.list) {
+        if (current->predicate.rule) {
+            fprintf(ofile, "   predicate(\"%s\", %s);\n",
+                    current->predicate.name,
+                    current->predicate.name);
+        }
+    }
+    fprintf(ofile, "\n");
+    for (current = marks;  current;  current = current->mark.list) {
+        if (current->mark.rule) {
+            fprintf(ofile, "   action(\"%s\", %s);\n",
+                    current->mark.name,
+                    current->mark.name);
+
+        }
+    }
+    fprintf(ofile, "\n");
+    for (current = actions;  current;  current = current->action.list) {
+        fprintf(ofile, "   event(\"event_%s\", event_%s);\n",
+                current->action.name,
+                current->action.name);
+    }
+    fprintf(ofile, "\n");
+    fprintf(ofile, "  return true;\n");
+    fprintf(ofile, "}\n");
+    fprintf(ofile, "\n\n\n");
 }

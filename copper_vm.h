@@ -73,16 +73,14 @@ struct prs_pair {
 struct prs_node {
     PrsOperator oper;
     union prs_arg {
-        PrsChar      letter;
-        PrsString    string;
-        PrsRange     range;
-        PrsSet       set;
-        PrsName      name;
-        PrsNode      node;
-        PrsPair      pair;
-        PrsPredicate predicate;
-        PrsAction    action;
-        PrsEvent     event;
+        PrsChar   letter;
+        PrsString string;
+        PrsRange  range;
+        PrsSet    set;
+        PrsName   name;
+        PrsNode   node;
+        PrsPair   pair;
+        PrsEvent  event;
     } arg;
 };
 
@@ -94,19 +92,31 @@ typedef bool (*PushMark)(PrsInput);
 typedef bool (*ReplaceMark)(PrsInput);
 typedef bool (*PopMark)(PrsInput);
 typedef bool (*SetChar)(PrsInput);
-typedef bool (*FindNode)(PrsInput,PrsName, PrsNode*);
+typedef bool (*FindNode)(PrsInput, PrsName, PrsNode*);
+typedef bool (*FindPredicate)(PrsInput, PrsName, PrsPredicate*);
+typedef bool (*FindAction)(PrsInput, PrsName, PrsAction*);
+typedef bool (*PostEvent)(PrsInput, PrsEvent);
+typedef bool (*AddName)(PrsInput, PrsName, PrsNode);
+typedef bool (*SetPredicate)(PrsInput, PrsName, PrsPredicate);
+typedef bool (*SetAction)(PrsInput, PrsName, PrsAction);
+typedef bool (*SetEvent)(PrsInput, PrsName, PrsEvent);
 
 struct prs_input {
-    CurrentChar current;
-    NextChar    next;
-    PushMark    push;
-    ReplaceMark replace;
-    PopMark     pop;
-    SetChar     reset;
-    FindNode    find;
+    CurrentChar   current;
+    NextChar      next;
+    PushMark      push;
+    ReplaceMark   replace;
+    PopMark       pop;
+    SetChar       reset;
+    FindNode      node;
+    FindPredicate predicate;
+    FindAction    action;
+    PostEvent     event;
+    AddName       attach;
+    SetPredicate  set_p;
+    SetAction     set_a;
+    SetEvent      set_e;
 };
-
-
 
 #endif
 

@@ -279,16 +279,19 @@ static void generate_parser()
 
 static void generate_vm_parser()
 {
+    const char* label = 0;
     if (!output_name) {
         output = stdout;
+        label = "___DEFAULT_INIT";
     } else {
         if (!(output = fopen(output_name, "w"))) {
             perror(output_name);
             exit(1);
         }
+        label = output_name;
     }
 
-    Rule_compile_vm(output);
+    Rule_compile_vm(output, label);
 }
 
 

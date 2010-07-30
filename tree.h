@@ -38,9 +38,9 @@ struct Dot	 { int type;  Node *next;										};
 struct Character { int type;  Node *next;   char *value;								};
 struct String	 { int type;  Node *next;   char *value;								};
 struct Class	 { int type;  Node *next;   unsigned char *value;							};
-struct Action	 { int type;  Node *next;   char *text;	  Node *list;  char *name;  Node *rule;				};
-struct Predicate { int type;  Node *next;   char *text;									};
-struct Mark      { int type;  Node *next;   char *text;									};
+struct Action	 { int type;  Node *next;   char *text;	  Node *list; char *name; Node *rule;				};
+struct Predicate { int type;  Node *next;   char *text;   Node *list; char* name; Node *rule;				};
+struct Mark      { int type;  Node *next;   char *text;	  Node *list; char* name; Node *rule;				};
 struct Alternate { int type;  Node *next;   Node *first;  Node *last;							};
 struct Sequence	 { int type;  Node *next;   Node *first;  Node *last;							};
 struct PeekFor	 { int type;  Node *next;   Node *element;								};
@@ -74,6 +74,8 @@ union Node
     struct Any		any;
 };
 
+extern Node *predicates;
+extern Node *marks;
 extern Node *actions;
 extern Node *rules;
 extern Node *macros;
@@ -99,8 +101,8 @@ extern Node *makeCharacter(char *text);
 extern Node *makeString(char *text);
 extern Node *makeClass(char *text);
 extern Node *makeAction(char *text);
-extern Node *makePredicate(char *text);
-extern Node *makeMark(char *text);
+extern Node *makePredicate(char *name, char *text);
+extern Node *makeMark(char *name, char *text);
 extern Node *makeAlternate(Node *e);
 extern Node *Alternate_append(Node *e, Node *f);
 extern Node *makeSequence(Node *e);
@@ -123,4 +125,4 @@ extern void Rule_compile_c_footing(FILE* ofile);
 extern void Node_print(Node *node);
 extern void Rule_print(Node *node);
 
-extern void Rule_compile_vm(FILE* ofile);
+extern void Rule_compile_vm(FILE* ofile, const char* label);

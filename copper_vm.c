@@ -13,8 +13,27 @@ extern bool copper_vm(PrsNode start, PrsInput input) {
         return input->current(input, target);
     }
 
-    inline bool find(PrsName name, PrsNode* target) {
-        return input->find(input, name, target);
+    inline bool node(PrsName name, PrsNode* target) {
+        return input->node(input, name, target);
+    }
+
+    inline bool predicate(PrsName name) {
+        PrsPredicate test = 0;
+        if (input->predicate(input, name, &test)) {
+            return test(input);
+        }
+        return false;
+    }
+
+    inline bool action(PrsName name) {
+        PrsAction thunk = 0;
+        if (!input->action(input, name, &thunk)) return false;
+        thunk(input);
+        return true;
+    }
+
+    inline bool event(PrsEvent action) {
+        return input->event(input, action);
     }
 
     inline bool prs_and() {
@@ -153,7 +172,7 @@ extern bool copper_vm(PrsNode start, PrsInput input) {
 
     inline bool prs_name() {
         PrsNode value;
-        if (!find(start->arg.name, &value)) {
+        if (!node(start->arg.name, &value)) {
             return false;
         }
         return copper_vm(value, input);
@@ -167,10 +186,21 @@ extern bool copper_vm(PrsNode start, PrsInput input) {
         return false;
     }
 
-    inline bool prs_predicate() { return false; }
-    inline bool prs_event()     { return false; }
-    inline bool prs_action()    { return false; }
-    inline bool prs_void()      { return false; }
+    inline bool prs_predicate() {
+        return predicate(start->arg.name);
+    }
+
+    inline bool prs_action() {
+        return action(start->arg.name);
+    }
+
+    inline bool prs_event() {
+        return event(start->arg.event);
+    }
+
+    inline bool prs_void() {
+        return false;
+    }
 
     switch (start->oper) {
     case prs_Sequence:    return prs_and();

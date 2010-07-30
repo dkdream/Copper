@@ -23,19 +23,23 @@
 
 #include "tree.h"
 
-Node *actions   = 0;
-Node *rules     = 0;
-Node *macros    = 0;
-Node *start     = 0;
+Node *predicates = 0;
+Node *marks      = 0;
+Node *actions    = 0;
+Node *rules      = 0;
+Node *macros     = 0;
+Node *start      = 0;
 
 Node *thisRule  = 0;
 
 FILE *output  = 0;
 FILE *include = 0;
 
-int actionCount = 0;
-int ruleCount   = 0;
-int lastToken   = -1;
+int predicateCount = 0;
+int markCount      = 0;
+int actionCount    = 0;
+int ruleCount      = 0;
+int lastToken      = -1;
 
 static inline Node *_newNode(int type, int size)
 {
@@ -187,17 +191,46 @@ Node *makeAction(char *text)
   return node;
 }
 
-Node *makePredicate(char *text)
+Node *makePredicate(char *name, char *text)
 {
   Node *node= newNode(Predicate);
-  node->predicate.text= strdup(text);
+  node->predicate.text = strdup(text);
+  node->predicate.list = predicates;
+  predicates = node;
+ if (name) {
+     node->predicate.name = strdup(name);
+     node->predicate.rule = 0;
+  } else {
+     assert(thisRule);
+     char label[1024];
+     sprintf(label, "predicate_%d_%s",
+             ++predicateCount,
+             thisRule->rule.name);
+     node->predicate.name = strdup(label);
+     node->predicate.rule = thisRule;
+  }
+
   return node;
 }
 
-Node *makeMark(char *text)
+Node *makeMark(char *name, char *text)
 {
   Node *node= newNode(Mark);
-  node->mark.text= strdup(text);
+  node->mark.text = strdup(text);
+  node->mark.list = marks;
+  marks = node;
+  if (name) {
+      node->mark.name = strdup(name);
+      node->mark.rule = 0;
+  } else {
+      assert(thisRule);
+      char label[1024];
+      sprintf(label, "action_%d_%s",
+              ++markCount,
+              thisRule->rule.name);
+      node->mark.name = strdup(label);
+      node->mark.rule = thisRule;
+  }
   return node;
 }
 
