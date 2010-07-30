@@ -109,7 +109,7 @@ static void version()
 static void usage()
 {
     version();
-    fprintf(stderr, "usage: %s [-H|-P|-C|-F|-h] [<option>...] [<ifile>...]\n", program_name);
+    fprintf(stderr, "usage: %s [-H|-P|-C|-F|-A|-h] [<option>...] [<ifile>...]\n", program_name);
     fprintf(stderr, "   read input files and generate a parser\n");
     fprintf(stderr, "   where <option> can be\n");
     fprintf(stderr, "     -t          strip the output of the heading\n");
@@ -276,6 +276,22 @@ static void generate_parser()
     }
 }
 
+
+static void generate_vm_parser()
+{
+    if (!output_name) {
+        output = stdout;
+    } else {
+        if (!(output = fopen(output_name, "w"))) {
+            perror(output_name);
+            exit(1);
+        }
+    }
+
+    Rule_compile_vm(output);
+}
+
+
 typedef void (*Writer)(FILE* ofile);
 
 void generate(Writer section, int argc, char **argv)
@@ -320,13 +336,14 @@ int main(int argc, char **argv)
         do_header,
         do_preamble,
         do_compile,
+        do_vm_compile,
         do_footer,
         do_default
     };
 
     enum Task my_task = do_default;
 
-    while (-1 != (chr = getopt(argc, argv, "VHPCFhvtmfsxo:r:")))
+    while (-1 != (chr = getopt(argc, argv, "AVHPCFhvtmfsxo:r:")))
         {
             switch (chr) {
             case 'r':
@@ -392,6 +409,10 @@ int main(int argc, char **argv)
                 my_task = do_compile;
                 continue;
 
+            case 'A':
+                my_task = do_vm_compile;
+                continue;
+
             case 'F':
                 my_task = do_footer;
                 continue;
@@ -436,6 +457,11 @@ int main(int argc, char **argv)
 
     case do_footer:
         generate(Rule_compile_c_footing, argc, argv);
+        exit(0);
+
+    case do_vm_compile:
+        parse_inputs(argc, argv);
+        generate_vm_parser();
         exit(0);
 
     case do_compile:

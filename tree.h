@@ -122,3 +122,5 @@ extern void Rule_compile_c_footing(FILE* ofile);
 
 extern void Node_print(Node *node);
 extern void Rule_print(Node *node);
+
+extern void Rule_compile_vm(FILE* ofile);

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdbool.h>
 
 #include "version.h"
 #include "tree.h"

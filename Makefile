@@ -14,7 +14,7 @@ CC     = gcc
 CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
 OFLAGS = -Wall
 
-OBJS = tree.o compile.o copper_main.o
+OBJS = tree.o compile.o copper_main.o copper_vm.o compile_vm.o
 
 default :
 	-@$(MAKE) --no-print-directory clear all || true
