@@ -14,13 +14,15 @@ CC     = gcc
 CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
 OFLAGS = -Wall
 
-OBJS = tree.o compile.o copper_main.o copper_vm.o compile_vm.o
+MAIN_ORIG = copper_main.o
+MAIN_VM   = main_vm.o
+OBJS      = tree.o compile.o compile_vm.o
 
 default :
 	-@$(MAKE) --no-print-directory clear all || true
 
-all : copper vm_copper.o
-new : copper-new
+all : copper copper-vm
+new : copper-new copper-vm
 
 echo : ; echo $(TIME) $(COPPER)
 
@@ -73,15 +75,19 @@ test examples : copper-new .FORCE
 
 # --
 
-copper.c   : copper.cu $(COPPER) ; $(COPPER) -C -s -o $@ copper.cu
-copper.o   : copper.c            ; $(CC) $(CFLAGS) -c -o $@ $<
-copper-new : copper.o $(OBJS)    ; $(CC) $(CFLAGS) -o $@ copper.o $(OBJS)
+copper.c   : copper.cu $(COPPER)           ; $(COPPER) -C -s -o $@ copper.cu
+copper.o   : copper.c                      ; $(CC) $(CFLAGS) -c -o $@ $<
+copper-new : $(MAIN_ORIG) copper.o $(OBJS) ; $(CC) $(CFLAGS) -o $@ $(MAIN_ORIG) copper.o $(OBJS)
 
 copper.o $(OBJS) : header.var
 
 # --
 
-vm_copper.c :  copper.cu copper-new ; ./copper-new -A -o $@ copper.cu
+vm_copper.c : copper.cu copper-new               ; $(COPPER.test) -A -o $@ copper.cu
+vm_copper.o : vm_copper.c                        ; $(CC) $(CFLAGS) -c -o $@ $<
+copper-vm   : $(MAIN_VM) vm_copper.o copper_vm.o ; $(CC) $(CFLAGS) -o $@ $(MAIN_VM) vm_copper.o copper_vm.o
+
+$(MAIN_VM) vm_copper.o copper_vm.o : copper_vm.h
 
 # --
 TEMPS =
@@ -112,7 +118,7 @@ stage.$(STAGE).footing : copper.cu $(COPPER.test)
 stage.$(STAGE).o : stage.$(STAGE).c stage.$(STAGE).inc
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-stage.$(STAGE) : stage.$(STAGE).o $(OBJS)
+stage.$(STAGE) : $(MAIN_ORIG) stage.$(STAGE).o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $+
 
 # --
@@ -124,7 +130,7 @@ do.stage.two  : do.stage.one  ; @$(MAKE) --no-print-directory STAGE=two  COPPER.
 # --
 
 clean : .FORCE
-	rm -f *~ *.o copper copper-new compile.inc
+	rm -f *~ *.o copper copper-new compile.inc copper-vm vm_copper.c
 	rm -f copper.c header.inc copper.log
 	rm -f stage.*
 	$(MAKE) --directory=examples --no-print-directory $@

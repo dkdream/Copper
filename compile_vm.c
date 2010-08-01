@@ -197,8 +197,8 @@ static bool Alternate_compile_vm(FILE* ofile, char* name, unsigned index, Node *
     }
 
     fprintf(ofile,
-            "static struct prs_pair ll_%s_%u_arg = { &ll_%s_%u, &ll_%s_%u };\n"
-            "static struct prs_node ll_%s_%u = { prs_Choice, (union prs_arg) (&ll_%s_%u_arg) };\n",
+            "static struct prs_pair   ll_%s_%u_arg = { &ll_%s_%u, &ll_%s_%u };\n"
+            "static struct prs_node   ll_%s_%u     = { 0,0, prs_Choice, (union prs_arg) (&ll_%s_%u_arg) };\n",
             name, left + 1,  name, left, name, right,
             name, left + 1,  name, left + 1
             );
@@ -227,8 +227,8 @@ static bool Sequence_compile_vm(FILE* ofile, char* name, unsigned index, Node *n
     }
 
     fprintf(ofile,
-            "static struct prs_pair ll_%s_%u_arg = { &ll_%s_%u, &ll_%s_%u };\n"
-            "static struct prs_node ll_%s_%u     = { prs_Sequence, (union prs_arg) (&ll_%s_%u_arg) };\n",
+            "static struct prs_pair   ll_%s_%u_arg = { &ll_%s_%u, &ll_%s_%u };\n"
+            "static struct prs_node   ll_%s_%u     = { 0,0, prs_Sequence, (union prs_arg) (&ll_%s_%u_arg) };\n",
             name, left + 1,  name, left, name, right,
             name, left + 1,  name, left + 1
             );
@@ -246,7 +246,7 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
 
     case Dot:
         fprintf(ofile,
-                "static struct prs_node ll_%s_%u = { prs_MatchDot };\n",
+                "static struct prs_node   ll_%s_%u     = { 0,0, prs_MatchDot };\n",
                 name, index
                 );
         *current = index;
@@ -254,7 +254,7 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
 
     case Name:
         fprintf(ofile,
-                "static struct prs_node ll_%s_%u = { prs_MatchName, (union prs_arg) ((PrsName)\"%s\") };\n",
+                "static struct prs_node   ll_%s_%u     = { 0,0, prs_MatchName, (union prs_arg) ((PrsName)\"%s\") };\n",
                 name, index,
                 node->name.rule->rule.name
                 );
@@ -263,7 +263,7 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
 
     case Character:
         fprintf(ofile,
-                "static struct prs_node ll_%s_%u = { prs_MatchChar, (union prs_arg) ((PrsChar)\'%s\') };\n",
+                "static struct prs_node   ll_%s_%u     = { 0,0, prs_MatchChar, (union prs_arg) ((PrsChar)\'%s\') };\n",
                 name, index,
                 node->string.value
                 );
@@ -276,13 +276,13 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
             if (1 < tlen) {
                 fprintf(ofile,
                         "static struct prs_string ll_%s_%u_arg = { %u, \"%s\" };\n"
-                        "static struct prs_node   ll_%s_%u     = { prs_MatchString, (union prs_arg) (&ll_%s_%u_arg) };\n",
+                        "static struct prs_node   ll_%s_%u     = { 0,0, prs_MatchString, (union prs_arg) (&ll_%s_%u_arg) };\n",
                         name, index,  textlen(node->string.value), node->string.value,
                         name, index,  name, index
                         );
             } else {
                 fprintf(ofile,
-                        "static struct prs_node ll_%s_%u = { prs_MatchChar, (union prs_arg) ((PrsChar)\'%s\') };\n",
+                        "static struct prs_node   ll_%s_%u     = { 0,0, prs_MatchChar, (union prs_arg) ((PrsChar)\'%s\') };\n",
                         name, index,
                         node->string.value
                         );
@@ -296,7 +296,7 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
             const unsigned char value = matchOne(node->cclass.value);
             if (0 < value) {
                 fprintf(ofile,
-                        "static struct prs_node ll_%s_%u = { prs_MatchChar, (union prs_arg) ((PrsChar)'%s') };\n",
+                        "static struct prs_node   ll_%s_%u     = { 0,0, prs_MatchChar, (union prs_arg) ((PrsChar)'%s') };\n",
                         name, index,
                         makeChrText(value)
                         );
@@ -304,8 +304,8 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
                 const char* label    = makeCCName(node->cclass.value);
                 const char* bitfield = makeCharClass(node->cclass.value);
                 fprintf(ofile,
-                        "static struct prs_set  ll_%s_%u_arg = { \"%s\", \"%s\" };\n"
-                        "static struct prs_node ll_%s_%u     = { prs_MatchSet, (union prs_arg) (&ll_%s_%u_arg) };\n",
+                        "static struct prs_set    ll_%s_%u_arg = { \"%s\", \"%s\" };\n"
+                        "static struct prs_node   ll_%s_%u     = { 0,0, prs_MatchSet, (union prs_arg) (&ll_%s_%u_arg) };\n",
                         name, index,  label,      bitfield,
                         name, index,  name, index
                         );
@@ -318,7 +318,7 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
         {
             const char* event = node->action.name;
             fprintf(ofile,
-                    "static struct prs_node ll_%s_%u = { prs_Event, (union prs_arg) (&event_%s) };\n",
+                    "static struct prs_node   ll_%s_%u     = { 0,0, prs_Event, (union prs_arg) (&event_%s) };\n",
                     name, index, event
                     );
             *current = index;
@@ -328,7 +328,7 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
     case Predicate:
         {
             fprintf(ofile,
-                    "static struct prs_node ll_%s_%u = { prs_Predicate, (union prs_arg) ((PrsName)\"%s\") };\n",
+                    "static struct prs_node   ll_%s_%u     = { 0,0, prs_Predicate, (union prs_arg) ((PrsName)\"%s\") };\n",
                     name, index,  node->predicate.name
                     );
             *current = index;
@@ -338,7 +338,7 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
     case Mark:
         {
             fprintf(ofile,
-                    "static struct prs_node ll_%s_%u = { prs_Action, (union prs_arg) ((PrsName)\"%s\") };\n",
+                    "static struct prs_node   ll_%s_%u     = { 0,0, prs_Action, (union prs_arg) ((PrsName)\"%s\") };\n",
                     name, index,   node->mark.name
                     );
             *current = index;
@@ -356,7 +356,7 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
             unsigned child = 0;
             if (!Node_compile_vm(ofile, name, index, node->peekFor.element, &child)) return false;
             fprintf(ofile,
-                    "static struct prs_node ll_%s_%u = { prs_AssertTrue, (union prs_arg) (&ll_%s_%u) };\n",
+                    "static struct prs_node   ll_%s_%u     = { 0,0, prs_AssertTrue, (union prs_arg) (&ll_%s_%u) };\n",
                     name, child + 1,
                     name, child
                     );
@@ -369,7 +369,7 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
             unsigned child = 0;
             if (!Node_compile_vm(ofile, name, index, node->peekNot.element, &child)) return false;
             fprintf(ofile,
-                    "static struct prs_node ll_%s_%u = { prs_AssertFalse, (union prs_arg) (&ll_%s_%u) };\n",
+                    "static struct prs_node   ll_%s_%u     = { 0,0, prs_AssertFalse, (union prs_arg) (&ll_%s_%u) };\n",
                     name, child + 1,
                     name, child
                     );
@@ -382,7 +382,7 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
             unsigned child = 0;
             if (!Node_compile_vm(ofile, name, index, node->query.element, &child)) return false;
             fprintf(ofile,
-                    "static struct prs_node ll_%s_%u = { prs_ZeroOrOne, (union prs_arg) (&ll_%s_%u) };\n",
+                    "static struct prs_node   ll_%s_%u     = { 0,0, prs_ZeroOrOne, (union prs_arg) (&ll_%s_%u) };\n",
                     name, child + 1,
                     name, child
                     );
@@ -395,7 +395,7 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
             unsigned child = 0;
             if (!Node_compile_vm(ofile, name, index, node->star.element, &child)) return false;
             fprintf(ofile,
-                    "static struct prs_node ll_%s_%u = { prs_ZeroOrMore, (union prs_arg) (&ll_%s_%u) };\n",
+                    "static struct prs_node   ll_%s_%u     = { 0,0, prs_ZeroOrMore, (union prs_arg) (&ll_%s_%u) };\n",
                     name, child + 1,
                     name, child
                     );
@@ -408,7 +408,7 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
             unsigned child = 0;
             if (!Node_compile_vm(ofile, name, index, node->plus.element, &child)) return false;
             fprintf(ofile,
-                    "static struct prs_node ll_%s_%u = { prs_OneOrMore, (union prs_arg) (&ll_%s_%u) };\n",
+                    "static struct prs_node   ll_%s_%u     = { 0,0, prs_OneOrMore, (union prs_arg) (&ll_%s_%u) };\n",
                     name, child + 1,
                     name, child
                     );
@@ -426,9 +426,11 @@ void Rule_compile_vm(FILE* ofile, const char* label)
 {
     Node *current = 0;
 
-    fprintf(ofile, "\n\n\n");
+    fprintf(ofile, "/*-*- mode: c;-*-*/\n");
+    fprintf(ofile, "/* A recursive-descent parser generated by copper %d.%d.%d */\n", COPPER_MAJOR, COPPER_MINOR, COPPER_LEVEL);
+    fprintf(ofile, "\n");
     fprintf(ofile, "#include \"copper_vm.h\"\n");
-    fprintf(ofile, "\n\n\n");
+    fprintf(ofile, "\n");
 
     // predicates
     for (current = predicates;  current;  current = current->predicate.list) {
@@ -437,8 +439,6 @@ void Rule_compile_vm(FILE* ofile, const char* label)
         }
     }
 
-    fprintf(ofile, "\n\n\n");
-
     // action
     for (current = marks;  current;  current = current->mark.list) {
         if (current->mark.rule) {
@@ -446,14 +446,10 @@ void Rule_compile_vm(FILE* ofile, const char* label)
         }
     }
 
-    fprintf(ofile, "\n\n\n");
-
     // event
     for (current = actions;  current;  current = current->action.list) {
-        fprintf(ofile, "static bool event_%s(PrsInput);\n", current->action.name);
+        fprintf(ofile, "static bool event_%s(PrsInput, PrsState);\n", current->action.name);
     }
-
-    fprintf(ofile, "\n\n\n");
 
     for (current = rules; current;  current = current->rule.next) {
         fprintf(ofile, "\n");
@@ -470,8 +466,6 @@ void Rule_compile_vm(FILE* ofile, const char* label)
         }
     }
 
-    fprintf(ofile, "\n\n\n");
-
     // predicates
     for (current = predicates;  current;  current = current->predicate.list) {
         if (current->predicate.rule) {
@@ -484,7 +478,7 @@ void Rule_compile_vm(FILE* ofile, const char* label)
         }
     }
 
-    fprintf(ofile, "\n\n\n");
+    fprintf(ofile, "\n");
 
     // action
     for (current = marks;  current;  current = current->mark.list) {
@@ -497,18 +491,16 @@ void Rule_compile_vm(FILE* ofile, const char* label)
         }
     }
 
-    fprintf(ofile, "\n\n\n");
-
     for (current = actions;  current;  current = current->action.list) {
-        fprintf(ofile, "static bool event_%s(PrsInput input) {\n", current->action.name);
+        fprintf(ofile, "static bool event_%s(PrsInput input, PrsState state) {\n", current->action.name);
         fprintf(ofile, "#if 0\n");
         fprintf(ofile, "  %s;\n", current->action.text);
         fprintf(ofile, "#endif\n");
-        fprintf(ofile, "  return false;\n");
+        fprintf(ofile, "  return true;\n");
         fprintf(ofile, "}\n");
     }
 
-    fprintf(ofile, "\n\n\n");
+    fprintf(ofile, "\n\n");
 
     fprintf(ofile, "extern bool init__");
     for (; *label; ++label) {
