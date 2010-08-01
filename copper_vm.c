@@ -52,7 +52,7 @@ static bool make_Map(unsigned code,
     struct prs_map *result = malloc(sizeof(struct prs_map));
 
     result->code  = code;
-    result->key   = value;
+    result->key   = key;
     result->value = value;
     result->next  = next;
 
@@ -129,7 +129,9 @@ static bool hash_Add(struct prs_hash *hash,
         return false;
     }
 
-    if (!make_Map(code, key, value, hash->table[index], &map)) return false;
+    if (!make_Map(code, key, value, hash->table[index], &map)) {
+        return false;
+    }
 
     hash->table[index] = map;
 
@@ -153,12 +155,16 @@ static bool hash_Replace(struct prs_hash *hash,
     for ( ; map ; map = map->next) {
         if (code != map->code) continue;
         if (!hash->compare(key, map->key)) continue;
-        if (release(map->value)) return false;
+        if (release(map->value)) {
+            return false;
+        }
         map->value = value;
         return true;
     }
 
-    if (!make_Map(code, key, value, hash->table[index], &map)) return false;
+    if (!make_Map(code, key, value, hash->table[index], &map)) {
+        return false;
+    }
 
     hash->table[index] = map;
 
@@ -291,12 +297,17 @@ static bool file_NextChar(PrsInput input) {
     unsigned point = file->cursor.text_inx + 1;
     unsigned limit = file->data.limit;
 
+    file->cursor.text_inx = point;
+
     if (point >= limit) {
         if (0 >= buffer_GetLine(&file->buffer, &file->data))
             return false;
     }
 
-    file->cursor.text_inx = point;
+    if ('\n' == file->data.buffer[point]) {
+        file->cursor.line_number += 1;
+        file->cursor.char_offset  = 0;
+    }
 
     return true;
 }
@@ -315,7 +326,10 @@ static bool file_SetCursor(PrsInput input, PrsCursor value) {
 
 static bool file_FindNode(PrsInput input, PrsName name, PrsNode* target) {
     struct prs_file *file = (struct prs_file *)input;
-    return hash_Find(file->nodes, name, (void**)target);
+    if (hash_Find(file->nodes, name, (void**)target)) {
+        return true;
+    }
+    return false;
 }
 
 static bool file_FindPredicate(PrsInput input, PrsName name, PrsPredicate* target) {
@@ -339,7 +353,7 @@ static bool malloc_release(void* value) {
 
 static bool file_AddName(PrsInput input, PrsName name, PrsNode value) {
     struct prs_file *file = (struct prs_file *)input;
-    return hash_Replace(file->actions, name, value, noop_release);
+    return hash_Replace(file->nodes, name, value, noop_release);
 }
 
 static bool file_SetPredicate(PrsInput input, PrsName name, PrsPredicate value) {
@@ -538,12 +552,8 @@ extern bool copper_vm(PrsNode start, PrsInput input) {
 
     inline bool prs_char() {
         PrsChar chr = 0;
-        if (!current(&chr)) {
-            return false;
-        }
-        if (chr != start->arg.letter) {
-            return false;
-        }
+        if (!current(&chr))           return false;
+        if (chr != start->arg.letter) return false;
         next();
         return true;
     }
@@ -586,13 +596,15 @@ extern bool copper_vm(PrsNode start, PrsInput input) {
         if (!node(start->arg.name, &value)) {
             return false;
         }
-        printf("running %s", (char*)start->arg.name);
         return copper_vm(value, input);
     }
 
     inline bool prs_dot() {
+        hold();
         PrsChar chr;
-        if (!current(&chr)) return false;
+        if (!current(&chr)) {
+            return false;
+        }
         next();
         return true;
     }
@@ -611,7 +623,7 @@ extern bool copper_vm(PrsNode start, PrsInput input) {
             }
             if (chr != string->text[inx]) {
                 reset();
-               return false;
+                return false;
             }
             next();
         }

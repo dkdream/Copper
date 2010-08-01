@@ -15,11 +15,15 @@ int main(int argc, char **argv)
 
     make_PrsFile("./copper.cu", &input);
 
+    init__vm_copper_c(input);
+
     PrsNode start = 0;
 
-    input->node(input, "grammer", &start);
+    if (input->node(input, "grammar", &start)) {
+        copper_vm(start, input);
+    }
 
-    copper_vm(start, input);
+    return 0;
 }
 
 /*****************
