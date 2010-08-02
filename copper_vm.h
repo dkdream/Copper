@@ -154,8 +154,12 @@ struct prs_node {
 };
 
 typedef bool (*PrsPredicate)(PrsInput);         // user defined predicate
-typedef void (*PrsAction)(PrsInput);            // user defined parsing action
 typedef bool (*PrsFirstSet)(PrsInput, PrsSet*); // compute first set for user defined predicate/action
+
+// do we need these ?
+// if a predicate ALWAY return true then is it an action
+typedef void (*PrsAction)(PrsInput);            // user defined parsing action
+
 
 /* parsing structure call back */
 typedef bool (*CurrentChar)(PrsInput, PrsChar*);                  // return the char at the cursor location
@@ -178,10 +182,10 @@ struct prs_input {
     SetCursor     reset;
     FindNode      node;
     FindPredicate predicate;
-    FindAction    action;
+    FindAction    action;    // do we need these ?
     AddName       attach;
     SetPredicate  set_p;
-    SetAction     set_a;
+    SetAction     set_a;     // do we need these ?
     SetEvent      set_e;
     /* data */
     PrsText  data;

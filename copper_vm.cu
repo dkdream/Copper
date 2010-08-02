@@ -1,8 +1,10 @@
 # Copper Grammar for copper (vm)
 
-grammar = - heading ( define-rule )+ end-of-file
+# Parser syntax
 
-heading =  '%header' action { makeHeader(input); }
+grammar = - ( heading )? ( define-rule )+ end-of-file
+
+heading = '%header' thunk { makeHeader(input); }
 
 define-rule = identifier EQUAL       { checkRule(input); }
                          expression  { defineRule(input); }
@@ -16,25 +18,27 @@ prefix      = AND suffix { makePeekFor(input); }
             | NOT suffix { makePeekNot(input); }
             | suffix
 
-suffix     = macro             { makePredicate(input); }
-           | primary (QUESTION { makeQuery(input); }
+suffix     = primary (QUESTION { makeQuery(input); }
                      | STAR    { makeStar(input)); }
                      | PLUS    { makePlus(input); }
                      )?
 
 primary    = identifier !EQUAL     { makeName(input); }
            | OPEN expression CLOSE
-           | literal               { makeString(input); }
-           | class                 { makeClass(input); }
-           | DOT                   { makeDot(input); }
-           | macro                 { makeAction(input); }
-           | action                { makeEvent(input); }
-           | BEGIN                 { makeBegin(input); }
-           | END                   { makeEnd(input); }
+           | literal               { makeString(input);    }
+           | class                 { makeClass(input);     }
+           | DOT                   { makeDot(input);       }
+           | predicate             { makePredicate(input); }
+           | event                 { makeEvent(input);     }
+           | thunk                 { makeThunk(input);     }
+           | BEGIN                 { makeBegin(input);     }
+           | END                   { makeEnd(input);       }
 
-# Lexical syntax
+# Lexer syntax
 
-macro      = !directive '%' < [-a-zA-Z_][-a-zA-Z_0-9]* > -
+predicate  = !directive  '%' < [-a-zA-Z_][-a-zA-Z_0-9]* > -
+
+event      = '@' < [-a-zA-Z_][-a-zA-Z_0-9]* > -
 
 directive  = '%header' | '%begin' | '%end'
 
@@ -53,7 +57,7 @@ char       = '\\' [abefnrtv'"\[\]\\]
            | '\\' [0-7][0-7]?
            | !'\\' .
 
-action     = '{' < braces* > '}' -
+thunk      = '{' < braces* > '}' -
 
 braces     = '{' braces* '}'
            |  !'}' .
