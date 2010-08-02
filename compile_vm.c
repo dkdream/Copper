@@ -448,7 +448,7 @@ void Rule_compile_vm(FILE* ofile, const char* label)
 
     // event
     for (current = actions;  current;  current = current->action.list) {
-        fprintf(ofile, "static bool event_%s(PrsInput, PrsState);\n", current->action.name);
+        fprintf(ofile, "static bool event_%s(PrsInput, PrsCursor);\n", current->action.name);
     }
 
     for (current = rules; current;  current = current->rule.next) {
@@ -492,7 +492,7 @@ void Rule_compile_vm(FILE* ofile, const char* label)
     }
 
     for (current = actions;  current;  current = current->action.list) {
-        fprintf(ofile, "static bool event_%s(PrsInput input, PrsState state) {\n", current->action.name);
+        fprintf(ofile, "static bool event_%s(PrsInput input, PrsCursor cursor) {\n", current->action.name);
         fprintf(ofile, "#if 0\n");
         fprintf(ofile, "  %s;\n", current->action.text);
         fprintf(ofile, "#endif\n");

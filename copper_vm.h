@@ -27,28 +27,43 @@ enum prs_operator {
     prs_Void         // -nothing-
 };
 
-enum prs_result {
-    prs_Error,
-    prs_Falure,
-    prs_Success
+typedef enum prs_operator PrsOperator;
+
+/* parsing structure */
+typedef struct prs_input* PrsInput;
+
+/* parse node arguments */
+typedef unsigned char      PrsChar;
+typedef struct prs_string *PrsString;
+typedef struct prs_range  *PrsRange;
+typedef struct prs_set    *PrsSet;
+typedef void              *PrsName;
+typedef struct prs_node   *PrsNode;
+typedef struct prs_pair   *PrsPair;
+
+/* parse event queue */
+typedef struct prs_thread *PrsThread;
+typedef struct prs_queue  *PrsQueue;
+
+/* parsing cache node */
+typedef struct prs_point *PrsPoint;
+typedef struct prs_cache *PrsCache;
+
+/* parsing data buffer */
+struct prs_text {
+    unsigned  size;   // size of buffer
+    unsigned  limit;  // end of input
+    char     *buffer;
 };
 
-typedef enum prs_operator  PrsOperator;
-typedef enum prs_result    PrsResult;
+typedef struct prs_text PrsText;
 
-typedef struct prs_input*  PrsInput;
+struct prs_data {
+    unsigned length;
+    const char* start;
+};
 
-typedef unsigned char      PrsChar;
-typedef struct prs_string* PrsString;
-typedef struct prs_range*  PrsRange;
-typedef struct prs_set*    PrsSet;
-typedef void*              PrsName;
-typedef struct prs_node*   PrsNode;
-typedef struct prs_pair*   PrsPair;
-
-typedef bool (*PrsPredicate)(PrsInput);
-typedef bool (*PrsFirstSet)(PrsInput, PrsSet*);
-typedef void (*PrsAction)(PrsInput);
+typedef struct prs_data PrsData;
 
 struct prs_string {
     unsigned length;
@@ -84,7 +99,43 @@ struct prs_state {
 };
 
 typedef struct prs_state PrsState;
-typedef bool (*PrsEvent)(PrsInput, PrsState);
+
+/* user define event actions */
+/* these are ONLY call after a sucessful parse completes */
+typedef bool (*PrsEvent)(PrsInput, PrsCursor);
+
+struct prs_thread {
+    PrsThread next;
+    PrsCursor at;
+    PrsEvent  function;
+};
+
+struct prs_slice {
+    PrsThread begin;
+    PrsThread end;
+};
+
+typedef struct prs_slice PrsSlice;
+
+struct prs_queue {
+    PrsThread free_list;
+    PrsThread begin;
+    PrsThread end;
+};
+
+struct prs_point {
+    PrsPoint  next;
+    PrsNode   node;
+    PrsState  cursor;
+    bool      match;
+    PrsSlice  segment;
+};
+
+struct prs_cache {
+    PrsPoint free_list;
+    unsigned size;
+    PrsPoint table[];
+};
 
 struct prs_node {
     PrsSet      first;  // the first set of node
@@ -102,6 +153,11 @@ struct prs_node {
     } arg;
 };
 
+typedef bool (*PrsPredicate)(PrsInput);         // user defined predicate
+typedef void (*PrsAction)(PrsInput);            // user defined parsing action
+typedef bool (*PrsFirstSet)(PrsInput, PrsSet*); // compute first set for user defined predicate/action
+
+/* parsing structure call back */
 typedef bool (*CurrentChar)(PrsInput, PrsChar*);                  // return the char at the cursor location
 typedef bool (*NextChar)(PrsInput);                               // move the cursor by on char
 typedef bool (*GetCursor)(PrsInput, PrsCursor*);                  // get the cursor location
@@ -128,12 +184,16 @@ struct prs_input {
     SetAction     set_a;
     SetEvent      set_e;
     /* data */
-    PrsState state;
-
+    PrsText  data;
+    PrsCache cache;
+    PrsQueue queue;
+    PrsState slice;
 };
 
+extern bool text_Extend(struct prs_text *text, const unsigned room);
 extern bool make_PrsFile(const char* filename, PrsInput *input);
-extern bool copper_vm(PrsNode start, PrsInput input);
+extern bool input_Parse(char* name, PrsInput input);
+extern bool input_Text(PrsInput input, PrsData *target);
 
 #endif
 
