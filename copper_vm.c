@@ -1050,11 +1050,15 @@ static bool copper_vm(PrsNode start, PrsInput input) {
             return false;
         }
         // note the same node maybe call from two or more uncached nodes
-        printf("running %s (%u,%u)\n",
-               start->arg.name,
+        bool result = copper_vm(value, input);
+
+        printf("running %s (%u,%u) %s\n",
+               (char*) start->arg.name,
                at.line_number,
-               at.char_offset);
-        return copper_vm(value, input);
+               at.char_offset,
+               (result ? "match" : "no match"));
+
+        return result;
     }
 
     inline bool prs_dot() {
@@ -1102,7 +1106,9 @@ static bool copper_vm(PrsNode start, PrsInput input) {
     inline bool prs_predicate() {
         if (!predicate(start->arg.name)) {
             reset();
+            return false;
         }
+        return true;
     }
 
     inline bool prs_action() {

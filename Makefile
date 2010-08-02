@@ -21,8 +21,8 @@ OBJS      = tree.o compile.o compile_vm.o
 default :
 	-@$(MAKE) --no-print-directory clear all || true
 
-all : copper copper-vm
-new : copper-new copper-vm
+all : copper copper-vm new_copper.o
+new : copper-new copper-vm new_copper.o
 
 echo : ; echo $(TIME) $(COPPER)
 
@@ -75,19 +75,23 @@ test examples : copper-new .FORCE
 
 # --
 
-copper.c   : copper.cu $(COPPER)           ; $(COPPER) -C -s -o $@ copper.cu
-copper.o   : copper.c                      ; $(CC) $(CFLAGS) -c -o $@ $<
-copper-new : $(MAIN_ORIG) copper.o $(OBJS) ; $(CC) $(CFLAGS) -o $@ $(MAIN_ORIG) copper.o $(OBJS)
+copper.c     : copper.cu $(COPPER)           ; $(COPPER) -C -s -o $@ copper.cu
+copper.o     : copper.c                      ; $(CC) $(CFLAGS) -c -o $@ $<
+copper-new   : $(MAIN_ORIG) copper.o $(OBJS) ; $(CC) $(CFLAGS) -o $@ $(MAIN_ORIG) copper.o $(OBJS)
 
 copper.o $(OBJS) : header.var
 
 # --
 
-vm_copper.c : copper.cu copper-new               ; $(COPPER.test) -A -o $@ copper.cu
-vm_copper.o : vm_copper.c                        ; $(CC) $(CFLAGS) -c -o $@ $<
-copper-vm   : $(MAIN_VM) vm_copper.o copper_vm.o ; $(CC) $(CFLAGS) -o $@ $(MAIN_VM) vm_copper.o copper_vm.o
+vm_copper.c  : copper.cu     $(COPPER.test) ; $(COPPER.test) -A -o $@ copper.cu
+new_copper.c : copper_vm.cu  $(COPPER.test) ; $(COPPER.test) -A -o $@ copper_vm.cu
 
-$(MAIN_VM) vm_copper.o copper_vm.o : copper_vm.h
+vm_copper.o  : vm_copper.c  ; $(CC) $(CFLAGS) -c -o $@ $<
+new_copper.o : new_copper.c ; $(CC) $(CFLAGS) -c -o $@ $<
+
+copper-vm    : $(MAIN_VM) vm_copper.o copper_vm.o ; $(CC) $(CFLAGS) -o $@ $(MAIN_VM) vm_copper.o copper_vm.o
+
+$(MAIN_VM) vm_copper.o copper_vm.o new_copper.o : copper_vm.h
 
 # --
 TEMPS =
@@ -130,13 +134,13 @@ do.stage.two  : do.stage.one  ; @$(MAKE) --no-print-directory STAGE=two  COPPER.
 # --
 
 clean : .FORCE
-	rm -f *~ *.o copper copper-new compile.inc copper-vm vm_copper.c
+	rm -f *~ *.o copper copper-new compile.inc copper-vm vm_copper.c new_copper.c
 	rm -f copper.c header.inc copper.log
 	rm -f stage.*
 	$(MAKE) --directory=examples --no-print-directory $@
 
 clear : .FORCE
-	rm -f *.o copper-new vm_copper.c
+	rm -f *.o copper-new vm_copper.c new_copper.c
 	rm -f stage.*
 	$(MAKE) --directory=examples --no-print-directory $@
 
