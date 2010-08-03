@@ -13,7 +13,7 @@ enum prs_operator {
     prs_Choice,      // e1 e2 /
     prs_End,         // set state.end
     prs_Event,       // { }
-    prs_MatchChar,   // chr
+    prs_MatchChar,   // 'chr
     prs_MatchDot,    // .
     prs_MatchName,   // @name
     prs_MatchRange,  // begin-end
@@ -78,6 +78,24 @@ struct prs_range {
 struct prs_set {
     const char *label;
     const unsigned char bitfield[];
+};
+
+struct prs_map {
+    unsigned        code;
+    void*           key;
+    void*           value;
+    struct prs_map *next;
+};
+
+typedef unsigned long (*Hashcode)(void*);
+typedef bool     (*Matchkey)(void*, void*);
+typedef bool     (*FreeValue)(void*);
+
+struct prs_hash {
+    Hashcode encode;
+    Matchkey compare;
+    unsigned size;
+    struct prs_map *table[];
 };
 
 struct prs_pair {
@@ -160,7 +178,6 @@ typedef bool (*PrsFirstSet)(PrsInput, PrsSet*); // compute first set for user de
 // if a predicate ALWAY return true then is it an action
 typedef void (*PrsAction)(PrsInput);            // user defined parsing action
 
-
 /* parsing structure call back */
 typedef bool (*CurrentChar)(PrsInput, PrsChar*);                  // return the char at the cursor location
 typedef bool (*NextChar)(PrsInput);                               // move the cursor by on char
@@ -195,7 +212,6 @@ struct prs_input {
 };
 
 extern bool text_Extend(struct prs_text *text, const unsigned room);
-extern bool make_PrsFile(const char* filename, PrsInput *input);
 extern bool input_Parse(char* name, PrsInput input);
 extern bool input_Text(PrsInput input, PrsData *target);
 

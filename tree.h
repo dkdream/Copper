@@ -74,6 +74,13 @@ union Node
     struct Any		any;
 };
 
+typedef struct Header Header;
+
+struct Header {
+    char   *text;
+    Header *next;
+};
+
 extern Node *predicates;
 extern Node *marks;
 extern Node *actions;
@@ -125,4 +132,4 @@ extern void Rule_compile_c_footing(FILE* ofile);
 extern void Node_print(Node *node);
 extern void Rule_print(Node *node);
 
-extern void Rule_compile_vm(FILE* ofile, const char* label);
+extern void Rule_compile_vm(FILE* ofile, const char* label, Header *headers);

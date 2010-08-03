@@ -422,7 +422,7 @@ static bool Node_compile_vm(FILE* ofile, char* name, unsigned index, Node *node,
     }
 }
 
-void Rule_compile_vm(FILE* ofile, const char* label)
+void Rule_compile_vm(FILE* ofile, const char* label, Header *headers)
 {
     Node *current = 0;
 
@@ -431,6 +431,14 @@ void Rule_compile_vm(FILE* ofile, const char* label)
     fprintf(ofile, "\n");
     fprintf(ofile, "#include \"copper_vm.h\"\n");
     fprintf(ofile, "\n");
+
+    fprintf(ofile, "/* ================================================== */\n");
+    fprintf(ofile, "#ifndef TESTING_PARSER\n");
+    for (; headers;  headers = headers->next) {
+        fprintf(output, "%s\n", headers->text);
+    }
+    fprintf(ofile, "#endif\n");
+    fprintf(ofile, "/* ================================================== */\n");
 
     // predicates
     for (current = predicates;  current;  current = current->predicate.list) {
@@ -470,7 +478,7 @@ void Rule_compile_vm(FILE* ofile, const char* label)
     for (current = predicates;  current;  current = current->predicate.list) {
         if (current->predicate.rule) {
             fprintf(ofile, "static bool %s(PrsInput) {\n", current->predicate.name);
-            fprintf(ofile, "#if 0\n");
+            fprintf(ofile, "#ifndef TESTING_PARSER\n");
             fprintf(ofile, "  %s;\n", current->predicate.text);
             fprintf(ofile, "#endif\n");
             fprintf(ofile, "  return false;\n");
@@ -484,7 +492,7 @@ void Rule_compile_vm(FILE* ofile, const char* label)
     for (current = marks;  current;  current = current->mark.list) {
         if (current->mark.rule) {
             fprintf(ofile, "static void %s(PrsInput);\n", current->mark.name);
-            fprintf(ofile, "#if 0\n");
+            fprintf(ofile, "#ifndef TESTING_PARSER\n");
             fprintf(ofile, "  %s;\n", current->mark.text);
             fprintf(ofile, "#endif\n");
             fprintf(ofile, "}\n");
@@ -493,7 +501,7 @@ void Rule_compile_vm(FILE* ofile, const char* label)
 
     for (current = actions;  current;  current = current->action.list) {
         fprintf(ofile, "static bool event_%s(PrsInput input, PrsCursor cursor) {\n", current->action.name);
-        fprintf(ofile, "#if 0\n");
+        fprintf(ofile, "#ifndef TESTING_PARSER\n");
         fprintf(ofile, "  %s;\n", current->action.text);
         fprintf(ofile, "#endif\n");
         fprintf(ofile, "  return true;\n");

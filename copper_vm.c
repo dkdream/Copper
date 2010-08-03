@@ -436,31 +436,6 @@ static bool input_CacheFree(PrsInput input) {
     return true;
 }
 
-struct prs_list {
-    void            *value;
-    struct prs_list *next;
-};
-
-static bool make_List(void* value,
-                      struct prs_list *next,
-                      struct prs_list** target)
-{
-    struct prs_list *result = malloc(sizeof(struct prs_list));
-
-    result->value = value;
-    result->next  = next;
-
-    *target = result;
-    return true;
-}
-
-struct prs_map {
-    unsigned        code;
-    void*           key;
-    void*           value;
-    struct prs_map *next;
-};
-
 static bool make_Map(unsigned code,
                      void* key,
                      void* value,
@@ -477,17 +452,6 @@ static bool make_Map(unsigned code,
     *target = result;
     return true;
 }
-
-typedef unsigned long (*Hashcode)(void*);
-typedef bool     (*Matchkey)(void*, void*);
-typedef bool     (*FreeValue)(void*);
-
-struct prs_hash {
-    Hashcode encode;
-    Matchkey compare;
-    unsigned size;
-    struct prs_map *table[];
-};
 
 static bool make_Hash(Hashcode encode,
                       Matchkey compare,

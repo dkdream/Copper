@@ -14,13 +14,6 @@
 #include <assert.h>
 #include <stdarg.h>
 
-typedef struct Header Header;
-
-struct Header {
-    char   *text;
-    Header *next;
-};
-
 extern FILE *input;
 extern int verboseFlag;
 

@@ -1,38 +1,41 @@
 # Copper Grammar for copper (vm)
-
 # Parser syntax
+
+%{
+#include "syntax.h"
+%}
 
 grammar = - ( heading )? ( define-rule )+ end-of-file
 
-heading = '%header' thunk { makeHeader(input); }
+heading = '%header' thunk { makeHeader(input,cursor); }
 
-define-rule = identifier EQUAL       { checkRule(input); }
-                         expression  { defineRule(input); }
+define-rule = identifier EQUAL       { checkRule(input,cursor); }
+                         expression  { defineRule(input,cursor); }
                          SEMICOLON?
 
-expression  = sequence ( BAR sequence  { makeAlternate(input); }  )*
+expression  = sequence ( BAR sequence  { makeAlternate(input,cursor); }  )*
 
-sequence    = prefix ( prefix { makeSequence(input); } )*
+sequence    = prefix ( prefix { makeSequence(input,cursor); } )*
 
-prefix      = AND suffix { makePeekFor(input); }
-            | NOT suffix { makePeekNot(input); }
+prefix      = AND suffix { makePeekFor(input,cursor); }
+            | NOT suffix { makePeekNot(input,cursor); }
             | suffix
 
-suffix     = primary (QUESTION { makeQuery(input); }
-                     | STAR    { makeStar(input)); }
-                     | PLUS    { makePlus(input); }
+suffix     = primary (QUESTION { makeQuery(input,cursor); }
+                     | STAR    { makeStar(input,cursor); }
+                     | PLUS    { makePlus(input,cursor); }
                      )?
 
-primary    = identifier !EQUAL     { makeName(input); }
+primary    = identifier !EQUAL     { makeName(input,cursor); }
            | OPEN expression CLOSE
-           | literal               { makeString(input);    }
-           | class                 { makeClass(input);     }
-           | DOT                   { makeDot(input);       }
-           | predicate             { makePredicate(input); }
-           | event                 { makeEvent(input);     }
-           | thunk                 { makeThunk(input);     }
-           | BEGIN                 { makeBegin(input);     }
-           | END                   { makeEnd(input);       }
+           | literal               { makeString(input,cursor);    }
+           | class                 { makeClass(input,cursor);     }
+           | DOT                   { makeDot(input,cursor);       }
+           | predicate             { makePredicate(input,cursor); }
+           | event                 { makeEvent(input,cursor);     }
+           | thunk                 { makeThunk(input,cursor);     }
+           | BEGIN                 { makeBegin(input,cursor);     }
+           | END                   { makeEnd(input,cursor);       }
 
 # Lexer syntax
 

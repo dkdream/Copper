@@ -291,7 +291,7 @@ static void generate_vm_parser()
         label = output_name;
     }
 
-    Rule_compile_vm(output, label);
+    Rule_compile_vm(output, label, headers);
 }
 
 

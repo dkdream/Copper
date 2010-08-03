@@ -21,8 +21,8 @@ OBJS      = tree.o compile.o compile_vm.o
 default :
 	-@$(MAKE) --no-print-directory clear all || true
 
-all : copper copper-vm new_copper.o
-new : copper-new copper-vm new_copper.o
+all : copper copper-vm copper.vm
+new : copper-new copper-vm copper.vm
 
 echo : ; echo $(TIME) $(COPPER)
 
@@ -86,10 +86,11 @@ copper.o $(OBJS) : header.var
 vm_copper.c  : copper.cu     $(COPPER.test) ; $(COPPER.test) -A -o $@ copper.cu
 new_copper.c : copper_vm.cu  $(COPPER.test) ; $(COPPER.test) -A -o $@ copper_vm.cu
 
-vm_copper.o  : vm_copper.c  ; $(CC) $(CFLAGS) -c -o $@ $<
+vm_copper.o  : vm_copper.c  ; $(CC) $(CFLAGS) -c -DTESTING_PARSER -o $@ $<
 new_copper.o : new_copper.c ; $(CC) $(CFLAGS) -c -o $@ $<
 
-copper-vm    : $(MAIN_VM) vm_copper.o copper_vm.o ; $(CC) $(CFLAGS) -o $@ $(MAIN_VM) vm_copper.o copper_vm.o
+copper-vm : $(MAIN_VM) vm_copper.o copper_vm.o  ; $(CC) $(CFLAGS) -o $@ $(MAIN_VM) vm_copper.o copper_vm.o
+copper.vm : $(MAIN_VM) new_copper.o copper_vm.o ; $(CC) $(CFLAGS) -o $@ $(MAIN_VM) new_copper.o copper_vm.o
 
 $(MAIN_VM) vm_copper.o copper_vm.o new_copper.o : copper_vm.h
 
@@ -134,8 +135,8 @@ do.stage.two  : do.stage.one  ; @$(MAKE) --no-print-directory STAGE=two  COPPER.
 # --
 
 clean : .FORCE
-	rm -f *~ *.o copper copper-new compile.inc copper-vm vm_copper.c new_copper.c
-	rm -f copper.c header.inc copper.log
+	rm -f *~ *.o copper copper-new copper-vm copper.vm
+	rm -f copper.c vm_copper.c new_copper.c header.inc copper.log  compile.inc
 	rm -f stage.*
 	$(MAKE) --directory=examples --no-print-directory $@
 

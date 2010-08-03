@@ -6,6 +6,7 @@
  **    <routine-list-end>
  **/
 #include "copper_vm.h"
+#include "syntax.h"
 
 #include <stdlib.h>
 #include <getopt.h>
