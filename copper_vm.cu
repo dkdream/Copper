@@ -9,13 +9,12 @@ grammar = - ( heading )? ( define-rule )+ end-of-file
 
 heading = '%header' thunk { makeHeader(input,cursor); }
 
-define-rule = identifier EQUAL       { checkRule(input,cursor); }
-                         expression  { defineRule(input,cursor); }
+define-rule = identifier EQUAL expression { defineRule(input,cursor); }
                          SEMICOLON?
 
-expression  = sequence ( BAR sequence  { makeChoice(input,cursor); }  )*
+expression  = sequence ( BAR expression { makeChoice(input,cursor); }  )?
 
-sequence    = prefix ( prefix { makeSequence(input,cursor); } )*
+sequence    = prefix ( sequence { makeSequence(input,cursor); } )?
 
 prefix      = AND suffix { makeCheck(input,cursor); }
             | NOT suffix { makeNot(input,cursor); }

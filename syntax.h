@@ -22,33 +22,37 @@ typedef struct syn_any      *SynAny;
 typedef struct syn_define   *SynDefine;
 typedef struct syn_char     *SynChar;
 typedef struct syn_text     *SynText;
+typedef struct syn_chunk    *SynChunk;
 typedef struct syn_operator *SynOperator;
-typedef struct syn_list     *SynList;
+typedef struct syn_tree     *SynTree;
 
 union syn_node {
     SynAny      any;
     SynDefine   define;
     SynChar     character;
     SynText     text;
+    SynChunk    chunk;
     SynOperator operator;
-    SynList     list;
+    SynTree     tree;
 } __attribute__ ((__transparent_union__));
+
+typedef union syn_node   SynNode;
 
 union syn_target {
     SynAny      *any;
     SynDefine   *define;
     SynChar     *character;
     SynText     *text;
+    SynChunk    *chunk;
     SynOperator *operator;
-    SynList     *list;
+    SynTree     *tree;
+    SynNode     *node;
 } __attribute__ ((__transparent_union__));
 
-typedef union syn_node   SynNode;
+
 typedef union syn_target SynTarget;
 
 typedef enum syn_type {
-    syn_void = 0,
-
     syn_action,    // - %action (to be removed)
     syn_apply,     // - @name
     syn_begin,     // - set state.begin
@@ -71,9 +75,49 @@ typedef enum syn_type {
     syn_star,      // - e *
     syn_string,    // - "..."
     syn_thunk,     // - {...}
-
-    syn_omega
+    //-------
+    syn_void
 } SynType;
+
+typedef enum syn_kind {
+    syn_unknown = 0,
+    syn_any,
+    syn_define,
+    syn_text,
+    syn_chunk,
+    syn_operator,
+    syn_tree
+} SynKind;
+
+static inline SynKind type2kind(SynType type) {
+    switch (type) {
+    case syn_action:    return syn_text;      // - %action (to be removed)
+    case syn_apply:     return syn_text;      // - @name
+    case syn_begin:     return syn_any;       // - set state.begin
+    case syn_call:      return syn_text;      // - name
+    case syn_char:      return syn_char;      // - 'chr
+    case syn_check:     return syn_operator;  // - e &
+    case syn_choice:    return syn_tree;      // - e1 e2 |
+    case syn_dot:       return syn_any;       // - .
+    case syn_end:       return syn_any;       // - set state.end
+    case syn_footer:    return syn_chunk;     // - %footer ...
+    case syn_header:    return syn_chunk;     // - %header {...}
+    case syn_include:   return syn_chunk;     // - %include "..." or  %include <...>
+    case syn_not:       return syn_operator;  // - e !
+    case syn_plus:      return syn_operator;  // - e +
+    case syn_predicate: return syn_text;      // - &predicate
+    case syn_question:  return syn_operator;  // - e ?
+    case syn_rule:      return syn_define;    // - identifier = ....
+    case syn_sequence:  return syn_tree;      // - e1 e2 ;
+    case syn_set:       return syn_text;      // - [...]
+    case syn_star:      return syn_operator;  // - e *
+    case syn_string:    return syn_text;      // - "..." or '...'
+    case syn_thunk:     return syn_chunk;     // - {...}
+        /* */
+    case syn_void: break;
+    }
+    return syn_unknown;
+}
 
 // use for
 // - .
@@ -82,44 +126,45 @@ typedef enum syn_type {
 // and as a generic node
 struct syn_any {
     SynType type;
-    SynNode next;
 };
 
 // use for
 // - identifier = ....
 struct syn_define {
-    SynType type;
-    SynNode next;
-    PrsData name;
-    SynAny first; // first choice
-    SynAny last;  // last choice
+    SynType   type;
+    SynDefine next;
+    PrsData   name;
+    SynNode   value;
 };
 
 // use for
 // - 'chr
-// - .
-// - set state.begin
-// - set state.end
 struct syn_char {
     SynType type;
-    SynNode next;
     char    value;
+};
+
+// use for
+// - %action (to be removed)
+// - @name
+// - [...]
+// - "..."
+// - '...'
+// - &predicate
+struct syn_text {
+    SynType type;
+    PrsData value;
 };
 
 // use for
 // - %header {...}
 // - %include "..." or  %include <...>
-// - %action (to be removed)
 // - {...}
-// - @name
-// - [...]
-// - "..."
-// - &predicate
 // - %footer ...
-struct syn_text {
-    SynType type;
-    SynNode next;
-    PrsData text;
+struct syn_chunk {
+    SynType  type;
+    SynChunk next;
+    PrsData  value;
 };
 
 // use for
@@ -130,18 +175,16 @@ struct syn_text {
 // - e ?
 struct syn_operator {
     SynType type;
-    SynNode next;
     SynNode value;
 };
 
 // use for
 // - e1 e2 /
 // - e1 e2 ;
-struct syn_list {
+struct syn_tree {
     SynType type;
-    SynNode next;
-    SynAny first; //first in list
-    SynAny last;  //last in list
+    SynNode before;
+    SynNode after;
 };
 
 /*------------------------------------------------------------*/
@@ -176,15 +219,14 @@ struct prs_file {
     struct prs_hash   *actions;
     struct prs_hash   *events;
     // parsing results;
-    SynText   headers;
-    SynText   includes;
     SynDefine rules;
-    SynText   thunks;
-    SynText   footer;
+    SynChunk  chunks;
 };
 
 extern bool make_PrsFile(const char* filename, PrsInput *input);
 extern bool file_Output(struct prs_file *input, const char* init_name, const char* outfile);
+
+extern bool defineRule(PrsInput input, PrsCursor at);
 
 extern bool makeEnd(PrsInput input, PrsCursor at);
 extern bool makeBegin(PrsInput input, PrsCursor at);
@@ -203,7 +245,6 @@ extern bool makeCheck(PrsInput input, PrsCursor at);
 extern bool makeSequence(PrsInput input, PrsCursor at);
 extern bool makeChoice(PrsInput input, PrsCursor at);
 extern bool defineRule(PrsInput input, PrsCursor at);
-extern bool checkRule(PrsInput input, PrsCursor at);
 extern bool makeHeader(PrsInput input, PrsCursor at);
 extern bool makeFooter(PrsInput input, PrsCursor at);
 

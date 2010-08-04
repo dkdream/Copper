@@ -17,39 +17,20 @@
 /* */
 
 static bool make_Any(SynType   type,
-                     SynNode   next,
                      SynTarget target)
 {
     if (!target.any) return false;
 
     unsigned fullsize = 0;
-    switch (type) {
-    case syn_void: return false;
 
-    case syn_action:    fullsize = sizeof(struct syn_text);     break; // - %action (to be removed)
-    case syn_apply:     fullsize = sizeof(struct syn_text);     break; // - @name
-    case syn_begin:     fullsize = sizeof(struct syn_any);      break; // - set state.begin
-    case syn_call:      fullsize = sizeof(struct syn_text);     break; // - name
-    case syn_char:      fullsize = sizeof(struct syn_char);     break; // - 'chr
-    case syn_check:     fullsize = sizeof(struct syn_operator); break; // - e &
-    case syn_choice:    fullsize = sizeof(struct syn_list);     break; // - e1 e2 |
-    case syn_dot:       fullsize = sizeof(struct syn_any);      break; // - .
-    case syn_end:       fullsize = sizeof(struct syn_any);      break; // - set state.end
-    case syn_footer:    fullsize = sizeof(struct syn_text);     break; // - %footer ...
-    case syn_header:    fullsize = sizeof(struct syn_text);     break; // - %header {...}
-    case syn_include:   fullsize = sizeof(struct syn_text);     break; // - %include "..." or  %include <...>
-    case syn_not:       fullsize = sizeof(struct syn_operator); break; // - e !
-    case syn_plus:      fullsize = sizeof(struct syn_operator); break; // - e +
-    case syn_predicate: fullsize = sizeof(struct syn_text);     break; // - &predicate
-    case syn_question:  fullsize = sizeof(struct syn_operator); break; // - e ?
-    case syn_rule:      fullsize = sizeof(struct syn_define);   break; // - identifier = ....
-    case syn_sequence:  fullsize = sizeof(struct syn_list);     break; // - e1 e2 ;
-    case syn_set:       fullsize = sizeof(struct syn_text);     break; // - [...]
-    case syn_star:      fullsize = sizeof(struct syn_operator); break; // - e *
-    case syn_string:    fullsize = sizeof(struct syn_text);     break; // - "..."
-    case syn_thunk:     fullsize = sizeof(struct syn_text);     break; // - {...}
-
-    case syn_omega: return false;
+    switch (type2kind(type)) {
+    case syn_unknown:  return false;
+    case syn_any:      fullsize = sizeof(struct syn_any);      break;
+    case syn_define:   fullsize = sizeof(struct syn_define);   break;
+    case syn_text:     fullsize = sizeof(struct syn_text);     break;
+    case syn_chunk:    fullsize = sizeof(struct syn_chunk);    break;
+    case syn_operator: fullsize = sizeof(struct syn_operator); break;
+    case syn_tree:     fullsize = sizeof(struct syn_tree);     break;
     }
 
     SynAny result = malloc(fullsize);
@@ -57,7 +38,6 @@ static bool make_Any(SynType   type,
     memset(result, 0, fullsize);
 
     result->type = type;
-    result->next = next;
 
     *(target.any) = result;
 
@@ -72,7 +52,7 @@ static bool pop(struct prs_file *file, SynTarget value) {
     return true;
 }
 
-extern bool checkRule(PrsInput input, PrsCursor at) {
+extern bool defineRule(PrsInput input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
 
     PrsData name;
@@ -81,36 +61,32 @@ extern bool checkRule(PrsInput input, PrsCursor at) {
 
     SynDefine rule = file->rules;
 
-    for ( ; rule ; rule = rule->next.define ) {
+    for ( ; rule ; rule = rule->next ) {
         if (rule->name.length != name.length) continue;
         if (!strncmp(rule->name.start, name.start, name.length)) continue;
-        return push(file, rule);
+        break;
     }
 
-    if (!make_Any(syn_rule, file->rules, &rule)) return false;
+    SynNode value;
 
-    file->rules = rule;
-    rule->name  = name;
+    if (pop(file, &value)) return false;
 
-    return push(file, rule);
-}
+    if (!rule) {
+        if (!make_Any(syn_rule, &rule)) return false;
+        rule->next  = file->rules;
+        file->rules = rule;
+        rule->name  = name;
+        rule->value = value;
+    }
 
-extern bool defineRule(PrsInput input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+    SynTree tree;
 
-    SynDefine rule = 0;
-    SynAny   value = 0;
+    if (!make_Any(syn_choice, &tree)) return false;
 
-    if (pop(file, &value))      return false;
-    if (pop(file, &rule))       return false;
-    if (syn_rule != rule->type) return false;
+    tree->before = rule->value;
+    tree->after  = value;
 
-    value->next.any = rule->last;
-    rule->last = value;
-
-    if (rule->first) return true;
-
-    rule->first = value;
+    rule->value.tree = tree;
 
     return true;
 }
@@ -120,7 +96,7 @@ extern bool makeEnd(PrsInput input, PrsCursor at) {
 
     SynAny value = 0;
 
-    if (!make_Any(syn_end, 0, &value)) return false;
+    if (!make_Any(syn_end, &value)) return false;
 
     if (!push(file, value)) return false;
 
@@ -132,25 +108,46 @@ extern bool makeBegin(PrsInput input, PrsCursor at) {
 
     SynAny value = 0;
 
-    if (!make_Any(syn_begin, 0, &value)) return false;
+    if (!make_Any(syn_begin, &value)) return false;
 
     if (!push(file, value)) return false;
 
     return true;
 }
 
-static bool makeText(struct prs_file *file, enum syn_type type) {
-    PrsData text;
+static bool makeText(struct prs_file *file, SynType type) {
+    PrsData value;
 
-    if (!input_Text((PrsInput) file, &text)) return false;
+    if (syn_text != type2kind(type)) return false;
 
-    SynText value = 0;
+    if (!input_Text((PrsInput) file, &value)) return false;
 
-    if (!make_Any(type, 0, &value)) return false;
+    SynText text = 0;
 
-    value->text = text;
+    if (!make_Any(type, &text)) return false;
 
-    if (!push(file, value)) return false;
+    text->value = value;
+
+    return push(file, text);
+}
+
+static bool makeChunk(struct prs_file *file, SynType type, SynChunk *target) {
+    PrsData value;
+
+    if (syn_chunk != type2kind(type)) return false;
+
+    if (!input_Text((PrsInput) file, &value)) return false;
+
+    SynChunk chunk = 0;
+
+    if (!make_Any(type, &chunk)) return false;
+
+    chunk->next  = file->chunks;
+    chunk->value = value;
+
+    file->chunks = chunk;
+
+    if (target) *target = chunk;
 
     return true;
 }
@@ -158,7 +155,12 @@ static bool makeText(struct prs_file *file, enum syn_type type) {
 // nameless event
 extern bool makeThunk(PrsInput input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
-    return makeText(file, syn_thunk);
+
+    SynChunk thunk = 0;
+
+    if (!makeChunk(file, syn_thunk, &thunk)) return false;
+
+    return push(file, thunk);
 }
 
 // namefull event
@@ -177,7 +179,7 @@ extern bool makeDot(PrsInput input, PrsCursor at) {
 
     SynAny value = 0;
 
-    if (!make_Any(syn_dot, 0, &value)) return false;
+    if (!make_Any(syn_dot, &value)) return false;
 
     if (!push(file, value)) return false;
 
@@ -199,15 +201,17 @@ extern bool makeCall(PrsInput input, PrsCursor at) {
     return makeText(file, syn_call);
 }
 
-static bool makeOperator(struct prs_file *file, enum syn_type type) {
+static bool makeOperator(struct prs_file *file, SynType type) {
     SynOperator operator = 0;
-    SynAny      value    = 0;
+    SynNode     value;
+
+    if (syn_operator != type2kind(type)) return false;
 
     if (pop(file, &value)) return false;
 
-    if (!make_Any(type, 0, &operator)) return false;
+    if (!make_Any(type, &operator)) return false;
 
-    operator->value.any = value;
+    operator->value = value;
 
     if (!push(file, operator)) return false;
 
@@ -239,113 +243,47 @@ extern bool makeCheck(PrsInput input, PrsCursor at) {
     return makeOperator(file, syn_check);
 }
 
-extern bool makeSequence(PrsInput input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+static bool makeTree(struct prs_file *file, SynType type) {
+    SynNode before;
+    SynNode after;
 
-    SynAny before = 0;
-    SynAny next   = 0;
+    if (syn_tree != type2kind(type)) return false;
 
-    if (pop(file, &next))   return false;
+    if (pop(file, &after))  return false;
     if (pop(file, &before)) return false;
 
-    SynList sequence = 0;
+    SynTree tree = 0;
 
-    if (syn_sequence != before->type) {
-        if (!make_Any(syn_sequence, 0, &sequence)) return false;
+    if (!make_Any(type, &tree)) return false;
 
-        sequence->first = next;
-        sequence->last  = next;
-    } else {
-        sequence = (SynList) before;
+    tree->before = before;
+    tree->after  = after;
 
-        sequence->last->next.any = next;
-        sequence->last = next;
-    }
+    return push(file, tree);
+}
 
-    if (!push(file, sequence)) return false;
-
-    return true;
+extern bool makeSequence(PrsInput input, PrsCursor at) {
+    struct prs_file *file = (struct prs_file *)input;
+    return makeTree(file, syn_sequence);
 }
 
 extern bool makeChoice(PrsInput input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
-
-    SynAny before = 0;
-    SynAny next   = 0;
-
-    if (pop(file, &next))   return false;
-    if (pop(file, &before)) return false;
-
-    SynList choice = 0;
-
-    if (syn_choice != before->type) {
-        if (!make_Any(syn_choice, 0, &choice)) return false;
-
-        choice->first = next;
-        choice->last  = next;
-    } else {
-        choice = (SynList) before;
-
-        choice->last->next.any = next;
-        choice->last = next;
-    }
-
-    if (!push(file, choice)) return false;
-
-    return true;
+    return makeTree(file, syn_choice);
 }
 
 extern bool makeHeader(PrsInput input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
-
-    PrsData text;
-
-    if (!input_Text((PrsInput) file, &text)) return false;
-
-    SynText value = 0;
-
-    if (!make_Any(syn_header, file->headers, &value)) return false;
-
-    value->text = text;
-
-    file->headers = value;
-
-    return true;
+    return makeChunk(file, syn_header, 0);
 }
 
 extern bool makeInclude(PrsInput input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
-
-    PrsData text;
-
-    if (!input_Text((PrsInput) file, &text)) return false;
-
-    SynText value = 0;
-
-    if (!make_Any(syn_include, file->includes, &value)) return false;
-
-    value->text = text;
-
-    file->includes = value;
-
-    return true;
+    return makeChunk(file, syn_include, 0);
 }
 
 extern bool makeFooter(PrsInput input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
-
-    PrsData text;
-
-    if (!input_Text((PrsInput) file, &text)) return false;
-
-    SynText value = 0;
-
-    if (!make_Any(syn_footer, file->footer, &value)) return false;
-
-    value->text = text;
-
-    file->footer = value;
-
-    return true;
+    return makeChunk(file, syn_footer, 0);
 }
 
