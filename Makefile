@@ -15,14 +15,12 @@ CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
 OFLAGS = -Wall
 
 MAIN_ORIG = copper_main.o
-MAIN_VM   = main_vm.o
 OBJS      = tree.o compile.o compile_vm.o
 
-default :
-	-@$(MAKE) --no-print-directory clear all || true
+default : copper.old.vm copper.new.vm
 
-all : copper copper-vm copper.vm
-new : copper-new copper-vm copper.vm
+all : copper     copper.old.vm copper.new.vm
+new : copper-new copper.oldvm copper.new.vm
 
 echo : ; echo $(TIME) $(COPPER)
 
@@ -83,16 +81,24 @@ copper.o $(OBJS) : header.var
 
 # --
 
-vm_copper.c  : copper.cu     $(COPPER.test) ; $(COPPER.test) -A -o $@ copper.cu
-new_copper.c : copper_vm.cu  $(COPPER.test) ; $(COPPER.test) -A -o $@ copper_vm.cu
+vm_copper.old.c : copper.cu     $(COPPER.test) ; $(COPPER.test) -A -o $@ copper.cu
+vm_copper.new.c : copper_vm.cu  $(COPPER.test) ; $(COPPER.test) -A -o $@ copper_vm.cu
 
-vm_copper.o  : vm_copper.c  ; $(CC) $(CFLAGS) -c -DTESTING_PARSER -o $@ $<
-new_copper.o : new_copper.c ; $(CC) $(CFLAGS) -c -o $@ $<
+vm_copper.old.o : vm_copper.old.c ; $(CC) $(CFLAGS) -c -DTESTING_PARSER -o $@ $<
+vm_copper.new.o : vm_copper.new.c ; $(CC) $(CFLAGS) -c -o $@ $<
 
-copper-vm : $(MAIN_VM) vm_copper.o copper_vm.o  ; $(CC) $(CFLAGS) -o $@ $(MAIN_VM) vm_copper.o copper_vm.o
-copper.vm : $(MAIN_VM) new_copper.o copper_vm.o ; $(CC) $(CFLAGS) -o $@ $(MAIN_VM) new_copper.o copper_vm.o
+main_vm.old.o  : main_vm.c ; $(CC) $(CFLAGS) -DTESTING_PARSER -c -o $@ $<
+main_vm.new.o  : main_vm.c ; $(CC) $(CFLAGS) -c -o $@ $<
 
-$(MAIN_VM) vm_copper.o copper_vm.o new_copper.o : copper_vm.h
+vm_compiler.o : vm_compiler.c ; $(CC) $(CFLAGS) -c -o $@ $<
+
+copper.old.vm : main_vm.old.o vm_copper.old.o copper_vm.o
+	 $(CC) $(CFLAGS) -o $@ main_vm.old.o vm_copper.old.o copper_vm.o
+
+copper.new.vm : main_vm.new.o vm_copper.new.o copper_vm.o vm_compiler.o
+	$(CC) $(CFLAGS) -o $@ main_vm.new.o vm_copper.new.o copper_vm.o vm_compiler.o
+
+main_vm.new.o main_vm.old.o vm_copper.new.o vm_copper.old.o copper_vm.o vm_compiler.o : copper_vm.h syntax.h
 
 # --
 TEMPS =
@@ -135,13 +141,14 @@ do.stage.two  : do.stage.one  ; @$(MAKE) --no-print-directory STAGE=two  COPPER.
 # --
 
 clean : .FORCE
-	rm -f *~ *.o copper copper-new copper-vm copper.vm
-	rm -f copper.c vm_copper.c new_copper.c header.inc copper.log  compile.inc
+	rm -f *~ *.o copper copper-new copper.old.vm copper.new.vm
+	rm -f copper.c vm_copper.old.c vm_copper.new.c header.inc copper.log  compile.inc
 	rm -f stage.*
 	$(MAKE) --directory=examples --no-print-directory $@
 
 clear : .FORCE
-	rm -f *.o copper-new vm_copper.c new_copper.c
+	rm -f *.o copper-new copper.old.vm copper.new.vm
+	rm -f copper.c vm_copper.old.c vm_copper.new.c
 	rm -f stage.*
 	$(MAKE) --directory=examples --no-print-directory $@
 

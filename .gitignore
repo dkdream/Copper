@@ -22,8 +22,9 @@ stage.two
 stage.two.c
 copper.bootstrap.c.Last
 HOLDING
-vm_copper.c
-new_copper.c
-copper-vm
+vm_copper.old.c
+vm_copper.new.c
+copper.old.vm
+copper.new.vm
 
 

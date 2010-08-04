@@ -1,9 +1,26 @@
 /*-*- mode: c;-*-*/
 #if !defined(_syntax_h_)
 #define _syntax_h_
+/***************************
+ **
+ ** Project: *current project*
+ **
+ ** Datatype List:
+ **    <routine-list-end>
+ **
+ **
+ **
+ ***/
+#include "copper_vm.h"
 
-typedef union syn_node   *SynNode;
-typedef union syn_target *SynTarget;
+/* */
+#include <stdio.h>
+#include <stdlib.h>
+
+/* */
+
+typedef union syn_node  *SynNode;
+typedef union syn_node **SynTarget;
 
 typedef struct syn_any      *SynAny;
 typedef struct syn_define   *SynDefine;
@@ -14,28 +31,31 @@ typedef struct syn_list     *SynList;
 
 typedef enum syn_type {
     syn_void = 0,
-    syn_rule,      // - identifier = ....
-    syn_char,      // - 'chr
-    syn_dot,       // - .
+
+    syn_action,    // - %action (to be removed)
+    syn_apply,     // - @name
     syn_begin,     // - set state.begin
+    syn_call,      // - name
+    syn_char,      // - 'chr
+    syn_check,     // - e &
+    syn_choice,    // - e1 e2 |
+    syn_dot,       // - .
     syn_end,       // - set state.end
+    syn_footer,    // - %footer ...
     syn_header,    // - %header  {...}
     syn_include,   // - %include "..." or  %include <...>
-    syn_action,    // - %action (to be removed)
-    syn_event,     // - {...}
-    syn_apply,     // - @name
-    syn_set,       // - [...]
-    syn_string,    // - "..."
-    syn_predicate, // - &predicate
-    syn_footer,    // - %footer ...
     syn_not,       // - e !
-    syn_check,     // - e &
     syn_plus,      // - e +
-    syn_star,      // - e *
+    syn_predicate, // - &predicate
     syn_question,  // - e ?
-    syn_choice,    // - e1 e2 |
+    syn_rule,      // - identifier = ....
     syn_sequence,  // - e1 e2 ;
-    syn_omega,
+    syn_set,       // - [...]
+    syn_star,      // - e *
+    syn_string,    // - "..."
+    syn_thunk,     // - {...}
+
+    syn_omega
 } SynType;
 
 struct syn_any {
@@ -113,13 +133,37 @@ union syn_node {
     struct syn_list     list;
 };
 
-union syn_target {
-    SynAny      any;
-    SynDefine   define;
-    SynChar     character;
-    SynText     text;
-    SynOperator operator;
-    SynList     list;
+/*------------------------------------------------------------*/
+
+struct prs_buffer {
+    FILE     *file;
+    unsigned  cursor;
+    ssize_t   read;
+    size_t    allocated;
+    char     *line;
+};
+
+typedef unsigned long (*Hashcode)(void*);
+typedef bool     (*Matchkey)(void*, void*);
+typedef bool     (*FreeValue)(void*);
+
+struct prs_hash {
+    Hashcode encode;
+    Matchkey compare;
+    unsigned size;
+    struct prs_map *table[];
+};
+
+struct prs_file {
+    struct prs_input   base;
+    const char        *filename;
+    struct prs_buffer  buffer;
+    struct prs_cursor  cursor;
+    struct prs_cursor  reach;
+    struct prs_hash   *nodes;
+    struct prs_hash   *predicates;
+    struct prs_hash   *actions;
+    struct prs_hash   *events;
 };
 
 extern bool make_PrsFile(const char* filename, PrsInput *input);
@@ -127,21 +171,22 @@ extern bool make_PrsFile(const char* filename, PrsInput *input);
 extern bool makeEnd(PrsInput input, PrsCursor at);
 extern bool makeBegin(PrsInput input, PrsCursor at);
 extern bool makeThunk(PrsInput input, PrsCursor at);
-extern bool makeEvent(PrsInput input, PrsCursor at);
+extern bool makeApply(PrsInput input, PrsCursor at);
 extern bool makePredicate(PrsInput input, PrsCursor at);
 extern bool makeDot(PrsInput input, PrsCursor at);
-extern bool makeClass(PrsInput input, PrsCursor at);
+extern bool makeSet(PrsInput input, PrsCursor at);
 extern bool makeString(PrsInput input, PrsCursor at);
-extern bool makeName(PrsInput input, PrsCursor at);
+extern bool makeCall(PrsInput input, PrsCursor at);
 extern bool makePlus(PrsInput input, PrsCursor at);
 extern bool makeStar(PrsInput input, PrsCursor at);
-extern bool makeQuery(PrsInput input, PrsCursor at);
-extern bool makePeekNot(PrsInput input, PrsCursor at);
-extern bool makePeekFor(PrsInput input, PrsCursor at);
+extern bool makeQuestion(PrsInput input, PrsCursor at);
+extern bool makeNot(PrsInput input, PrsCursor at);
+extern bool makeCheck(PrsInput input, PrsCursor at);
 extern bool makeSequence(PrsInput input, PrsCursor at);
-extern bool makeAlternate(PrsInput input, PrsCursor at);
+extern bool makeChoice(PrsInput input, PrsCursor at);
 extern bool defineRule(PrsInput input, PrsCursor at);
 extern bool checkRule(PrsInput input, PrsCursor at);
 extern bool makeHeader(PrsInput input, PrsCursor at);
+extern bool makeFooter(PrsInput input, PrsCursor at);
 
 #endif

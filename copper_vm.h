@@ -87,17 +87,6 @@ struct prs_map {
     struct prs_map *next;
 };
 
-typedef unsigned long (*Hashcode)(void*);
-typedef bool     (*Matchkey)(void*, void*);
-typedef bool     (*FreeValue)(void*);
-
-struct prs_hash {
-    Hashcode encode;
-    Matchkey compare;
-    unsigned size;
-    struct prs_map *table[];
-};
-
 struct prs_pair {
     PrsNode left;
     PrsNode right;

@@ -15,7 +15,8 @@
 
 static char* program_name = 0;
 
-extern bool init__vm_copper_c(PrsInput input);
+extern bool init__vm_copper_old_c(PrsInput input);
+extern bool init__vm_copper_new_c(PrsInput input);
 
 int main(int argc, char **argv)
 {
@@ -67,7 +68,11 @@ int main(int argc, char **argv)
 
     make_PrsFile(filename, &input);
 
-    init__vm_copper_c(input);
+#ifndef TESTING_PARSER
+    init__vm_copper_new_c(input);
+#else
+    init__vm_copper_old_c(input);
+#endif
 
     if (input_Parse("grammar", input)) {
         printf("ok\n");

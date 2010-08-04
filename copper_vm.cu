@@ -13,26 +13,26 @@ define-rule = identifier EQUAL       { checkRule(input,cursor); }
                          expression  { defineRule(input,cursor); }
                          SEMICOLON?
 
-expression  = sequence ( BAR sequence  { makeAlternate(input,cursor); }  )*
+expression  = sequence ( BAR sequence  { makeChoice(input,cursor); }  )*
 
 sequence    = prefix ( prefix { makeSequence(input,cursor); } )*
 
-prefix      = AND suffix { makePeekFor(input,cursor); }
-            | NOT suffix { makePeekNot(input,cursor); }
+prefix      = AND suffix { makeCheck(input,cursor); }
+            | NOT suffix { makeNot(input,cursor); }
             | suffix
 
-suffix     = primary (QUESTION { makeQuery(input,cursor); }
+suffix     = primary (QUESTION { makeQuestion(input,cursor); }
                      | STAR    { makeStar(input,cursor); }
                      | PLUS    { makePlus(input,cursor); }
                      )?
 
-primary    = identifier !EQUAL     { makeName(input,cursor); }
+primary    = identifier !EQUAL     { makeCall(input,cursor); }
            | OPEN expression CLOSE
            | literal               { makeString(input,cursor);    }
-           | class                 { makeClass(input,cursor);     }
+           | class                 { makeSet(input,cursor);     }
            | DOT                   { makeDot(input,cursor);       }
            | predicate             { makePredicate(input,cursor); }
-           | event                 { makeEvent(input,cursor);     }
+           | event                 { makeApply(input,cursor);     }
            | thunk                 { makeThunk(input,cursor);     }
            | BEGIN                 { makeBegin(input,cursor);     }
            | END                   { makeEnd(input,cursor);       }

@@ -8,8 +8,7 @@
  **
  **
  ***/
-
-#include "copper_vm.h"
+#include "syntax.h"
 
 /* */
 #include <stdlib.h>
@@ -250,6 +249,7 @@ static bool queue_Clear(PrsQueue queue) {
     return queue_FreeList(queue, node);
 }
 
+#if 0
 static bool queue_Free(PrsQueue *target) {
     if (!target) return true;
 
@@ -273,6 +273,7 @@ static bool queue_Free(PrsQueue *target) {
 
     return true;
 }
+#endif
 
 static bool make_Cache(unsigned size, PrsCache *target) {
     unsigned fullsize = (sizeof(struct prs_cache) + (size * sizeof(PrsPoint)));
@@ -410,6 +411,7 @@ static bool input_CacheClear(PrsInput input) {
     return true;
 }
 
+#if 0
 static bool input_CacheFree(PrsInput input) {
     if (!input) return true;
 
@@ -435,6 +437,7 @@ static bool input_CacheFree(PrsInput input) {
 
     return true;
 }
+#endif
 
 static bool make_Map(unsigned code,
                      void* key,
@@ -493,6 +496,7 @@ static bool hash_Find(struct prs_hash *hash,
     return false;
 }
 
+#if 0
 static bool hash_Add(struct prs_hash *hash,
                      void* key,
                      void* value)
@@ -519,6 +523,7 @@ static bool hash_Add(struct prs_hash *hash,
 
     return true;
 }
+#endif
 
 static bool hash_Replace(struct prs_hash *hash,
                          void* key,
@@ -553,6 +558,7 @@ static bool hash_Replace(struct prs_hash *hash,
     return true;
 }
 
+#if 0
 static bool hash_Remove(struct prs_hash *hash,
                          void* key,
                          FreeValue release)
@@ -574,14 +580,7 @@ static bool hash_Remove(struct prs_hash *hash,
 
     return true;
 }
-
-struct prs_buffer {
-    FILE     *file;
-    unsigned  cursor;
-    ssize_t   read;
-    size_t    allocated;
-    char     *line;
-};
+#endif
 
 static unsigned buffer_GetLine(struct prs_buffer *input, struct prs_text *data)
 {
@@ -608,18 +607,6 @@ static unsigned buffer_GetLine(struct prs_buffer *input, struct prs_text *data)
 
     return count;
 }
-
-struct prs_file {
-    struct prs_input   base;
-    const char        *filename;
-    struct prs_buffer  buffer;
-    struct prs_cursor  cursor;
-    struct prs_cursor  reach;
-    struct prs_hash   *nodes;
-    struct prs_hash   *predicates;
-    struct prs_hash   *actions;
-    struct prs_hash   *events;
-};
 
 static bool file_CurrentChar(PrsInput input, PrsChar* target) {
     struct prs_file *file = (struct prs_file *)input;
@@ -693,10 +680,12 @@ static bool noop_release(void* value) {
     return true;
 }
 
+#if 0
 static bool malloc_release(void* value) {
     free(value);
     return true;
 }
+#endif
 
 static bool file_AddName(PrsInput input, PrsName name, PrsNode value) {
     struct prs_file *file = (struct prs_file *)input;
