@@ -18,16 +18,33 @@
 #include <stdlib.h>
 
 /* */
-
-typedef union syn_node  *SynNode;
-typedef union syn_node **SynTarget;
-
 typedef struct syn_any      *SynAny;
 typedef struct syn_define   *SynDefine;
 typedef struct syn_char     *SynChar;
 typedef struct syn_text     *SynText;
 typedef struct syn_operator *SynOperator;
 typedef struct syn_list     *SynList;
+
+union syn_node {
+    SynAny      any;
+    SynDefine   define;
+    SynChar     character;
+    SynText     text;
+    SynOperator operator;
+    SynList     list;
+} __attribute__ ((__transparent_union__));
+
+union syn_target {
+    SynAny      *any;
+    SynDefine   *define;
+    SynChar     *character;
+    SynText     *text;
+    SynOperator *operator;
+    SynList     *list;
+} __attribute__ ((__transparent_union__));
+
+typedef union syn_node   SynNode;
+typedef union syn_target SynTarget;
 
 typedef enum syn_type {
     syn_void = 0,
@@ -58,6 +75,11 @@ typedef enum syn_type {
     syn_omega
 } SynType;
 
+// use for
+// - .
+// - set state.begin
+// - set state.end
+// and as a generic node
 struct syn_any {
     SynType type;
     SynNode next;
@@ -68,9 +90,9 @@ struct syn_any {
 struct syn_define {
     SynType type;
     SynNode next;
-    const char* name;
-    SynNode first; //first in list
-    SynNode last;  //last in list
+    PrsData name;
+    SynAny first; // first choice
+    SynAny last;  // last choice
 };
 
 // use for
@@ -95,10 +117,9 @@ struct syn_char {
 // - &predicate
 // - %footer ...
 struct syn_text {
-    SynType     type;
-    SynNode     next;
-    unsigned    length;
-    const char* value;
+    SynType type;
+    SynNode next;
+    PrsData text;
 };
 
 // use for
@@ -119,18 +140,8 @@ struct syn_operator {
 struct syn_list {
     SynType type;
     SynNode next;
-    SynNode first; //first in list
-    SynNode last;  //last in list
-};
-
-union syn_node {
-    SynType type;
-    struct syn_any      any;
-    struct syn_define   define;
-    struct syn_char     character;
-    struct syn_text     text;
-    struct syn_operator operator;
-    struct syn_list     list;
+    SynAny first; //first in list
+    SynAny last;  //last in list
 };
 
 /*------------------------------------------------------------*/
@@ -164,9 +175,16 @@ struct prs_file {
     struct prs_hash   *predicates;
     struct prs_hash   *actions;
     struct prs_hash   *events;
+    // parsing results;
+    SynText   headers;
+    SynText   includes;
+    SynDefine rules;
+    SynText   thunks;
+    SynText   footer;
 };
 
 extern bool make_PrsFile(const char* filename, PrsInput *input);
+extern bool file_Output(struct prs_file *input, const char* init_name, const char* outfile);
 
 extern bool makeEnd(PrsInput input, PrsCursor at);
 extern bool makeBegin(PrsInput input, PrsCursor at);
