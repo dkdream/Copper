@@ -15,8 +15,7 @@
 
 static char* program_name = 0;
 
-extern bool init__vm_copper_old_c(PrsInput input);
-extern bool init__vm_copper_new_c(PrsInput input);
+extern bool init__copper_c(PrsInput input);
 
 int main(int argc, char **argv)
 {
@@ -59,20 +58,19 @@ int main(int argc, char **argv)
     argv += optind;
 
     if (!filename) {
-        filename = "./copper.cu";
+        filename = "./testing.cu";
     }
 
     printf("reading %s\n", filename);
 
     PrsInput input = 0;
 
-    make_PrsFile(filename, &input);
+    if (!make_PrsFile(filename, &input)) {
+        printf("unable to open file %s\n", filename);
+        return 1;
+    }
 
-#ifndef TESTING_PARSER
-    init__vm_copper_new_c(input);
-#else
-    init__vm_copper_old_c(input);
-#endif
+    init__copper_c(input);
 
     if (input_Parse("grammar", input)) {
         printf("ok\n");

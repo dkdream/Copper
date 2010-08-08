@@ -17,10 +17,10 @@ OFLAGS = -Wall
 MAIN_ORIG = copper_main.o
 OBJS      = tree.o compile.o compile_vm.o
 
-default : copper.old.vm copper.new.vm
+default : copper
 
-all : copper     copper.old.vm copper.new.vm
-new : copper-new copper.oldvm copper.new.vm
+all : copper
+new : copper-new
 
 echo : ; echo $(TIME) $(COPPER)
 
@@ -81,26 +81,8 @@ copper.o $(OBJS) : header.var
 
 # --
 
-vm_copper.old.c : copper.cu     $(COPPER.test) ; $(COPPER.test) -A -o $@ copper.cu
-vm_copper.new.c : copper_vm.cu  $(COPPER.test) ; $(COPPER.test) -A -o $@ copper_vm.cu
-
-vm_copper.old.o : vm_copper.old.c ; $(CC) $(CFLAGS) -c -DTESTING_PARSER -o $@ $<
-vm_copper.new.o : vm_copper.new.c ; $(CC) $(CFLAGS) -c -o $@ $<
-
-main_vm.old.o  : main_vm.c ; $(CC) $(CFLAGS) -DTESTING_PARSER -c -o $@ $<
-main_vm.new.o  : main_vm.c ; $(CC) $(CFLAGS) -c -o $@ $<
-
-vm_compiler.o : vm_compiler.c ; $(CC) $(CFLAGS) -c -o $@ $<
-
-copper.old.vm : main_vm.old.o vm_copper.old.o copper_vm.o
-	 $(CC) $(CFLAGS) -o $@ main_vm.old.o vm_copper.old.o copper_vm.o
-
-copper.new.vm : main_vm.new.o vm_copper.new.o copper_vm.o vm_compiler.o
-	$(CC) $(CFLAGS) -o $@ main_vm.new.o vm_copper.new.o copper_vm.o vm_compiler.o
-
-main_vm.new.o main_vm.old.o vm_copper.new.o vm_copper.old.o copper_vm.o vm_compiler.o : copper_vm.h syntax.h
-
 # --
+
 TEMPS =
 TEMPS += stage.$(STAGE).heading
 TEMPS += stage.$(STAGE).preamble

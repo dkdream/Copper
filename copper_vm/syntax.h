@@ -36,7 +36,7 @@ union syn_node {
     SynTree     tree;
 } __attribute__ ((__transparent_union__));
 
-typedef union syn_node   SynNode;
+typedef union syn_node SynNode;
 
 union syn_target {
     SynAny      *any;
@@ -208,8 +208,21 @@ struct prs_hash {
     struct prs_map *table[];
 };
 
+// use for the node stack
+struct prs_cell {
+    SynNode value;
+    struct prs_cell *next;
+};
+
+struct prs_stack {
+    struct prs_cell *top;
+    struct prs_cell *free_list;
+};
+
 struct prs_file {
     struct prs_input   base;
+
+    // parsing context
     const char        *filename;
     struct prs_buffer  buffer;
     struct prs_cursor  cursor;
@@ -218,7 +231,11 @@ struct prs_file {
     struct prs_hash   *predicates;
     struct prs_hash   *actions;
     struct prs_hash   *events;
-    // parsing results;
+
+    // parsing state
+    struct prs_stack stack;
+
+    // parsing results
     SynDefine rules;
     SynChunk  chunks;
 };
@@ -246,6 +263,7 @@ extern bool makeSequence(PrsInput input, PrsCursor at);
 extern bool makeChoice(PrsInput input, PrsCursor at);
 extern bool defineRule(PrsInput input, PrsCursor at);
 extern bool makeHeader(PrsInput input, PrsCursor at);
+extern bool makeInclude(PrsInput input, PrsCursor at);
 extern bool makeFooter(PrsInput input, PrsCursor at);
 
 #endif

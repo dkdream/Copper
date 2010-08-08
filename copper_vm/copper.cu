@@ -7,7 +7,7 @@
 
 grammar = - ( heading )? ( define-rule )+ end-of-file
 
-heading = '%header' thunk { makeHeader(input,cursor); }
+heading = '%header' - thunk { makeHeader(input,cursor); }
 
 define-rule = identifier EQUAL expression { defineRule(input,cursor); }
                          SEMICOLON?

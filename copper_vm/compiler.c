@@ -45,10 +45,44 @@ static bool make_Any(SynType   type,
 }
 
 static bool push(struct prs_file *file, SynNode value) {
+    if (!file)      return false;
+    if (!value.any) return false;
+
+    unsigned       fullsize = sizeof(struct prs_cell);
+    struct prs_stack *stack = &file->stack;
+    struct prs_cell  *top  = stack->free_list;
+
+    if (top) {
+        stack->free_list = top->next;
+    } else {
+        top = malloc(fullsize);
+    }
+
+    memset(top, 0, fullsize);
+
+    top->value = value;
+    top->next  = stack->top;
+
+    stack->top = top;
+
     return true;
 }
 
-static bool pop(struct prs_file *file, SynTarget value) {
+static bool pop(struct prs_file *file, SynTarget target) {
+    if (!file)       return false;
+    if (!target.any) return false;
+
+    struct prs_stack *stack = &file->stack;
+    struct prs_cell  *top   = stack->top;
+
+    if (!top) return false;
+
+    stack->top = top->next;
+    top->next  = stack->free_list;
+    stack->free_list = top;
+
+    *(target.node) = top->value;
+
     return true;
 }
 

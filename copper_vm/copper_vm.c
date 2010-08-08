@@ -1007,7 +1007,7 @@ static bool copper_vm(PrsNode start, PrsInput input) {
 
         printf("running %s (%u,%u) %s\n",
                (char*) start->arg.name,
-               at.line_number,
+               at.line_number + 1,
                at.char_offset,
                (result ? "match" : "no match"));
 
@@ -1028,6 +1028,11 @@ static bool copper_vm(PrsNode start, PrsInput input) {
         unsigned  length = string->length;
         PrsChar   chr  = 0;
         unsigned  inx  = 0;
+
+        printf("running match %s (%u,%u)\n",
+               string->text,
+               at.line_number + 1,
+               at.char_offset);
 
         for ( ; inx < length ; ++inx) {
             if (!current(&chr)) {
