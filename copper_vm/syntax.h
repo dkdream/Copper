@@ -280,7 +280,7 @@ struct prs_file {
 };
 
 extern bool make_PrsFile(const char* filename, PrsInput *input);
-extern bool file_WriteTree(PrsInput *input, FILE* output, const char* name);
+extern bool file_WriteTree(PrsInput input, FILE* output, const char* name);
 
 extern bool writeTree(PrsInput input, PrsCursor at);
 
@@ -326,7 +326,13 @@ static inline void cu_noop() { return; }
 #if 0
 #define CU_ERROR(args...) cu_error(__FILE__,  __LINE__, args)
 #else
-#define CU_ERROR(level, args...) cu_noop()
+#define CU_ERROR(args...) cu_noop()
+#endif
+
+#if 0
+#define CU_ERROR_AT(args...) cu_error(args)
+#else
+#define CU_ERROR_AT(args...) cu_noop()
 #endif
 
 #endif

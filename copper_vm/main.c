@@ -60,26 +60,26 @@ int main(int argc, char **argv)
         filename = "./testing.cu";
     }
 
-    printf("reading %s\n", filename);
+    CU_DEBUG(1, "reading %s\n", filename);
 
     PrsInput input = 0;
 
     if (!make_PrsFile(filename, &input)) {
-        printf("unable to open file %s\n", filename);
+        CU_ERROR("unable to open file %s\n", filename);
         return 1;
     }
 
     init__copper_c(input);
 
     if (input_Parse("grammar", input)) {
-        printf("parsed\n");
+        CU_DEBUG(1, "parsed\n");
         if (input_RunQueue(input)) {
-            printf("compiled\n");
+            CU_DEBUG(1, "compiled\n");
         } else {
-            printf("compile error\n");
+            CU_ERROR("compile error\n");
         }
     } else {
-        printf("syntax error\n");
+        CU_ERROR("syntax error\n");
     }
 
     return 0;

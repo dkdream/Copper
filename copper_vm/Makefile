@@ -19,9 +19,9 @@ OFLAGS = -Wall
 MAIN_ORIG = main.o
 OBJS      = copper.o syntax.o compiler.o
 
-default : copper.vm
+default : copper.vm test.o
 
-all : copper.vm
+all : copper.vm test.o
 
 install : copper
 	[ -d $(BINDIR) ] || mkdir -p $(BINDIR)
@@ -44,8 +44,13 @@ copper.vm : $(MAIN_ORIG) $(OBJS)
 
 $(MAIN_ORIG) $(OBJS) : copper.h syntax.h
 
+# -- -------------------------------------------------
+
+test.c : copper.vm  ; ./copper.vm >$@
+test.o : test.c     ; $(CC) $(CFLAGS) -I. -c -o $@ $<
 
 # -- -------------------------------------------------
+
 TEMPS =
 TEMPS += stage.$(STAGE).heading
 TEMPS += stage.$(STAGE).preamble

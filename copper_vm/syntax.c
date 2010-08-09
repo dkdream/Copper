@@ -105,9 +105,9 @@ static void queue_Check(PrsQueue  queue,
 
     if (!queue->begin) {
         if (!queue->end) return;
-        error_at_line(1, 0,  filename,  linenumber,
-                      "invalid queue depth 0 end %x",
-                      (unsigned) queue->end);
+        CU_ERROR_AT(filename,  linenumber,
+                    "invalid queue depth 0 end %x",
+                    (unsigned) queue->end);
     }
 
     unsigned depth = 0;
@@ -123,9 +123,9 @@ static void queue_Check(PrsQueue  queue,
     }
 
     if (!found) {
-        error_at_line(1, 0,  filename,  linenumber,
-                      "invalid queue depth %u end %x",
-                      depth, (unsigned) queue->end);
+        CU_ERROR_AT(filename,  linenumber,
+                    "invalid queue depth %u end %x",
+                    depth, (unsigned) queue->end);
     }
 }
 
@@ -513,18 +513,16 @@ static bool input_CacheInsert(PrsInput  input,
         if (!queue_Slice(queue, begin, end, &segment)) return false;
         unsigned check = queue_Count(input->queue);
 
-        if (depth > check)  error_at_line(1, 0,  __FILE__,  __LINE__,
-                                          "invalid change in queue %u -> %u",
-                                          depth, check);
+        if (depth > check) CU_ERROR("invalid change in queue %u -> %u",
+                                    depth, check);
     } else {
         if (!queue_TrimTo(input->queue, begin)) return false;
 
         unsigned check = queue_Count(input->queue);
 
-        if (depth > check)  error_at_line(1, 0,  __FILE__,  __LINE__,
-                                          "invalid change in queue %u -> %u  %x",
-                                          depth, check,
-                                          (unsigned) begin);
+        if (depth > check) CU_ERROR("invalid change in queue %u -> %u  %x",
+                                    depth, check,
+                                    (unsigned) begin);
 
     }
 
@@ -1038,7 +1036,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     inline void indent() {
         unsigned inx = level;
         for ( ; inx ; --inx) {
-            printf(" |");
+            CU_DEBUG(1, " |");
         }
     }
 
@@ -1061,9 +1059,9 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     inline void queue_check(const char *filename, unsigned int linenumber) {
         unsigned check = queue_Count(queue);
 
-        if (depth > check)  error_at_line(1, 0,  filename, linenumber,
-                                          "invalid change in queue %u -> %u",
-                                          depth, check);
+        if (depth > check)  CU_ERROR_AT(filename, linenumber,
+                                        "invalid change in queue %u -> %u",
+                                        depth, check);
 
         queue_Check(queue, filename, linenumber);
     }
@@ -1326,7 +1324,7 @@ extern bool input_Parse(char* name, PrsInput input) {
     if (!input_CacheClear(input))          return false;
     if (!queue_Clear(input->queue))        return false;
 
-    printf("running %s\n", name);
+    CU_DEBUG(1, "running %s\n", name);
 
     return copper_vm(start, 0, input);
 }
@@ -1334,7 +1332,7 @@ extern bool input_Parse(char* name, PrsInput input) {
 extern bool input_RunQueue(PrsInput input) {
     if (!input) return false;
 
-    printf("running queue\n");
+    CU_DEBUG(1, "running queue\n");
 
     return queue_Run(input->queue, input);
 }
