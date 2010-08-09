@@ -26,5 +26,6 @@ vm_copper.old.c
 vm_copper.new.c
 copper.old.vm
 copper.new.vm
+test.cu
 
 

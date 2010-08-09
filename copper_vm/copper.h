@@ -5,6 +5,10 @@
 #include <stdbool.h>
 #include <error.h>
 
+#define COPPER_MAJOR    1
+#define COPPER_MINOR    1
+#define COPPER_LEVEL    0
+
 enum prs_operator {
     prs_Action,      // %action
     prs_Apply,       // @name - an named event
