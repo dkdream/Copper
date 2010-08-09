@@ -16,8 +16,8 @@ CC     = gcc
 CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
 OFLAGS = -Wall
 
-MAIN_ORIG = main_vm.c
-OBJS      = copper.o copper_vm.o compiler.o
+MAIN_ORIG = main.o
+OBJS      = copper.o syntax.o compiler.o
 
 default : copper.vm
 
@@ -33,20 +33,16 @@ uninstall : .FORCE
 
 # --
 
-copper.c    : copper.cu   ; $(COPPER.orig) -A -o $@ copper.cu
-copper.o    : copper.c    ; $(CC) $(CFLAGS) -c -o $@ $<
-main_vm.o   : main_vm.c   ; $(CC) $(CFLAGS) -c -o $@ $<
-compiler.o  : compiler.c  ; $(CC) $(CFLAGS) -c -o $@ $<
-copper_vm.o : copper_vm.c ; $(CC) $(CFLAGS) -c -o $@ $<
+copper.c   : copper.cu  ; $(COPPER.orig) -A -o $@ copper.cu
+copper.o   : copper.c   ; $(CC) $(CFLAGS) -c -o $@ $<
+main.o     : main.c     ; $(CC) $(CFLAGS) -c -o $@ $<
+compiler.o : compiler.c ; $(CC) $(CFLAGS) -c -o $@ $<
+syntax.o   : syntax.c   ; $(CC) $(CFLAGS) -c -o $@ $<
 
 copper.vm : $(MAIN_ORIG) $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(MAIN_ORIG) $(OBJS)
 
-$(MAIN_ORIG) $(OBJS) : copper_vm.h syntax.h
-
-
-
-
+$(MAIN_ORIG) $(OBJS) : copper.h syntax.h
 
 
 # -- -------------------------------------------------

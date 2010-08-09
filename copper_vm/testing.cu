@@ -5,12 +5,13 @@
 #include "syntax.h"
 }
 
-grammar = - ( heading )? ( define-rule )+ end-of-file
+grammar = - ( heading )? ( define-rule )+ end-of-file { writeTree(input,cursor); }
 
 heading = '%header' - thunk { makeHeader(input,cursor); }
 
-define-rule = identifier EQUAL expression { defineRule(input,cursor); }
-                         SEMICOLON?
+define-rule = identifier       { checkRule(input,cursor);  }
+              EQUAL expression { defineRule(input,cursor); }
+              SEMICOLON?
 
 expression  = sequence ( BAR expression { makeChoice(input,cursor); }  )?
 
@@ -28,10 +29,10 @@ suffix     = primary (QUESTION { makeQuestion(input,cursor); }
 primary    = identifier !EQUAL     { makeCall(input,cursor); }
            | OPEN expression CLOSE
            | literal               { makeString(input,cursor);    }
-           | class                 { makeSet(input,cursor);     }
+           | class                 { makeSet(input,cursor);       }
            | DOT                   { makeDot(input,cursor);       }
            | predicate             { makePredicate(input,cursor); }
-           | event                 { makeApply(input,cursor);     }
+           | event                 { makeApply(input,cursor); }
            | thunk                 { makeThunk(input,cursor);     }
            | BEGIN                 { makeBegin(input,cursor);     }
            | END                   { makeEnd(input,cursor);       }
@@ -44,7 +45,7 @@ event      = '@' < [-a-zA-Z_][-a-zA-Z_0-9]* > -
 
 directive  = '%header' | '%begin' | '%end'
 
-identifier =  < [-a-zA-Z_][-a-zA-Z_0-9]* > -
+identifier = < [-a-zA-Z_][-a-zA-Z_0-9]* > -
 
 literal    = ['] < ( !['] char )* > ['] -
            | ["] < ( !["] char )* > ["] -
@@ -59,7 +60,7 @@ char       = '\\' [abefnrtv'"\[\]\\]
            | '\\' [0-7][0-7]?
            | !'\\' .
 
-thunk      = '{' < braces* > '}' -
+thunk      = '{' < braces* > '}' - 
 
 braces     = '{' braces* '}'
            |  !'}' .

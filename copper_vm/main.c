@@ -5,7 +5,6 @@
  ** Routine List:
  **    <routine-list-end>
  **/
-#include "copper_vm.h"
 #include "syntax.h"
 
 #include <stdlib.h>
@@ -73,7 +72,12 @@ int main(int argc, char **argv)
     init__copper_c(input);
 
     if (input_Parse("grammar", input)) {
-        printf("ok\n");
+        printf("parsed\n");
+        if (input_RunQueue(input)) {
+            printf("compiled\n");
+        } else {
+            printf("compile error\n");
+        }
     } else {
         printf("syntax error\n");
     }

@@ -11,11 +11,13 @@
  **
  **
  ***/
-#include "copper_vm.h"
+#include "copper.h"
 
 /* */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <error.h>
 
 /* */
 typedef struct syn_any      *SynAny;
@@ -119,6 +121,36 @@ static inline SynKind type2kind(SynType type) {
     return syn_unknown;
 }
 
+static inline const char* type2name(SynType type) {
+    switch (type) {
+    case syn_action:    return "syn_action";
+    case syn_apply:     return "syn_apply";
+    case syn_begin:     return "syn_begin";
+    case syn_call:      return "syn_call";
+    case syn_char:      return "syn_char";
+    case syn_check:     return "syn_check";
+    case syn_choice:    return "syn_choice";
+    case syn_dot:       return "syn_dot";
+    case syn_end:       return "syn_end";
+    case syn_footer:    return "syn_footer";
+    case syn_header:    return "syn_header";
+    case syn_include:   return "syn_include";
+    case syn_not:       return "syn_not";
+    case syn_plus:      return "syn_plus";
+    case syn_predicate: return "syn_predicate";
+    case syn_question:  return "syn_question";
+    case syn_rule:      return "syn_rule";
+    case syn_sequence:  return "syn_sequence";
+    case syn_set:       return "syn_set";
+    case syn_star:      return "syn_star";
+    case syn_string:    return "syn_string";
+    case syn_thunk:     return "syn_thunk";
+        /* */
+    case syn_void: break;
+    }
+    return "syn-unknown";
+}
+
 // use for
 // - .
 // - set state.begin
@@ -197,8 +229,15 @@ struct prs_buffer {
     char     *line;
 };
 
-typedef unsigned long (*Hashcode)(void*);
-typedef bool     (*Matchkey)(void*, void*);
+struct prs_map {
+    unsigned        code;
+    const void*     key;
+    void*           value;
+    struct prs_map *next;
+};
+
+typedef unsigned long (*Hashcode)(const void*);
+typedef bool     (*Matchkey)(const void*, const void*);
 typedef bool     (*FreeValue)(void*);
 
 struct prs_hash {
@@ -241,8 +280,11 @@ struct prs_file {
 };
 
 extern bool make_PrsFile(const char* filename, PrsInput *input);
-extern bool file_Output(struct prs_file *input, const char* init_name, const char* outfile);
+extern bool file_WriteTree(PrsInput *input, FILE* output, const char* name);
 
+extern bool writeTree(PrsInput input, PrsCursor at);
+
+extern bool checkRule(PrsInput input, PrsCursor at);
 extern bool defineRule(PrsInput input, PrsCursor at);
 
 extern bool makeEnd(PrsInput input, PrsCursor at);
@@ -265,5 +307,26 @@ extern bool defineRule(PrsInput input, PrsCursor at);
 extern bool makeHeader(PrsInput input, PrsCursor at);
 extern bool makeInclude(PrsInput input, PrsCursor at);
 extern bool makeFooter(PrsInput input, PrsCursor at);
+
+
+extern unsigned cu_global_debug;
+extern void cu_debug(const char *filename, unsigned int linenum, const char *format, ...);
+extern void cu_error(const char *filename, unsigned int linenum, const char *format, ...);
+
+
+static inline void cu_noop() __attribute__((always_inline));
+static inline void cu_noop() { return; }
+
+#if 0
+#define CU_DEBUG(level, args...) ({ typeof (level) hold__ = (level); if (hold__ <= cu_global_debug) cu_debug(__FILE__,  __LINE__, args); })
+#else
+#define CU_DEBUG(level, args...) cu_noop()
+#endif
+
+#if 0
+#define CU_ERROR(args...) cu_error(__FILE__,  __LINE__, args)
+#else
+#define CU_ERROR(level, args...) cu_noop()
+#endif
 
 #endif

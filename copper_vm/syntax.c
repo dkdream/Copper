@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <error.h>
 
 /* */
 
@@ -70,14 +71,14 @@ static bool make_Point(PrsNode  node,
 }
 
 static bool make_Thread(PrsCursor at,
-                        PrsEvent function,
+                        PrsLabel  label,
                         PrsThread *target)
 {
     struct prs_thread *result = malloc(sizeof(struct prs_thread));
 
-    result->next     = 0;
-    result->at       = at;
-    result->function = function;
+    result->next  = 0;
+    result->at    = at;
+    result->label = label;
 
     *target = result;
 
@@ -96,21 +97,72 @@ static bool make_Queue(PrsQueue *target) {
     return true;
 }
 
+static void queue_Check(PrsQueue  queue,
+                        const char *filename,
+                        unsigned int linenumber)
+{
+    if (!queue) return;
+
+    if (!queue->begin) {
+        if (!queue->end) return;
+        error_at_line(1, 0,  filename,  linenumber,
+                      "invalid queue depth 0 end %x",
+                      (unsigned) queue->end);
+    }
+
+    unsigned depth = 0;
+
+    PrsThread current = queue->begin;
+    PrsThread end     = queue->end;
+
+    bool found = false;
+
+    for ( ; current ; current = current->next) {
+        if (end == current) found = true;
+        depth += 1;
+    }
+
+    if (!found) {
+        error_at_line(1, 0,  filename,  linenumber,
+                      "invalid queue depth %u end %x",
+                      depth, (unsigned) queue->end);
+    }
+}
+
+static unsigned queue_Count(PrsQueue  queue) {
+    if (!queue)        return 0;
+    if (!queue->begin) return 0;
+
+    unsigned result = 0;
+
+    PrsThread current = queue->begin;
+    PrsThread end     = queue->end;
+
+    bool found = false;
+
+    for ( ; current ; current = current->next) {
+        if (end == current) found = true;
+        result += 1;
+    }
+
+    return result;
+}
+
 static bool queue_Event(PrsQueue  queue,
                         PrsCursor at,
-                        PrsEvent function)
+                        PrsLabel  label)
 {
     if (!queue) return true;
 
     struct prs_thread *result = queue->free_list;
 
     if (!result) {
-        make_Thread(at, function, &result);
+        make_Thread(at, label, &result);
     } else {
         queue->free_list = result->next;
         result->next     = 0;
         result->at       = at;
-        result->function = function;
+        result->label    = label;
     }
 
     if (!queue->begin) {
@@ -120,6 +172,38 @@ static bool queue_Event(PrsQueue  queue,
 
     queue->end->next = result;
     queue->end = result;
+
+    return true;
+}
+
+static bool queue_Run(PrsQueue queue,
+                      PrsInput input)
+{
+    if (!queue)        return true;
+    if (!queue->begin) return true;
+    if (!input)        return false;
+
+    PrsThread current = queue->begin;
+
+    queue->begin = 0;
+
+    unsigned index = 0;
+
+    for ( ; current ; ) {
+        PrsLabel label = current->label;
+
+        if (!label->function(input, current->at)) {
+            queue->begin = current;
+            return false;
+        }
+
+        index += 1;
+
+        PrsThread next   = current->next;
+        current->next    = queue->free_list;
+        queue->free_list = current;
+        current = next;
+    }
 
     return true;
 }
@@ -134,14 +218,14 @@ static bool queue_CloneEvent(PrsQueue   queue,
     struct prs_thread *result = queue->free_list;
 
     if (!result) {
-        return make_Thread(value->at, value->function, target);
+        return make_Thread(value->at, value->label, target);
     }
 
     queue->free_list = result->next;
 
-    result->next     = 0;
-    result->at       = value->at;
-    result->function = value->function;
+    result->next  = 0;
+    result->at    = value->at;
+    result->label = value->label;
 
     *target = result;
 
@@ -172,8 +256,42 @@ static bool queue_FreeList(PrsQueue queue,
     return true;
 }
 
+static bool queue_TrimTo(PrsQueue  queue,
+                         PrsThread to)
+{
+    if (!queue) return false;
+    if (!to) {
+        to = queue->begin;
+        queue->begin = 0;
+        queue->end   = 0;
+        return  queue_FreeList(queue, to);
+    }
+
+    if (!queue->begin) return false;
+
+    if (to == queue->end) return true;
+
+    PrsThread current = queue->begin;
+
+    for ( ; current ; current = current->next ) {
+        if (current == to) break;
+
+    }
+
+    if (!current) return false;
+
+    current = to->next;
+
+    to->next   = 0;
+    queue->end = to;
+
+    return queue_FreeList(queue, current);
+
+}
+
 // (begin-end] or [begin->next-end]
 // start after begin upto and including end
+// the slice = { clone(begin->next), clone(end) }
 static bool queue_Slice(PrsQueue   queue,
                         PrsThread  begin,
                         PrsThread  end,
@@ -184,14 +302,15 @@ static bool queue_Slice(PrsQueue   queue,
         return (0 == end);
     }
 
-    if (begin == end) {
+    if (slice->begin) {
         queue_FreeList(queue, slice->begin);
+    }
+
+    if (begin == end) {
         slice->begin = 0;
         slice->end   = 0;
         return true;
     }
-
-    PrsSlice hold = *slice;
 
     PrsThread last;
     PrsThread node = begin->next;
@@ -202,17 +321,55 @@ static bool queue_Slice(PrsQueue   queue,
 
     for ( ; node ; ) {
         if (node == end) {
-            queue_FreeList(queue, hold.begin);
+            slice->end = last;
             return true;
         }
         node = node->next;
         queue_CloneEvent(queue, node, &last->next);
-        last = slice->end = last->next;
+        last = last->next;
     }
 
     queue_FreeList(queue, slice->begin);
 
-    *slice = hold;
+    slice->begin = 0;
+    slice->end   = 0;
+
+    return false;
+}
+
+static bool queue_CloneSlice(PrsQueue  queue,
+                             PrsSlice  segment,
+                             PrsSlice *slice)
+{
+    if (!queue)         return true;
+    if (!segment.begin) return true;
+    if (!segment.end)   return false;
+
+    if (slice->begin) {
+        queue_FreeList(queue, slice->begin);
+    }
+
+    PrsThread last;
+    PrsThread node = segment.begin;
+
+    queue_CloneEvent(queue, node, &last);
+
+    slice->begin = last;
+
+    for ( ; node ; ) {
+        if (node == segment.end) {
+            slice->end = last;
+            return true;
+        }
+        node = node->next;
+        queue_CloneEvent(queue, node, &last->next);
+        last = last->next;
+    }
+
+    queue_FreeList(queue, slice->begin);
+
+    slice->begin = 0;
+    slice->end   = 0;
 
     return false;
 }
@@ -224,13 +381,9 @@ static bool queue_AppendSlice(PrsQueue queue,
     if (!segment.begin) return true;
     if (!segment.end)   return false;
 
-    PrsSlice slice;
+    PrsSlice slice = { 0, 0 };
 
-    if (!queue_Slice(queue,
-                     segment.begin,
-                     segment.end,
-                     &slice))
-        return false;
+    if (!queue_CloneSlice(queue, segment, &slice)) return false;
 
     queue->end->next = slice.begin;
     queue->end       = slice.end;
@@ -338,11 +491,13 @@ static bool cache_Find(PrsCache  cache,
     return false;
 }
 
-static bool input_CacheInsert(PrsInput input,
-                              PrsNode  node,
-                              PrsState cursor,
-                              bool     match,
-                              PrsSlice segment)
+static bool input_CacheInsert(PrsInput  input,
+                              unsigned  depth,
+                              PrsNode   node,
+                              PrsState  cursor,
+                              bool      match,
+                              PrsThread begin,
+                              PrsThread end)
 {
     if (!input) return false;
 
@@ -350,6 +505,29 @@ static bool input_CacheInsert(PrsInput input,
     PrsQueue queue = input->queue;
 
     if (!cache) return false;
+    if (!queue) return false;
+
+    PrsSlice segment = { 0, 0 };
+
+    if (match) {
+        if (!queue_Slice(queue, begin, end, &segment)) return false;
+        unsigned check = queue_Count(input->queue);
+
+        if (depth > check)  error_at_line(1, 0,  __FILE__,  __LINE__,
+                                          "invalid change in queue %u -> %u",
+                                          depth, check);
+    } else {
+        if (!queue_TrimTo(input->queue, begin)) return false;
+
+        unsigned check = queue_Count(input->queue);
+
+        if (depth > check)  error_at_line(1, 0,  __FILE__,  __LINE__,
+                                          "invalid change in queue %u -> %u  %x",
+                                          depth, check,
+                                          (unsigned) begin);
+
+    }
+
 
     unsigned code  = (unsigned)node;
     unsigned index = code  % cache->size;
@@ -358,10 +536,14 @@ static bool input_CacheInsert(PrsInput input,
     for ( ; list ; list = list->next) {
         if (node != list->node) continue;
         if (cursor.begin.text_inx != list->cursor.begin.text_inx) continue;
+
+        // found
+        // free the old segment
+        queue_FreeList(queue, list->segment.begin);
+
         list->cursor.end = cursor.end;
         list->match      = match;
-        queue_FreeList(queue, list->segment.begin);
-        list->segment = segment;
+        list->segment    = segment;
         return true;
     }
 
@@ -371,9 +553,8 @@ static bool input_CacheInsert(PrsInput input,
                      match,
                      segment,
                      cache->table[index],
-                     &list)) {
+                     &list))
         return false;
-    }
 
     cache->table[index] = list;
 
@@ -440,7 +621,7 @@ static bool input_CacheFree(PrsInput input) {
 #endif
 
 static bool make_Map(unsigned code,
-                     void* key,
+                     const void* key,
                      void* value,
                      struct prs_map *next,
                      struct prs_map **target)
@@ -476,7 +657,7 @@ static bool make_Hash(Hashcode encode,
 }
 
 static bool hash_Find(struct prs_hash *hash,
-                      void* key,
+                      const void* key,
                       void** target)
 {
     if (!key) return false;
@@ -498,7 +679,7 @@ static bool hash_Find(struct prs_hash *hash,
 
 #if 0
 static bool hash_Add(struct prs_hash *hash,
-                     void* key,
+                     const void* key,
                      void* value)
 {
     if (!key)   return false;
@@ -526,7 +707,7 @@ static bool hash_Add(struct prs_hash *hash,
 #endif
 
 static bool hash_Replace(struct prs_hash *hash,
-                         void* key,
+                         const void* key,
                          void* value,
                          FreeValue release)
 {
@@ -560,8 +741,8 @@ static bool hash_Replace(struct prs_hash *hash,
 
 #if 0
 static bool hash_Remove(struct prs_hash *hash,
-                         void* key,
-                         FreeValue release)
+                        const void* key,
+                        FreeValue release)
 {
     if (!key)     return false;
     if (!release) return false;
@@ -689,22 +870,22 @@ static bool malloc_release(void* value) {
 
 static bool file_AddName(PrsInput input, PrsName name, PrsNode value) {
     struct prs_file *file = (struct prs_file *)input;
-    return hash_Replace(file->nodes, name, value, noop_release);
+    return hash_Replace(file->nodes, (void*)name, value, noop_release);
 }
 
 static bool file_SetPredicate(PrsInput input, PrsName name, PrsPredicate value) {
     struct prs_file *file = (struct prs_file *)input;
-    return hash_Replace(file->predicates, name, value, noop_release);
+    return hash_Replace(file->predicates, (void*)name, value, noop_release);
 }
 
 static bool file_SetAction(PrsInput input, PrsName name, PrsAction value) {
     struct prs_file *file = (struct prs_file *)input;
-    return hash_Replace(file->actions, name, value, noop_release);
+    return hash_Replace(file->actions, (void*)name, value, noop_release);
 }
 
 static bool file_SetEvent(PrsInput input, PrsName name, PrsEvent value) {
     struct prs_file *file = (struct prs_file *)input;
-    return hash_Replace(file->events, name, value, noop_release);
+    return hash_Replace(file->events, (void*)name, value, noop_release);
 }
 
 static unsigned long encode_name(PrsName name) {
@@ -784,33 +965,43 @@ static bool mark_begin(PrsInput input, PrsCursor at) {
     return true;
 }
 
+static struct prs_label begin_label = { &mark_begin, "set.begin" };
+
 static bool mark_end(PrsInput input, PrsCursor at) {
     if (!input) return false;
     input->slice.end = at;
     return true;
 }
 
-static bool copper_vm(PrsNode start, PrsInput input) {
-    PrsState  cursor;
-    PrsSlice  segment;
-    bool      match = false;
-    PrsCursor at;
-    PrsThread begin = 0;
+static struct prs_label end_label = { &mark_end, "set.end" };
 
-    inline bool hold()    {
-        if (input->queue) {
-            begin = input->queue->end;
-        }
+static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
+    if (!input) return false;
+    if (!start) return false;
+
+    PrsCache cache = input->cache;
+    PrsQueue queue = input->queue;
+
+    if (!queue) return false;
+    if (!cache) return false;
+
+    PrsThread begin  = 0;
+    PrsThread mark   = 0;
+    bool      match  = false;
+    PrsState  cursor;
+    PrsCursor at;
+    unsigned  depth;
+
+    inline bool hold() {
+        mark = queue->end;
         return input->fetch(input, &at);
     }
+
     inline bool reset()   {
-        if (begin) {
-            if (!queue_FreeList(input->queue, begin->next))
-                return false;
-            begin->next = 0;
-        }
-        if (input->queue) {
-            input->queue->end = begin;
+        if (!mark) {
+            if (!queue_Clear(queue)) return false;
+        } else {
+            if (!queue_TrimTo(queue, mark)) return false;
         }
         return input->reset(input, at);
     }
@@ -844,68 +1035,84 @@ static bool copper_vm(PrsNode start, PrsInput input) {
         return true;
     }
 
+    inline void indent() {
+        unsigned inx = level;
+        for ( ; inx ; --inx) {
+            printf(" |");
+        }
+    }
+
+    inline bool add_event(PrsLabel label) {
+        return queue_Event(queue,
+                           at,
+                           label);
+    }
+
     inline bool cache_begin() {
-        segment.begin = begin;
-        segment.end   = 0;
-        return input->fetch(input, &cursor.begin);
+        if (!hold()) return false;
+
+        depth        = queue_Count(queue);
+        begin        = mark;
+        cursor.begin = at;
+
+        return true;;
+    }
+
+    inline void queue_check(const char *filename, unsigned int linenumber) {
+        unsigned check = queue_Count(queue);
+
+        if (depth > check)  error_at_line(1, 0,  filename, linenumber,
+                                          "invalid change in queue %u -> %u",
+                                          depth, check);
+
+        queue_Check(queue, filename, linenumber);
     }
 
     inline bool cache_check() {
         PrsPoint point = 0;
-        if (cache_Find(input->cache, start, cursor.begin, &point)) {
-            if (input->reset(input, point->cursor.end)) {
-                if (input->queue) {
-                    if (!queue_AppendSlice(input->queue,
-                                           point->segment))
-                        return false;
-                }
-                match = point->match;
-                return true;
-            }
-        }
-        return false;
+        if (!cache_Find(cache, start, cursor.begin, &point)) return false;
 
+        match = point->match;
+
+        if (match) {
+            if (!input->reset(input, point->cursor.end))   return false;
+            if (!queue_AppendSlice(queue, point->segment)) return false;
+        }
+
+        return true;
     }
 
     inline bool cache_end() {
-        if (input->fetch(input, &cursor.end)) {
-            if (!match) {
-                segment.begin = 0;
-                segment.end   = 0;
-            } else {
-                if (segment.begin) {
-                    segment.end = input->queue->end;
-                } else {
-                    segment.end = 0;
-                }
-            }
-            return input_CacheInsert(input,
-                                     start,
-                                     cursor,
-                                     match,
-                                     segment);
-        }
-        return false;
+        if (!input->fetch(input, &cursor.end)) return false;
+
+       return input_CacheInsert(input,
+                                depth,
+                                start,
+                                cursor,
+                                match,
+                                begin,
+                                queue->end);
     }
 
     inline bool prs_and() {
-        if (!copper_vm(start->arg.pair->left, input))  {
+        if (!copper_vm(start->arg.pair->left, level+1, input))  {
             reset();
             return false;
         }
-        if (!copper_vm(start->arg.pair->right, input)) {
+        if (!copper_vm(start->arg.pair->right, level+1, input)) {
             reset();
             return false;
         }
+
         return true;
     }
 
     inline bool prs_choice() {
-        if (copper_vm(start->arg.pair->left, input)) {
+        if (copper_vm(start->arg.pair->left, level+1, input)) {
             return true;
         }
         reset();
-        if (copper_vm(start->arg.pair->right, input)) {
+        if (copper_vm(start->arg.pair->right, level+1, input)) {
             return true;
         }
         reset();
@@ -913,7 +1120,7 @@ static bool copper_vm(PrsNode start, PrsInput input) {
     }
 
     inline bool prs_zero_plus() {
-        while (copper_vm(start->arg.node, input)) {
+        while (copper_vm(start->arg.node, level+1, input)) {
             hold();
         }
         reset();
@@ -922,7 +1129,7 @@ static bool copper_vm(PrsNode start, PrsInput input) {
 
     inline bool prs_one_plus() {
         bool result = false;
-        while (copper_vm(start->arg.node, input)) {
+        while (copper_vm(start->arg.node, level+1, input)) {
             result = true;
             hold();
         }
@@ -931,7 +1138,7 @@ static bool copper_vm(PrsNode start, PrsInput input) {
     }
 
     inline bool prs_optional() {
-        if (copper_vm(start->arg.node, input)) {
+        if (copper_vm(start->arg.node, level+1, input)) {
             return true;
         }
         reset();
@@ -939,7 +1146,7 @@ static bool copper_vm(PrsNode start, PrsInput input) {
     }
 
     inline bool prs_assert_true() {
-        if (copper_vm(start->arg.node, input)) {
+        if (copper_vm(start->arg.node, level+1, input)) {
             reset();
             return true;
         }
@@ -948,7 +1155,7 @@ static bool copper_vm(PrsNode start, PrsInput input) {
     }
 
     inline bool prs_assert_false() {
-        if (copper_vm(start->arg.node, input)) {
+        if (copper_vm(start->arg.node, level+1, input)) {
             reset();
             return false;
         }
@@ -999,19 +1206,9 @@ static bool copper_vm(PrsNode start, PrsInput input) {
 
     inline bool prs_name() {
         PrsNode value;
-        if (!node(start->arg.name, &value)) {
-            return false;
-        }
-        // note the same node maybe call from two or more uncached nodes
-        bool result = copper_vm(value, input);
-
-        printf("running %s (%u,%u) %s\n",
-               (char*) start->arg.name,
-               at.line_number + 1,
-               at.char_offset,
-               (result ? "match" : "no match"));
-
-        return result;
+        if (!node(start->arg.name, &value)) return false;
+        // note the same name maybe call from two or more uncached nodes
+        return copper_vm(value, level+1, input);
     }
 
     inline bool prs_dot() {
@@ -1029,11 +1226,6 @@ static bool copper_vm(PrsNode start, PrsInput input) {
         PrsChar   chr  = 0;
         unsigned  inx  = 0;
 
-        printf("running match %s (%u,%u)\n",
-               string->text,
-               at.line_number + 1,
-               at.char_offset);
-
         for ( ; inx < length ; ++inx) {
             if (!current(&chr)) {
                 reset();
@@ -1050,15 +1242,11 @@ static bool copper_vm(PrsNode start, PrsInput input) {
     }
 
     inline bool prs_begin() {
-        return queue_Event(input->queue,
-                           at,
-                           mark_begin);
+        return add_event(&begin_label);
     }
 
     inline bool prs_end() {
-        return queue_Event(input->queue,
-                           at,
-                           mark_end);
+        return add_event(&end_label);
     }
 
     inline bool prs_predicate() {
@@ -1074,9 +1262,17 @@ static bool copper_vm(PrsNode start, PrsInput input) {
     }
 
     inline bool prs_event() {
-        return queue_Event(input->queue,
-                           at,
-                           start->arg.event);
+        return add_event(start->arg.label);
+    }
+
+    inline bool prs_apply() {
+        return true;
+    }
+    inline bool prs_thunk() {
+        return add_event(start->arg.label);
+    }
+    inline bool prs_text() {
+        return true;
     }
 
     inline bool run_node() {
@@ -1100,6 +1296,9 @@ static bool copper_vm(PrsNode start, PrsInput input) {
         case prs_ZeroOrOne:   return prs_optional();
         case prs_Begin:       return prs_begin();
         case prs_End:         return prs_end();
+        case prs_Apply:       return prs_apply();
+        case prs_Thunk:       return prs_thunk();
+        case prs_MatchText:   return prs_text();
         case prs_Void:        return false;
         }
         return false;
@@ -1129,7 +1328,15 @@ extern bool input_Parse(char* name, PrsInput input) {
 
     printf("running %s\n", name);
 
-    return copper_vm(start, input);
+    return copper_vm(start, 0, input);
+}
+
+extern bool input_RunQueue(PrsInput input) {
+    if (!input) return false;
+
+    printf("running queue\n");
+
+    return queue_Run(input->queue, input);
 }
 
 extern bool input_Text(PrsInput input, PrsData *target) {

@@ -7,25 +7,56 @@
 
 enum prs_operator {
     prs_Action,      // %action
+    prs_Apply,       // @name - an named event
     prs_AssertFalse, // e !
     prs_AssertTrue,  // e &
     prs_Begin,       // set state.begin
     prs_Choice,      // e1 e2 /
     prs_End,         // set state.end
-    prs_Event,       // { }
+    prs_Event,       // -transistional-
     prs_MatchChar,   // 'chr
     prs_MatchDot,    // .
     prs_MatchName,   // @name
     prs_MatchRange,  // begin-end
     prs_MatchSet,    // [...]
-    prs_MatchString, // "..."
+    prs_MatchString, // -transistional-
+    prs_MatchText,   // "..."
     prs_OneOrMore,   // e +
     prs_Predicate,   // &predicate
     prs_Sequence,    // e1 e2 ;
+    prs_Thunk,       // { } - an unnamed event
     prs_ZeroOrMore,  // e *
     prs_ZeroOrOne,   // e ?
     prs_Void         // -nothing-
 };
+
+static inline const char* oper2name(enum prs_operator oper) {
+    switch (oper) {
+    case prs_Action:      return "prs_Action";      // %action
+    case prs_Apply:       return "prs_Apply";       // @name - an named event
+    case prs_AssertFalse: return "prs_AssertFalse"; // e !
+    case prs_AssertTrue:  return "prs_AssertTrue";  // e &
+    case prs_Begin:       return "prs_Begin";       // set state.begin
+    case prs_Choice:      return "prs_Choice";      // e1 e2 /
+    case prs_End:         return "prs_End";         // set state.end
+    case prs_Event:       return "prs_Event";       // { }
+    case prs_MatchChar:   return "prs_MatchChar";   // 'chr
+    case prs_MatchDot:    return "prs_MatchDot";    // .
+    case prs_MatchName:   return "prs_MatchName";   // @name
+    case prs_MatchRange:  return "prs_MatchRange";  // begin-end
+    case prs_MatchSet:    return "prs_MatchSet";    // [...]
+    case prs_MatchString: return "prs_MatchString"; // "..."
+    case prs_MatchText:   return "prs_MatchText";   // "..."
+    case prs_OneOrMore:   return "prs_OneOrMore";   // e +
+    case prs_Predicate:   return "prs_Predicate";   // &predicate
+    case prs_Sequence:    return "prs_Sequence";    // e1 e2 ;
+    case prs_Thunk:       return "prs_Thunk";       // { } - an unnamed event
+    case prs_ZeroOrMore:  return "prs_ZeroOrMore";  // e *
+    case prs_ZeroOrOne:   return "prs_ZeroOrOne";   // e ?
+    case prs_Void:        break; // -nothing-
+    }
+    return "prs-unknown";
+}
 
 typedef enum prs_operator PrsOperator;
 
@@ -37,10 +68,10 @@ typedef unsigned char      PrsChar;
 typedef struct prs_string *PrsString;
 typedef struct prs_range  *PrsRange;
 typedef struct prs_set    *PrsSet;
-typedef void              *PrsName;
+typedef const  char       *PrsName;
 typedef struct prs_node   *PrsNode;
 typedef struct prs_pair   *PrsPair;
-
+typedef struct prs_label  *PrsLabel;
 /* parse event queue */
 typedef struct prs_thread *PrsThread;
 typedef struct prs_queue  *PrsQueue;
@@ -80,13 +111,6 @@ struct prs_set {
     const unsigned char bitfield[];
 };
 
-struct prs_map {
-    unsigned        code;
-    void*           key;
-    void*           value;
-    struct prs_map *next;
-};
-
 struct prs_pair {
     PrsNode left;
     PrsNode right;
@@ -111,10 +135,15 @@ typedef struct prs_state PrsState;
 /* these are ONLY call after a sucessful parse completes */
 typedef bool (*PrsEvent)(PrsInput, PrsCursor);
 
+struct prs_label {
+    PrsEvent  function;
+    PrsName   name;
+};
+
 struct prs_thread {
     PrsThread next;
     PrsCursor at;
-    PrsEvent  function;
+    PrsLabel  label;
 };
 
 struct prs_slice {
@@ -157,6 +186,7 @@ struct prs_node {
         PrsNode   node;
         PrsPair   pair;
         PrsEvent  event;
+        PrsLabel  label;
     } arg;
 };
 
@@ -202,6 +232,7 @@ struct prs_input {
 
 extern bool text_Extend(struct prs_text *text, const unsigned room);
 extern bool input_Parse(char* name, PrsInput input);
+extern bool input_RunQueue(PrsInput input);
 extern bool input_Text(PrsInput input, PrsData *target);
 
 #endif

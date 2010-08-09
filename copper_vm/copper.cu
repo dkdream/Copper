@@ -5,12 +5,13 @@
 #include "syntax.h"
 %}
 
-grammar = - ( heading )? ( define-rule )+ end-of-file
+grammar = - ( heading )? ( define-rule )+ end-of-file { writeTree(input,cursor); }
 
 heading = '%header' - thunk { makeHeader(input,cursor); }
 
-define-rule = identifier EQUAL expression { defineRule(input,cursor); }
-                         SEMICOLON?
+define-rule = identifier       { checkRule(input,cursor); }
+              EQUAL expression { defineRule(input,cursor); }
+              SEMICOLON?
 
 expression  = sequence ( BAR expression { makeChoice(input,cursor); }  )?
 
@@ -82,6 +83,6 @@ END       = '>' -
 -           = (space | comment)*
 space       = ' ' | '\t' | end-of-line
 comment     = '#' (!end-of-line .)* end-of-line
-end-of-line = '\r\n' | '\n' | '\r'
+end-of-line = '\n'
 end-of-file = !.
 
