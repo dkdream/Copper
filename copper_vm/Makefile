@@ -22,6 +22,8 @@ default : copper.vm
 
 all : copper.vm
 
+full : do.stage.two 
+
 install : copper
 	[ -d $(BINDIR) ] || mkdir -p $(BINDIR)
 	cp -p $< $(BINDIR)/copper
@@ -65,11 +67,11 @@ TEMPS =
 TEMPS += stage.$(STAGE).o
 TEMPS += stage.$(STAGE)
 
-current.stage : $(TEMPS)
+current.stage : compare
 
 stage.$(STAGE).c : copper.cu $(COPPER.test)
 	@rm -f stage.$(STAGE).c
-	$(COPPER.test) --verbose --name copper_graph --output $@ --file copper.cu
+	$(COPPER.test) --name copper_graph --output $@ --file copper.cu
 
 stage.$(STAGE).o : stage.$(STAGE).c
 	$(CC) $(CFLAGS) -I. -c -o $@ $<
@@ -78,6 +80,10 @@ stage.$(STAGE) : main.o stage.$(STAGE).o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $+
 
 stage.$(STAGE).o : copper.h syntax.h
+
+compare : $(COPPER.test) stage.$(STAGE) .FORCE
+	@./compare_graphs.sh $(COPPER.test) stage.$(STAGE)
+	@rm -f test.temp
 
 # --
 
@@ -88,14 +94,14 @@ do.stage.two  : do.stage.one  ; @$(MAKE) --no-print-directory STAGE=two  COPPER.
 # --
 
 clean : .FORCE
-	rm -f *~ *.o
+	rm -f *~ *.o *.tmp
 	rm -f stage.*
 	rm -f copper_o.c copper.ovm
 	rm -f copper.c copper.vm
 	echo $(MAKE) --directory=examples --no-print-directory $@
 
 clear : .FORCE
-	rm -f *~ *.o
+	rm -f *~ *.o *.tmp
 	rm -f stage.*
 	rm -f copper.c copper.vm
 	$(MAKE) --directory=examples --no-print-directory $@
