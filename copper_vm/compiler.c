@@ -692,7 +692,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         fprintf(output,
                 "static struct prs_node  node_%x  = { 0,0, prs_MatchText, (union prs_arg) ((PrsName)\"%s\") };\n",
                 (unsigned) node.any,
-                makeConstCString(node.text->value));
+                convert(node.text->value));
         return true;
     }
 

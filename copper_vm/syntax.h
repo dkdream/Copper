@@ -324,6 +324,12 @@ static inline void cu_noop() { return; }
 #endif
 
 #if 1
+#define CU_ON_DEBUG(level, arg) ({ typeof (level) hold__ = (level); if (hold__ <= cu_global_debug) arg; })
+#else
+#define CU_DEBUG(level, args...) cu_noop()
+#endif
+
+#if 1
 #define CU_ERROR(args...) cu_error(__FILE__,  __LINE__, args)
 #else
 #define CU_ERROR(args...) cu_noop()
