@@ -279,7 +279,7 @@ struct prs_file {
     SynChunk  chunks;
 };
 
-extern bool make_PrsFile(const char* filename, PrsInput *input);
+extern bool make_PrsFile(FILE* file, const char* filename, PrsInput *input);
 extern bool file_WriteTree(PrsInput input, FILE* output, const char* name);
 
 extern bool writeTree(PrsInput input, PrsCursor at);
@@ -317,19 +317,19 @@ extern void cu_error(const char *filename, unsigned int linenum, const char *for
 static inline void cu_noop() __attribute__((always_inline));
 static inline void cu_noop() { return; }
 
-#if 0
+#if 1
 #define CU_DEBUG(level, args...) ({ typeof (level) hold__ = (level); if (hold__ <= cu_global_debug) cu_debug(__FILE__,  __LINE__, args); })
 #else
 #define CU_DEBUG(level, args...) cu_noop()
 #endif
 
-#if 0
+#if 1
 #define CU_ERROR(args...) cu_error(__FILE__,  __LINE__, args)
 #else
 #define CU_ERROR(args...) cu_noop()
 #endif
 
-#if 0
+#if 1
 #define CU_ERROR_AT(args...) cu_error(args)
 #else
 #define CU_ERROR_AT(args...) cu_noop()

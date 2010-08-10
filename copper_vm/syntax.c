@@ -850,6 +850,11 @@ static bool file_FindPredicate(PrsInput input, PrsName name, PrsPredicate* targe
     return hash_Find(file->predicates, name, (void**)target);
 }
 
+static bool file_FindEvent(PrsInput input, PrsName name, PrsEvent* target) {
+    struct prs_file *file = (struct prs_file *)input;
+    return hash_Find(file->events, name, (void**)target);
+}
+
 static bool file_FindAction(PrsInput input, PrsName name, PrsAction* target) {
     struct prs_file *file = (struct prs_file *)input;
     return hash_Find(file->actions, name, (void**)target);
@@ -908,7 +913,7 @@ static unsigned compare_name(PrsName lname, PrsName rname) {
     return (0 == result);
 }
 
-extern bool make_PrsFile(const char* filename, PrsInput *target) {
+extern bool make_PrsFile(FILE* file, const char* filename, PrsInput *target) {
     struct prs_file *result = malloc(sizeof(struct prs_file));
 
     memset(result, 0, sizeof(struct prs_file));
@@ -919,6 +924,7 @@ extern bool make_PrsFile(const char* filename, PrsInput *target) {
     result->base.reset     = file_SetCursor;
     result->base.node      = file_FindNode;
     result->base.predicate = file_FindPredicate;
+    result->base.event     = file_FindEvent;
     result->base.action    = file_FindAction;
     result->base.attach    = file_AddName;
     result->base.set_p     = file_SetPredicate;
@@ -930,7 +936,7 @@ extern bool make_PrsFile(const char* filename, PrsInput *target) {
 
     /* */
     result->filename    = strdup(filename);
-    result->buffer.file = fopen(filename, "r");
+    result->buffer.file = file;
 
     make_Hash((Hashcode) encode_name,
               (Matchkey) compare_name,
@@ -1036,7 +1042,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     inline void indent() {
         unsigned inx = level;
         for ( ; inx ; --inx) {
-            CU_DEBUG(1, " |");
+            CU_DEBUG(2, " |");
         }
     }
 
@@ -1048,6 +1054,12 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
 
     inline bool cache_begin() {
         if (!hold()) return false;
+
+        indent(); CU_DEBUG(2, "%s (%x) at (%u,%u)\n",
+                           oper2name(start->oper),
+                           (unsigned) start,
+                           at.line_number + 1,
+                           at.char_offset);
 
         depth        = queue_Count(queue);
         begin        = mark;
@@ -1077,11 +1089,25 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
             if (!queue_AppendSlice(queue, point->segment)) return false;
         }
 
+        indent(); CU_DEBUG(2, "%s (%x) at (%u,%u) using cache %s\n",
+                           oper2name(start->oper),
+                           (unsigned) start,
+                           at.line_number + 1,
+                           at.char_offset,
+                           (match ? "passed" : "failed"));
+
         return true;
     }
 
     inline bool cache_end() {
         if (!input->fetch(input, &cursor.end)) return false;
+
+        indent(); CU_DEBUG(2, "%s (%x) at (%u,%u) result %s\n",
+                           oper2name(start->oper),
+                           (unsigned) start,
+                           at.line_number + 1,
+                           at.char_offset,
+                           (match ? "passed" : "failed"));
 
        return input_CacheInsert(input,
                                 depth,
@@ -1205,8 +1231,22 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     inline bool prs_name() {
         PrsNode value;
         if (!node(start->arg.name, &value)) return false;
+
+        indent(); CU_DEBUG(2, "%s at (%u,%u)\n",
+                           start->arg.name,
+                           at.line_number + 1,
+                           at.char_offset);
+
         // note the same name maybe call from two or more uncached nodes
-        return copper_vm(value, level+1, input);
+        bool result = copper_vm(value, level+1, input);
+
+        indent(); CU_DEBUG(2, "%s at (%u,%u) result %s\n",
+                           start->arg.name,
+                           at.line_number + 1,
+                           at.char_offset,
+                           (result ? "passed" : "failed"));
+
+        return result;
     }
 
     inline bool prs_dot() {
@@ -1219,17 +1259,18 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     }
 
     inline bool prs_string() {
-        PrsString string = start->arg.string;
-        unsigned  length = string->length;
-        PrsChar   chr  = 0;
-        unsigned  inx  = 0;
+        PrsString    string = start->arg.string;
+        unsigned   remaning = string->length;
+        const PrsChar *text = string->text;
 
-        for ( ; inx < length ; ++inx) {
+        for ( ; 0 < remaning ; --remaning, ++text) {
+            PrsChar chr  = 0;
+
             if (!current(&chr)) {
                 reset();
                 return false;
             }
-            if (chr != string->text[inx]) {
+            if (chr != *text) {
                 reset();
                 return false;
             }
@@ -1264,12 +1305,30 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     }
 
     inline bool prs_apply() {
-        return true;
+        return false;
     }
     inline bool prs_thunk() {
         return add_event(start->arg.label);
     }
+
     inline bool prs_text() {
+        const PrsChar *text = (const PrsChar *) start->arg.name;
+
+        for ( ; 0 != *text ; ++text) {
+            PrsChar chr = 0;
+
+            if (!current(&chr)) {
+                reset();
+                return false;
+            }
+            if (chr != *text) {
+                reset();
+                return false;
+            }
+
+            next();
+        }
+
         return true;
     }
 
@@ -1324,16 +1383,11 @@ extern bool input_Parse(char* name, PrsInput input) {
     if (!input_CacheClear(input))          return false;
     if (!queue_Clear(input->queue))        return false;
 
-    CU_DEBUG(1, "running %s\n", name);
-
     return copper_vm(start, 0, input);
 }
 
 extern bool input_RunQueue(PrsInput input) {
     if (!input) return false;
-
-    CU_DEBUG(1, "running queue\n");
-
     return queue_Run(input->queue, input);
 }
 

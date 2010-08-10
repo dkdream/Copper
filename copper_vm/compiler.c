@@ -26,9 +26,8 @@ extern void cu_debug(const char *filename,
 {
     va_list ap; va_start (ap, format);
 
-    printf("file %s line %u :: ", filename, linenum);
+    //    printf("file %s line %u :: ", filename, linenum);
     vprintf(format, ap);
-    printf("\n");
 }
 
 extern void cu_error(const char *filename,
@@ -40,7 +39,6 @@ extern void cu_error(const char *filename,
 
     printf("file %s line %u :: ", filename, linenum);
     vprintf(format, ap);
-    printf("\n");
     exit(1);
 }
 
@@ -275,7 +273,7 @@ extern bool defineRule(PrsInput input, PrsCursor at) {
         return false;
     }
 
-    CU_DEBUG(1, "make rule %s\n\n", convert(rule->name));
+    CU_DEBUG(1, "make rule %s\n", convert(rule->name));
 
     if (!rule->value.any) {
         rule->value = value;
@@ -751,8 +749,6 @@ extern bool writeTree(PrsInput input, PrsCursor at) {
         CU_ERROR("stack not empty ; %u\n", depth(file));
     }
 
-    file_WriteTree(input, stdout, "init_this_tree");
-
     return true;
 }
 
@@ -827,6 +823,6 @@ extern bool file_WriteTree(PrsInput input, FILE* output, const char* function) {
         }
     }
 
-    return false;
+    return true;
 }
 
