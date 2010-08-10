@@ -14,11 +14,7 @@
 
 static char* program_name = 0;
 
-#ifdef ORIG_COPPER
-extern bool init__copper_o_c(PrsInput parser);
-#else
 extern bool copper_graph(PrsInput parser);
-#endif
 
 static void help() {
     fprintf(stderr, "copper [-verbose]+ --name c_func_name [--output outfile] [--file infile]\n");
@@ -113,19 +109,15 @@ int main(int argc, char **argv)
 
     CU_DEBUG(1, "adding parser graph\n");
 
-#ifdef ORIG_COPPER
-    init__copper_o_c(parser);
-#else
     copper_graph(parser);
-#endif
 
     CU_DEBUG(1, "parsing infile %s\n", infile);
-    if (!input_Parse("grammar", parser)) {
+    if (!cu_Parse("grammar", parser)) {
         CU_ERROR("syntax error");
     }
 
     CU_DEBUG(1, "running events\n");
-    if (!input_RunQueue(parser)) {
+    if (!cu_RunQueue(parser)) {
         CU_ERROR("event error");
     }
 

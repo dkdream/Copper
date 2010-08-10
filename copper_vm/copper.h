@@ -94,8 +94,8 @@ struct prs_text {
 typedef struct prs_text PrsText;
 
 struct prs_data {
-    unsigned length;
-    const char* start;
+    unsigned    length;
+    const char* start; // this is NOT a zero terminated string
 };
 
 typedef struct prs_data PrsData;
@@ -238,17 +238,15 @@ struct prs_input {
     PrsState slice;
 };
 
-extern bool text_Extend(struct prs_text *text, const unsigned room);
-extern bool input_Parse(char* name, PrsInput input);
-extern bool input_RunQueue(PrsInput input);
-extern bool input_Text(PrsInput input, PrsData *target);
-extern bool make_Queue(PrsQueue *target);
-extern bool make_Cache(unsigned size, PrsCache *target);
+extern bool cu_InputInit(PrsInput input, unsigned cacheSize);
+extern bool cu_Parse(char* name, PrsInput input);
+extern bool cu_AppendData(PrsInput input, const unsigned count, const char *src);
+extern bool cu_RunQueue(PrsInput input);
+extern bool cu_MarkedText(PrsInput input, PrsData *target);
 
 extern unsigned cu_global_debug;
-extern void cu_debug(const char *filename, unsigned int linenum, const char *format, ...);
-extern void cu_error(const char *filename, unsigned int linenum, const char *format, ...);
-
+extern void     cu_debug(const char *filename, unsigned int linenum, const char *format, ...);
+extern void     cu_error(const char *filename, unsigned int linenum, const char *format, ...);
 
 static inline void cu_noop() __attribute__((always_inline));
 static inline void cu_noop() { return; }

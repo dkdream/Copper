@@ -168,7 +168,7 @@ static bool hash_Remove(struct prs_hash *hash,
 }
 #endif
 
-static unsigned buffer_GetLine(struct prs_buffer *input, struct prs_text *data)
+static unsigned buffer_GetLine(struct prs_buffer *input, PrsInput base)
 {
     if (input->cursor >= input->read) {
         int read = getline(&input->line, &input->allocated, input->file);
@@ -177,19 +177,13 @@ static unsigned buffer_GetLine(struct prs_buffer *input, struct prs_text *data)
         input->read   = read;
     }
 
-    unsigned count = input->read - input->cursor;
+    unsigned  count = input->read - input->cursor;
+    const char *src = input->line + input->cursor;
 
-    text_Extend(data, count);
-
-    char *dest = data->buffer + data->limit;
-    char *src  = input->line  + input->cursor;
-
-    memcpy(dest, src, count);
+    if (!cu_AppendData(base, count, src)) return 0;
 
     input->cursor += count;
-    data->limit   += count;
 
-    data->buffer[data->limit] = 0;
 
     return count;
 }
@@ -201,7 +195,7 @@ static bool file_CurrentChar(PrsInput input, PrsChar* target) {
     unsigned limit = file->base.data.limit;
 
     if (point >= limit) {
-        if (0 >= buffer_GetLine(&file->buffer, &file->base.data))
+        if (0 >= buffer_GetLine(&file->buffer, &file->base))
             return false;
     }
 
@@ -220,7 +214,7 @@ static bool file_NextChar(PrsInput input) {
     unsigned limit = file->base.data.limit;
 
     if (point >= limit) {
-        if (0 >= buffer_GetLine(&file->buffer, &file->base.data))
+        if (0 >= buffer_GetLine(&file->buffer, &file->base))
             return false;
     }
 
@@ -338,8 +332,7 @@ extern bool make_PrsFile(FILE* file, const char* filename, PrsInput *target) {
     result->base.set_a     = file_SetAction;
     result->base.set_e     = file_SetEvent;
 
-    make_Cache(1024, &result->base.cache);
-    make_Queue(&result->base.queue);
+    cu_InputInit(&result->base, 1024);
 
     /* */
     result->filename    = strdup(filename);
@@ -404,7 +397,7 @@ static bool makeChunk(struct prs_file *file, SynType type, SynChunk *target) {
 
     if (syn_chunk != type2kind(type)) return false;
 
-    if (!input_Text((PrsInput) file, &value)) return false;
+    if (!cu_MarkedText((PrsInput) file, &value)) return false;
 
     if (!make_Any(type, &chunk)) return false;
 
@@ -500,7 +493,7 @@ static bool makeText(struct prs_file *file, SynType type) {
 
     if (syn_text != type2kind(type)) return false;
 
-    if (!input_Text((PrsInput) file, &value)) return false;
+    if (!cu_MarkedText((PrsInput) file, &value)) return false;
 
     if (!make_Any(type, &text)) return false;
 
@@ -558,7 +551,7 @@ extern bool checkRule(PrsInput input, PrsCursor at) {
 
     PrsData name;
 
-    if (!input_Text((PrsInput) file, &name)) return false;
+    if (!cu_MarkedText((PrsInput) file, &name)) return false;
 
     SynDefine rule = file->rules;
 

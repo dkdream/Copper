@@ -19,32 +19,7 @@
 
 /* */
 
-unsigned cu_global_debug = 0;
-
-extern void cu_debug(const char *filename,
-                     unsigned int linenum,
-                     const char *format,
-                     ...)
-{
-    va_list ap; va_start (ap, format);
-
-    //    printf("file %s line %u :: ", filename, linenum);
-    vprintf(format, ap);
-}
-
-extern void cu_error(const char *filename,
-                     unsigned int linenum,
-                     const char *format,
-                     ...)
-{
-    va_list ap; va_start (ap, format);
-
-    printf("file %s line %u :: ", filename, linenum);
-    vprintf(format, ap);
-    exit(1);
-}
-
-extern bool text_Extend(struct prs_text *text, const unsigned room) {
+static bool text_Extend(struct prs_text *text, const unsigned room) {
     if (!text) return false;
 
     const unsigned point  = text->limit;
@@ -111,12 +86,25 @@ static bool make_Thread(PrsCursor at,
     return true;
 }
 
-extern bool make_Queue(PrsQueue *target) {
+static bool make_Queue(PrsQueue *target) {
     struct prs_queue *result = malloc(sizeof(struct prs_queue));
 
     result->free_list = 0;
     result->begin     = 0;
     result->end       = 0;
+
+    *target = result;
+
+    return true;
+}
+
+static bool make_Cache(unsigned size, PrsCache *target) {
+    unsigned fullsize = (sizeof(struct prs_cache) + (size * sizeof(PrsPoint)));
+
+    struct prs_cache *result = malloc(fullsize);
+    memset(result, 0, fullsize);
+
+    result->size = size;
 
     *target = result;
 
@@ -453,19 +441,6 @@ static bool queue_Free(PrsQueue *target) {
     return true;
 }
 #endif
-
-extern bool make_Cache(unsigned size, PrsCache *target) {
-    unsigned fullsize = (sizeof(struct prs_cache) + (size * sizeof(PrsPoint)));
-
-    struct prs_cache *result = malloc(fullsize);
-    memset(result, 0, fullsize);
-
-    result->size = size;
-
-    *target = result;
-
-    return true;
-}
 
 static bool cache_Point(PrsCache cache,
                         PrsNode  node,
@@ -1142,7 +1117,18 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     return match;
 }
 
-extern bool input_Parse(char* name, PrsInput input) {
+/*************************************************************************************
+ *************************************************************************************
+ *************************************************************************************
+ *************************************************************************************/
+
+extern bool cu_InputInit(PrsInput input, unsigned cacheSize) {
+    if (!make_Cache(cacheSize, &input->cache)) return false;
+    if (!make_Queue(&input->queue)) return false;
+    return true;
+}
+
+extern bool cu_Parse(char* name, PrsInput input) {
     PrsNode start = 0;
 
     if (!input->node(input, name, &start)) return false;
@@ -1152,12 +1138,34 @@ extern bool input_Parse(char* name, PrsInput input) {
     return copper_vm(start, 0, input);
 }
 
-extern bool input_RunQueue(PrsInput input) {
+extern bool cu_AppendData(PrsInput input,
+                          const unsigned count,
+                          const char *src)
+{
+    if (!input)    return false;
+    if (1 > count) return true;
+    if (!src)      return false;
+
+    struct prs_text *data = &input->data;
+
+    text_Extend(data, count);
+
+    char *dest = data->buffer + data->limit;
+
+    memcpy(dest, src, count);
+
+    data->limit   += count;
+    data->buffer[data->limit] = 0;
+
+    return true;
+}
+
+extern bool cu_RunQueue(PrsInput input) {
     if (!input) return false;
     return queue_Run(input->queue, input);
 }
 
-extern bool input_Text(PrsInput input, PrsData *target) {
+extern bool cu_MarkedText(PrsInput input, PrsData *target) {
     if (!input)  return false;
     if (!target) return false;
 
@@ -1179,6 +1187,31 @@ extern bool input_Text(PrsInput input, PrsData *target) {
     target->start  = input->data.buffer + text_begin;
 
     return true;
+}
+
+unsigned cu_global_debug = 0;
+
+extern void cu_debug(const char *filename,
+                     unsigned int linenum,
+                     const char *format,
+                     ...)
+{
+    va_list ap; va_start (ap, format);
+
+    //    printf("file %s line %u :: ", filename, linenum);
+    vprintf(format, ap);
+}
+
+extern void cu_error(const char *filename,
+                     unsigned int linenum,
+                     const char *format,
+                     ...)
+{
+    va_list ap; va_start (ap, format);
+
+    printf("file %s line %u :: ", filename, linenum);
+    vprintf(format, ap);
+    exit(1);
 }
 
 
