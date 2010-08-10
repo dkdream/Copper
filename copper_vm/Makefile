@@ -1,5 +1,7 @@
 PREFIX	= /tools/Copper
 BINDIR	= $(PREFIX)/bin
+INCDIR  = $(PREFIX)/include
+LIBDIR  = $(PREFIX)/lib
 
 TIME        := $(shell date +T=%s.%N)
 STAGE       := zero
@@ -11,8 +13,12 @@ PATH := $(PATH):.
 
 DIFF   = diff
 CC     = gcc
+AR     = ar
+RANLIB = ranlib
+
 CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
 OFLAGS = -Wall
+ARFLAGS = rcu
 
 OBJS = cu_engine.o compiler.o
 
@@ -22,10 +28,14 @@ all : copper.vm
 
 full : do.stage.two 
 
-install : $(COPPER)
+install : $(COPPER) copper.h libCopper.a
 	[ -d $(BINDIR) ] || mkdir -p $(BINDIR)
+	[ -d $(INCDIR) ] || mkdir -p $(INCDIR)
+	[ -d $(LIBDIR) ] || mkdir -p $(LIBDIR)
 	cp -p $< $(BINDIR)/copper
 	strip $(BINDIR)/copper
+	cp -p copper.h    $(INCDIR)/copper.h
+	cp -p libCopper.a $(LIBDIR)/libCopper.a
 
 uninstall : .FORCE
 	rm -f $(BINDIR)/copper
@@ -38,21 +48,26 @@ test examples : $(COPPER.test) .FORCE
 
 # -- -------------------------------------------------
 
-compiler.o  : compiler.c ; $(CC) $(CFLAGS) -c -o $@ $<
 cu_engine.o : cu_engine.c ; $(CC) $(CFLAGS) -c -o $@ $<
-
 cu_engine.o : copper.h
+
+libCopper.a : copper.h
+libCopper.a : cu_engine.o
+	-$(RM) $@
+	$(AR) $(ARFLAGS) $@ cu_engine.o
+	$(RANLIB) $@
+
+compiler.o  : compiler.c  ; $(CC) $(CFLAGS) -c -o $@ $<
 compiler.o  : copper.h compiler.h
 
 # -- -------------------------------------------------
 
 copper_o.c : copper_o.c.bootstrap ; cp $< $@
 copper_o.o : copper_o.c           ; $(CC) $(CFLAGS) -c -o $@ $<
-
-copper.ovm : main.o copper_o.o $(OBJS)
-	$(CC) $(CFLAGS) -o $@ main.o copper_o.o $(OBJS)
-
 copper_o.o : copper.h compiler.h
+
+copper.ovm : main.o copper_o.o compiler.o libCopper.a
+	$(CC) $(CFLAGS) -o $@ main.o copper_o.o compiler.o -L. -lCopper
 
 # -- -------------------------------------------------
 
@@ -60,10 +75,10 @@ copper.c : copper.cu ./copper.ovm ; ./copper.ovm --name copper_graph --output $@
 copper.o : copper.c               ; $(CC) $(CFLAGS) -I. -c -o $@ $<
 main.o   : main.c                 ; $(CC) $(CFLAGS) -I. -c -o $@ $<
 
-copper.vm : main.o copper.o $(OBJS)
-	$(CC) $(CFLAGS) -o $@ main.o copper.o $(OBJS)
-
 copper.o main.o : copper.h compiler.h
+
+copper.vm : main.o copper.o compiler.o libCopper.a
+	$(CC) $(CFLAGS) -o $@ main.o copper.o compiler.o -L. -lCopper
 
 # -- -------------------------------------------------
 
@@ -80,8 +95,8 @@ stage.$(STAGE).c : copper.cu $(COPPER.test)
 stage.$(STAGE).o : stage.$(STAGE).c
 	$(CC) $(CFLAGS) -I. -c -o $@ $<
 
-stage.$(STAGE) : main.o stage.$(STAGE).o $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $+
+stage.$(STAGE) : main.o stage.$(STAGE).o compiler.o libCopper.a
+	$(CC) $(CFLAGS) -o $@ main.o stage.$(STAGE).o compiler.o -L. -lCopper
 
 stage.$(STAGE).o : copper.h compiler.h
 

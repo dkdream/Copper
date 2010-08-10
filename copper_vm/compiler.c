@@ -846,7 +846,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
 
     inline bool do_apply() {
         fprintf(output,
-                "static struct prs_node  node_%x  = { 0,0, prs_Apply, (union prs_arg) (\"%s\") };\n",
+                "static struct prs_node  node_%x  = { 0,0, prs_Apply, (union prs_arg) ((PrsName)\"%s\") };\n",
                 (unsigned) node.any,
                 makeConstCString(node.text->value));
         return true;
