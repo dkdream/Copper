@@ -14,7 +14,11 @@
 
 static char* program_name = 0;
 
-extern bool init__copper_c(PrsInput input);
+#ifdef ORIG_COPPER
+extern bool init__copper_o_c(PrsInput parser);
+#else
+extern bool copper_graph(PrsInput parser);
+#endif
 
 static void help() {
     fprintf(stderr, "copper [-verbose]+ --name c_func_name [--output outfile] [--file infile]\n");
@@ -108,6 +112,7 @@ int main(int argc, char **argv)
     }
 
     CU_DEBUG(1, "adding parser graph\n");
+
 #ifdef ORIG_COPPER
     init__copper_o_c(parser);
 #else

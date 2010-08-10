@@ -1,7 +1,7 @@
 
 EXAMPLES = test rule accept dc dcv wc calc basic
 
-COPPER     = ../copper-new
+COPPER     = ../copper.vm
 Copper.ext = cu
 
 CFLAGS = -g -Wall

@@ -1,11 +1,9 @@
 PREFIX	= /tools/Copper
 BINDIR	= $(PREFIX)/bin
 
-COPPER.orig = ../copper-new
-
 TIME        := $(shell date +T=%s.%N)
 STAGE       := zero
-COPPER      := copper.x
+COPPER      := copper.vm
 COPPER.test := copper.vm
 Copper.ext  := cu
 
@@ -24,13 +22,19 @@ all : copper.vm
 
 full : do.stage.two 
 
-install : copper
+install : $(COPPER)
 	[ -d $(BINDIR) ] || mkdir -p $(BINDIR)
 	cp -p $< $(BINDIR)/copper
 	strip $(BINDIR)/copper
 
 uninstall : .FORCE
 	rm -f $(BINDIR)/copper
+
+push : .FORCE #-- put the new graph under version control
+	cp copper.c
+
+test examples : $(COPPER.test) .FORCE
+        $(MAKE) --directory=examples
 
 # -- -------------------------------------------------
 
@@ -41,14 +45,13 @@ compiler.o syntax.o : copper.h syntax.h
 
 # -- -------------------------------------------------
 
-copper_o.c : copper.cuo ; $(COPPER.orig) -A -o $@ copper.cuo
-copper_o.o : copper_o.c ; $(CC) $(CFLAGS) -c -o $@ $<
-main_o.o   : main.c     ; $(CC) $(CFLAGS) -DORIG_COPPER -c -o $@ $<
+copper_o.c : copper_o.c.bootstrap ; cp $< $@
+copper_o.o : copper_o.c           ; $(CC) $(CFLAGS) -c -o $@ $<
 
-copper.ovm : main_o.o copper_o.o $(OBJS)
-	$(CC) $(CFLAGS) -o $@ main_o.o copper_o.o $(OBJS)
+copper.ovm : main.o copper_o.o $(OBJS)
+	$(CC) $(CFLAGS) -o $@ main.o copper_o.o $(OBJS)
 
-main_o.o copper_o.o : copper.h syntax.h
+copper_o.o : copper.h syntax.h
 
 # -- -------------------------------------------------
 
