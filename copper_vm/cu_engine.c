@@ -695,7 +695,8 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
 
     inline bool hold() {
         mark = queue->end;
-        return input->fetch(input, &at);
+        at   = input->cursor;
+        return true;
     }
 
     inline bool reset()   {
@@ -704,15 +705,44 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         } else {
             if (!queue_TrimTo(queue, mark)) return false;
         }
-        return input->reset(input, at);
+        input->cursor = at;
+        return true;
+    }
+
+    inline bool more() {
+        return input->more(input);
     }
 
     inline bool next() {
-        return input->next(input);
+        input->cursor.text_inx    += 1;
+        input->cursor.char_offset += 1;
+
+        unsigned point = input->cursor.text_inx;
+        unsigned limit = input->data.limit;
+
+        if (point >= limit) {
+            if (!more()) return false;
+        }
+
+        if ('\n' == input->data.buffer[point]) {
+            input->cursor.line_number += 1;
+            input->cursor.char_offset  = 0;
+        }
+
+        return true;
     }
 
     inline bool current(PrsChar *target) {
-        return input->current(input, target);
+        unsigned point = input->cursor.text_inx;
+        unsigned limit = input->data.limit;
+
+        if (point >= limit) {
+            if (!more()) return false;
+        }
+
+        *target = input->data.buffer[point];
+
+        return true;
     }
 
     inline bool node(PrsName name, PrsNode* target) {
@@ -784,7 +814,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         match = point->match;
 
         if (match) {
-            if (!input->reset(input, point->cursor.end))   return false;
+            input->cursor = point->cursor.end;
             if (!queue_AppendSlice(queue, point->segment)) return false;
 
             indent(); CU_DEBUG(2, "%s (%x) at (%u,%u) to (%u,%u) using cache result %s\n",
@@ -808,7 +838,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     }
 
     inline bool cache_end() {
-        if (!input->fetch(input, &cursor.end)) return false;
+        cursor.end = input->cursor;
 
         if (match) {
             indent(); CU_DEBUG(2, "%s (%x) at (%u,%u) to (%u,%u) result %s\n",

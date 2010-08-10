@@ -710,70 +710,44 @@ static bool event__1_grammar(PrsInput input, PrsCursor cursor) {
 
 extern bool copper_graph(PrsInput input) {
   inline bool attach(PrsName name,    PrsNode value)      { return input->attach(input, name, value); }
-  inline bool predicate(PrsName name, PrsPredicate value) { return input->set_p(input, name, value); }
-  inline bool action(PrsName name,    PrsAction value)    { return input->set_a(input, name, value); }
-  inline bool event(PrsName name,     PrsEvent value)     { return input->set_e(input, name, value); }
 
-   attach("end_of_line", node_end_of_line);
-   attach("comment", node_comment);
-   attach("space", node_space);
-   attach("COLON", node_COLON);
-   attach("braces", node_braces);
-   attach("range", node_range);
-   attach("char", node_char);
-   attach("directive", node_directive);
-   attach("END", node_END);
-   attach("BEGIN", node_BEGIN);
-   attach("event", node_event);
-   attach("predicate", node_predicate);
-   attach("DOT", node_DOT);
-   attach("class", node_class);
-   attach("literal", node_literal);
-   attach("CLOSE", node_CLOSE);
-   attach("OPEN", node_OPEN);
-   attach("PLUS", node_PLUS);
-   attach("STAR", node_STAR);
-   attach("QUESTION", node_QUESTION);
-   attach("primary", node_primary);
-   attach("NOT", node_NOT);
-   attach("suffix", node_suffix);
-   attach("AND", node_AND);
-   attach("prefix", node_prefix);
-   attach("BAR", node_BAR);
-   attach("sequence", node_sequence);
-   attach("SEMICOLON", node_SEMICOLON);
-   attach("expression", node_expression);
-   attach("EQUAL", node_EQUAL);
-   attach("identifier", node_identifier);
-   attach("thunk", node_thunk);
-   attach("end_of_file", node_end_of_file);
-   attach("define_rule", node_define_rule);
-   attach("heading", node_heading);
-   attach("_", node__);
-   attach("grammar", node_grammar);
-
-
-
-   event("event__9_primary", event__9_primary);
-   event("event__8_primary", event__8_primary);
-   event("event__7_primary", event__7_primary);
-   event("event__6_primary", event__6_primary);
-   event("event__5_primary", event__5_primary);
-   event("event__4_primary", event__4_primary);
-   event("event__3_primary", event__3_primary);
-   event("event__2_primary", event__2_primary);
-   event("event__1_primary", event__1_primary);
-   event("event__3_suffix", event__3_suffix);
-   event("event__2_suffix", event__2_suffix);
-   event("event__1_suffix", event__1_suffix);
-   event("event__2_prefix", event__2_prefix);
-   event("event__1_prefix", event__1_prefix);
-   event("event__1_sequence", event__1_sequence);
-   event("event__1_expression", event__1_expression);
-   event("event__2_define_rule", event__2_define_rule);
-   event("event__1_define_rule", event__1_define_rule);
-   event("event__1_heading", event__1_heading);
-   event("event__1_grammar", event__1_grammar);
+  attach("end_of_line", node_end_of_line);
+  attach("comment", node_comment);
+  attach("space", node_space);
+  attach("COLON", node_COLON);
+  attach("braces", node_braces);
+  attach("range", node_range);
+  attach("char", node_char);
+  attach("directive", node_directive);
+  attach("END", node_END);
+  attach("BEGIN", node_BEGIN);
+  attach("event", node_event);
+  attach("predicate", node_predicate);
+  attach("DOT", node_DOT);
+  attach("class", node_class);
+  attach("literal", node_literal);
+  attach("CLOSE", node_CLOSE);
+  attach("OPEN", node_OPEN);
+  attach("PLUS", node_PLUS);
+  attach("STAR", node_STAR);
+  attach("QUESTION", node_QUESTION);
+  attach("primary", node_primary);
+  attach("NOT", node_NOT);
+  attach("suffix", node_suffix);
+  attach("AND", node_AND);
+  attach("prefix", node_prefix);
+  attach("BAR", node_BAR);
+  attach("sequence", node_sequence);
+  attach("SEMICOLON", node_SEMICOLON);
+  attach("expression", node_expression);
+  attach("EQUAL", node_EQUAL);
+  attach("identifier", node_identifier);
+  attach("thunk", node_thunk);
+  attach("end_of_file", node_end_of_file);
+  attach("define_rule", node_define_rule);
+  attach("heading", node_heading);
+  attach("_", node__);
+  attach("grammar", node_grammar);
 
   return true;
 }

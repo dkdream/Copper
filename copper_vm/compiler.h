@@ -264,8 +264,6 @@ struct prs_file {
     // parsing context
     const char        *filename;
     struct prs_buffer  buffer;
-    struct prs_cursor  cursor;
-    struct prs_cursor  reach;
     struct prs_hash   *nodes;
     struct prs_hash   *predicates;
     struct prs_hash   *actions;

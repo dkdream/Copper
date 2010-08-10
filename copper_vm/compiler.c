@@ -168,11 +168,11 @@ static bool hash_Remove(struct prs_hash *hash,
 }
 #endif
 
-static unsigned buffer_GetLine(struct prs_buffer *input, PrsInput base)
+static bool buffer_GetLine(struct prs_buffer *input, PrsInput base)
 {
     if (input->cursor >= input->read) {
         int read = getline(&input->line, &input->allocated, input->file);
-        if (read < 0) return 0;
+        if (read < 0) return false;
         input->cursor = 0;
         input->read   = read;
     }
@@ -180,62 +180,16 @@ static unsigned buffer_GetLine(struct prs_buffer *input, PrsInput base)
     unsigned  count = input->read - input->cursor;
     const char *src = input->line + input->cursor;
 
-    if (!cu_AppendData(base, count, src)) return 0;
+    if (!cu_AppendData(base, count, src)) return false;
 
     input->cursor += count;
 
-
-    return count;
+    return false;
 }
 
-static bool file_CurrentChar(PrsInput input, PrsChar* target) {
+static bool file_MoreData(PrsInput input) {
     struct prs_file *file = (struct prs_file *)input;
-
-    unsigned point = file->cursor.text_inx;
-    unsigned limit = file->base.data.limit;
-
-    if (point >= limit) {
-        if (0 >= buffer_GetLine(&file->buffer, &file->base))
-            return false;
-    }
-
-    *target = file->base.data.buffer[point];
-
-    return true;
-}
-
-static bool file_NextChar(PrsInput input) {
-    struct prs_file *file = (struct prs_file *)input;
-
-    file->cursor.text_inx    += 1;
-    file->cursor.char_offset += 1;
-
-    unsigned point = file->cursor.text_inx;
-    unsigned limit = file->base.data.limit;
-
-    if (point >= limit) {
-        if (0 >= buffer_GetLine(&file->buffer, &file->base))
-            return false;
-    }
-
-    if ('\n' == file->base.data.buffer[point]) {
-        file->cursor.line_number += 1;
-        file->cursor.char_offset  = 0;
-    }
-
-    return true;
-}
-
-static bool file_GetCursor(PrsInput input, PrsCursor* target) {
-    struct prs_file *file = (struct prs_file *)input;
-    (*target) = file->cursor;
-    return true;
-}
-
-static bool file_SetCursor(PrsInput input, PrsCursor value) {
-    struct prs_file *file = (struct prs_file *)input;
-    file->cursor = value;
-    return true;
+    return buffer_GetLine(&file->buffer, &file->base);
 }
 
 static bool file_FindNode(PrsInput input, PrsName name, PrsNode* target) {
@@ -277,21 +231,6 @@ static bool file_AddName(PrsInput input, PrsName name, PrsNode value) {
     return hash_Replace(file->nodes, (void*)name, value, noop_release);
 }
 
-static bool file_SetPredicate(PrsInput input, PrsName name, PrsPredicate value) {
-    struct prs_file *file = (struct prs_file *)input;
-    return hash_Replace(file->predicates, (void*)name, value, noop_release);
-}
-
-static bool file_SetAction(PrsInput input, PrsName name, PrsAction value) {
-    struct prs_file *file = (struct prs_file *)input;
-    return hash_Replace(file->actions, (void*)name, value, noop_release);
-}
-
-static bool file_SetEvent(PrsInput input, PrsName name, PrsEvent value) {
-    struct prs_file *file = (struct prs_file *)input;
-    return hash_Replace(file->events, (void*)name, value, noop_release);
-}
-
 static unsigned long encode_name(PrsName name) {
     const char *cursor = name;
 
@@ -319,18 +258,12 @@ extern bool make_PrsFile(FILE* file, const char* filename, PrsInput *target) {
 
     memset(result, 0, sizeof(struct prs_file));
 
-    result->base.current   = file_CurrentChar;
-    result->base.next      = file_NextChar;
-    result->base.fetch     = file_GetCursor;
-    result->base.reset     = file_SetCursor;
+    result->base.more      = file_MoreData;
     result->base.node      = file_FindNode;
     result->base.predicate = file_FindPredicate;
     result->base.event     = file_FindEvent;
     result->base.action    = file_FindAction;
     result->base.attach    = file_AddName;
-    result->base.set_p     = file_SetPredicate;
-    result->base.set_a     = file_SetAction;
-    result->base.set_e     = file_SetEvent;
 
     cu_InputInit(&result->base, 1024);
 
@@ -1109,10 +1042,7 @@ extern bool file_WriteTree(PrsInput input, FILE* output, const char* function) {
 
     fprintf(output, "extern bool %s(PrsInput input) {\n", function);
     fprintf(output, "\n");
-    fprintf(output, "    inline bool attach(PrsName name,    PrsNode value)      { return input->attach(input, name, value); }\n");
-    fprintf(output, "    inline bool predicate(PrsName name, PrsPredicate value) { return input->set_p(input, name, value); }\n");
-    fprintf(output, "    inline bool action(PrsName name,    PrsAction value)    { return input->set_a(input, name, value); }\n");
-    fprintf(output, "    inline bool event(PrsName name,     PrsEvent value)     { return input->set_e(input, name, value); }\n");
+    fprintf(output, "    inline bool attach(PrsName name, PrsNode value) { return input->attach(input, name, value); }\n");
     fprintf(output, "\n");
 
     rule = file->rules;

@@ -204,35 +204,30 @@ typedef void (*PrsAction)(PrsInput);            // user defined parsing action
 /* parsing structure call back */
 typedef bool (*CurrentChar)(PrsInput, PrsChar*);                  // return the char at the cursor location
 typedef bool (*NextChar)(PrsInput);                               // move the cursor by on char
-typedef bool (*GetCursor)(PrsInput, PrsCursor*);                  // get the cursor location
-typedef bool (*SetCursor)(PrsInput, PrsCursor);                   // set the cursor location
+typedef bool (*MoreData)(PrsInput);                               // add more text to the data buffer
 
 typedef bool (*FindNode)(PrsInput, PrsName, PrsNode*);            // find the PrsNode labelled name
+typedef bool (*AddName)(PrsInput, PrsName, PrsNode);              // add a PrsNode to label name
+
 typedef bool (*FindPredicate)(PrsInput, PrsName, PrsPredicate*);  // find the PrsPredicate labelled name
 typedef bool (*FindEvent)(PrsInput, PrsName, PrsEvent*);          // find the PrsEvent labelled name
 typedef bool (*FindAction)(PrsInput, PrsName, PrsAction*);        // find the PrsAction labelled name
 
-typedef bool (*AddName)(PrsInput, PrsName, PrsNode);              // add a PrsNode to label name
-typedef bool (*SetPredicate)(PrsInput, PrsName, PrsPredicate);    // assign the PrsPredicate to label name
-typedef bool (*SetEvent)(PrsInput, PrsName, PrsEvent);            // assign the PrsEvent to label name
-typedef bool (*SetAction)(PrsInput, PrsName, PrsAction);          // assign the PrsAction to label name
-
 struct prs_input {
     /* call-backs */
-    CurrentChar   current;
-    NextChar      next;
-    GetCursor     fetch;
-    SetCursor     reset;
+    MoreData      more;
     FindNode      node;
+    AddName       attach;
+
     FindPredicate predicate;
     FindEvent     event;
     FindAction    action;    // do we need these ?
-    AddName       attach;
-    SetPredicate  set_p;
-    SetAction     set_a;     // do we need these ?
-    SetEvent      set_e;
+
     /* data */
-    PrsText  data;
+    PrsText   data;
+    PrsCursor cursor;
+    PrsCursor reach;
+
     PrsCache cache;
     PrsQueue queue;
     PrsState slice;
