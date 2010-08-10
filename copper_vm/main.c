@@ -5,7 +5,7 @@
  ** Routine List:
  **    <routine-list-end>
  **/
-#include "syntax.h"
+#include "compiler.h"
 
 #include <stdlib.h>
 #include <getopt.h>

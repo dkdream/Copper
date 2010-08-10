@@ -14,7 +14,7 @@ CC     = gcc
 CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
 OFLAGS = -Wall
 
-OBJS = syntax.o compiler.o
+OBJS = cu_engine.o compiler.o
 
 default : copper.vm
 
@@ -38,10 +38,11 @@ test examples : $(COPPER.test) .FORCE
 
 # -- -------------------------------------------------
 
-compiler.o : compiler.c ; $(CC) $(CFLAGS) -c -o $@ $<
-syntax.o   : syntax.c   ; $(CC) $(CFLAGS) -c -o $@ $<
+compiler.o  : compiler.c ; $(CC) $(CFLAGS) -c -o $@ $<
+cu_engine.o : cu_engine.c ; $(CC) $(CFLAGS) -c -o $@ $<
 
-compiler.o syntax.o : copper.h syntax.h
+cu_engine.o : copper.h
+compiler.o  : copper.h compiler.h
 
 # -- -------------------------------------------------
 
@@ -51,7 +52,7 @@ copper_o.o : copper_o.c           ; $(CC) $(CFLAGS) -c -o $@ $<
 copper.ovm : main.o copper_o.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ main.o copper_o.o $(OBJS)
 
-copper_o.o : copper.h syntax.h
+copper_o.o : copper.h compiler.h
 
 # -- -------------------------------------------------
 
@@ -62,7 +63,7 @@ main.o   : main.c                 ; $(CC) $(CFLAGS) -I. -c -o $@ $<
 copper.vm : main.o copper.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ main.o copper.o $(OBJS)
 
-copper.o main.o : copper.h syntax.h
+copper.o main.o : copper.h compiler.h
 
 # -- -------------------------------------------------
 
@@ -82,7 +83,7 @@ stage.$(STAGE).o : stage.$(STAGE).c
 stage.$(STAGE) : main.o stage.$(STAGE).o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $+
 
-stage.$(STAGE).o : copper.h syntax.h
+stage.$(STAGE).o : copper.h compiler.h
 
 compare : $(COPPER.test) stage.$(STAGE) .FORCE
 	@./compare_graphs.sh $(COPPER.test) stage.$(STAGE)

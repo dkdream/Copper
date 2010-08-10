@@ -2,7 +2,7 @@
 # Parser syntax
 
 %header {
-#include "syntax.h"
+#include "compiler.h"
 }
 
 grammar = ( - heading )? ( - define-rule )+ end-of-file { writeTree(input,cursor); }

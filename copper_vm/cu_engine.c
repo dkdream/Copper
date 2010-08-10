@@ -8,15 +8,41 @@
  **
  **
  ***/
-#include "syntax.h"
+#include "copper.h"
 
 /* */
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <error.h>
+#include <stdarg.h>
 
 /* */
+
+unsigned cu_global_debug = 0;
+
+extern void cu_debug(const char *filename,
+                     unsigned int linenum,
+                     const char *format,
+                     ...)
+{
+    va_list ap; va_start (ap, format);
+
+    //    printf("file %s line %u :: ", filename, linenum);
+    vprintf(format, ap);
+}
+
+extern void cu_error(const char *filename,
+                     unsigned int linenum,
+                     const char *format,
+                     ...)
+{
+    va_list ap; va_start (ap, format);
+
+    printf("file %s line %u :: ", filename, linenum);
+    vprintf(format, ap);
+    exit(1);
+}
 
 extern bool text_Extend(struct prs_text *text, const unsigned room) {
     if (!text) return false;
@@ -85,7 +111,7 @@ static bool make_Thread(PrsCursor at,
     return true;
 }
 
-static bool make_Queue(PrsQueue *target) {
+extern bool make_Queue(PrsQueue *target) {
     struct prs_queue *result = malloc(sizeof(struct prs_queue));
 
     result->free_list = 0;
@@ -428,7 +454,7 @@ static bool queue_Free(PrsQueue *target) {
 }
 #endif
 
-static bool make_Cache(unsigned size, PrsCache *target) {
+extern bool make_Cache(unsigned size, PrsCache *target) {
     unsigned fullsize = (sizeof(struct prs_cache) + (size * sizeof(PrsPoint)));
 
     struct prs_cache *result = malloc(fullsize);
@@ -617,351 +643,6 @@ static bool input_CacheFree(PrsInput input) {
     return true;
 }
 #endif
-
-static bool make_Map(unsigned code,
-                     const void* key,
-                     void* value,
-                     struct prs_map *next,
-                     struct prs_map **target)
-{
-    struct prs_map *result = malloc(sizeof(struct prs_map));
-
-    result->code  = code;
-    result->key   = key;
-    result->value = value;
-    result->next  = next;
-
-    *target = result;
-    return true;
-}
-
-static bool make_Hash(Hashcode encode,
-                      Matchkey compare,
-                      unsigned size,
-                      struct prs_hash **target)
-{
-    unsigned fullsize = (sizeof(struct prs_hash)
-                         + (size * sizeof(struct prs_map *)));
-
-    struct prs_hash* result = malloc(fullsize);
-    memset(result, 0, fullsize);
-
-    result->encode  = encode;
-    result->compare = compare;
-    result->size    = size;
-
-    *target = result;
-    return true;
-}
-
-static bool hash_Find(struct prs_hash *hash,
-                      const void* key,
-                      void** target)
-{
-    if (!key) return false;
-
-    unsigned code  = hash->encode(key);
-    unsigned index = code % hash->size;
-
-    struct prs_map *map = hash->table[index];
-
-    for ( ; map ; map = map->next) {
-        if (code != map->code) continue;
-        if (!hash->compare(key, map->key)) continue;
-        *target = map->value;
-        return true;
-    }
-
-    return false;
-}
-
-#if 0
-static bool hash_Add(struct prs_hash *hash,
-                     const void* key,
-                     void* value)
-{
-    if (!key)   return false;
-    if (!value) return false;
-
-    unsigned code  = hash->encode(key);
-    unsigned index = code % hash->size;
-
-    struct prs_map *map = hash->table[index];
-
-    for ( ; map ; map = map->next) {
-        if (code != map->code) continue;
-        if (!hash->compare(key, map->key)) continue;
-        return false;
-    }
-
-    if (!make_Map(code, key, value, hash->table[index], &map)) {
-        return false;
-    }
-
-    hash->table[index] = map;
-
-    return true;
-}
-#endif
-
-static bool hash_Replace(struct prs_hash *hash,
-                         const void* key,
-                         void* value,
-                         FreeValue release)
-{
-    if (!key)     return false;
-    if (!value)   return false;
-    if (!release) return false;
-
-    unsigned long code  = hash->encode(key);
-    unsigned      index = code % hash->size;
-
-    struct prs_map *map = hash->table[index];
-
-    for ( ; map ; map = map->next) {
-        if (code != map->code) continue;
-        if (!hash->compare(key, map->key)) continue;
-        if (release(map->value)) {
-            return false;
-        }
-        map->value = value;
-        return true;
-    }
-
-    if (!make_Map(code, key, value, hash->table[index], &map)) {
-        return false;
-    }
-
-    hash->table[index] = map;
-
-    return true;
-}
-
-#if 0
-static bool hash_Remove(struct prs_hash *hash,
-                        const void* key,
-                        FreeValue release)
-{
-    if (!key)     return false;
-    if (!release) return false;
-
-    unsigned code  = hash->encode(key);
-    unsigned index = code % hash->size;
-
-    struct prs_map *map = hash->table[index];
-
-    for ( ; map ; map = map->next) {
-        if (code != map->code) continue;
-        if (!hash->compare(key, map->key)) continue;
-        if (release(map->value)) return false;
-        break;
-    }
-
-    return true;
-}
-#endif
-
-static unsigned buffer_GetLine(struct prs_buffer *input, struct prs_text *data)
-{
-    if (input->cursor >= input->read) {
-        int read = getline(&input->line, &input->allocated, input->file);
-        if (read < 0) return 0;
-        input->cursor = 0;
-        input->read   = read;
-    }
-
-    unsigned count = input->read - input->cursor;
-
-    text_Extend(data, count);
-
-    char *dest = data->buffer + data->limit;
-    char *src  = input->line  + input->cursor;
-
-    memcpy(dest, src, count);
-
-    input->cursor += count;
-    data->limit   += count;
-
-    data->buffer[data->limit] = 0;
-
-    return count;
-}
-
-static bool file_CurrentChar(PrsInput input, PrsChar* target) {
-    struct prs_file *file = (struct prs_file *)input;
-
-    unsigned point = file->cursor.text_inx;
-    unsigned limit = file->base.data.limit;
-
-    if (point >= limit) {
-        if (0 >= buffer_GetLine(&file->buffer, &file->base.data))
-            return false;
-    }
-
-    *target = file->base.data.buffer[point];
-
-    return true;
-}
-
-static bool file_NextChar(PrsInput input) {
-    struct prs_file *file = (struct prs_file *)input;
-
-    file->cursor.text_inx    += 1;
-    file->cursor.char_offset += 1;
-
-    unsigned point = file->cursor.text_inx;
-    unsigned limit = file->base.data.limit;
-
-    if (point >= limit) {
-        if (0 >= buffer_GetLine(&file->buffer, &file->base.data))
-            return false;
-    }
-
-    if ('\n' == file->base.data.buffer[point]) {
-        file->cursor.line_number += 1;
-        file->cursor.char_offset  = 0;
-    }
-
-    return true;
-}
-
-static bool file_GetCursor(PrsInput input, PrsCursor* target) {
-    struct prs_file *file = (struct prs_file *)input;
-    (*target) = file->cursor;
-    return true;
-}
-
-static bool file_SetCursor(PrsInput input, PrsCursor value) {
-    struct prs_file *file = (struct prs_file *)input;
-    file->cursor = value;
-    return true;
-}
-
-static bool file_FindNode(PrsInput input, PrsName name, PrsNode* target) {
-    struct prs_file *file = (struct prs_file *)input;
-    if (hash_Find(file->nodes, name, (void**)target)) {
-        return true;
-    }
-    return false;
-}
-
-static bool file_FindPredicate(PrsInput input, PrsName name, PrsPredicate* target) {
-    struct prs_file *file = (struct prs_file *)input;
-    return hash_Find(file->predicates, name, (void**)target);
-}
-
-static bool file_FindEvent(PrsInput input, PrsName name, PrsEvent* target) {
-    struct prs_file *file = (struct prs_file *)input;
-    return hash_Find(file->events, name, (void**)target);
-}
-
-static bool file_FindAction(PrsInput input, PrsName name, PrsAction* target) {
-    struct prs_file *file = (struct prs_file *)input;
-    return hash_Find(file->actions, name, (void**)target);
-}
-
-static bool noop_release(void* value) {
-    return true;
-}
-
-#if 0
-static bool malloc_release(void* value) {
-    free(value);
-    return true;
-}
-#endif
-
-static bool file_AddName(PrsInput input, PrsName name, PrsNode value) {
-    struct prs_file *file = (struct prs_file *)input;
-    return hash_Replace(file->nodes, (void*)name, value, noop_release);
-}
-
-static bool file_SetPredicate(PrsInput input, PrsName name, PrsPredicate value) {
-    struct prs_file *file = (struct prs_file *)input;
-    return hash_Replace(file->predicates, (void*)name, value, noop_release);
-}
-
-static bool file_SetAction(PrsInput input, PrsName name, PrsAction value) {
-    struct prs_file *file = (struct prs_file *)input;
-    return hash_Replace(file->actions, (void*)name, value, noop_release);
-}
-
-static bool file_SetEvent(PrsInput input, PrsName name, PrsEvent value) {
-    struct prs_file *file = (struct prs_file *)input;
-    return hash_Replace(file->events, (void*)name, value, noop_release);
-}
-
-static unsigned long encode_name(PrsName name) {
-    const char *cursor = name;
-
-    unsigned long result = 5381;
-
-    for ( ; *cursor ; ++cursor ) {
-        int val = *cursor;
-        result = ((result << 5) + result) + val;
-    }
-
-    return result;
-}
-
-static unsigned compare_name(PrsName lname, PrsName rname) {
-    const char *left  = lname;
-    const char *right = rname;
-
-    int result = strcmp(left, right);
-
-    return (0 == result);
-}
-
-extern bool make_PrsFile(FILE* file, const char* filename, PrsInput *target) {
-    struct prs_file *result = malloc(sizeof(struct prs_file));
-
-    memset(result, 0, sizeof(struct prs_file));
-
-    result->base.current   = file_CurrentChar;
-    result->base.next      = file_NextChar;
-    result->base.fetch     = file_GetCursor;
-    result->base.reset     = file_SetCursor;
-    result->base.node      = file_FindNode;
-    result->base.predicate = file_FindPredicate;
-    result->base.event     = file_FindEvent;
-    result->base.action    = file_FindAction;
-    result->base.attach    = file_AddName;
-    result->base.set_p     = file_SetPredicate;
-    result->base.set_a     = file_SetAction;
-    result->base.set_e     = file_SetEvent;
-
-    make_Cache(1024, &result->base.cache);
-    make_Queue(&result->base.queue);
-
-    /* */
-    result->filename    = strdup(filename);
-    result->buffer.file = file;
-
-    make_Hash((Hashcode) encode_name,
-              (Matchkey) compare_name,
-              100,
-              &result->nodes);
-
-    make_Hash((Hashcode) encode_name,
-              (Matchkey) compare_name,
-              100,
-              &result->predicates);
-
-    make_Hash((Hashcode) encode_name,
-              (Matchkey) compare_name,
-              100,
-              &result->actions);
-
-    make_Hash((Hashcode) encode_name,
-              (Matchkey) compare_name,
-              100,
-              &result->events);
-
-    *target = (PrsInput) result;
-
-    return true;
-}
 
 static bool mark_begin(PrsInput input, PrsCursor at) {
     if (!input) return false;

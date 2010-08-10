@@ -1,5 +1,8 @@
 
-EXAMPLES = test rule accept dc dcv wc calc basic
+EXAMPLES = test rule dc dcv wc
+USE_VARS = calc basic
+USE_ACPT = accept
+USE_OTHR = thoms
 
 COPPER     = ../copper.vm
 Copper.ext = cu
@@ -60,9 +63,9 @@ clean : .FORCE
 scrub spotless : clean
 
 %.x : %.${Copper.ext}
-	@$(COPPER) $(COPPER_OPT) -o ${@:%.x=%.inc} $< 2>/dev/null
+	@$(COPPER) $(COPPER_OPT) --name test_graph --output ${@:%.x=%.inc} --file $< 2>/dev/null
 	@sed -e 's,INCLUDE,"${@:%.x=%.inc}",' ${TEMPLATE} > ./${@:%.x=%.c}
-	@$(CC) $(CFLAGS) -o $@ ${@:%.x=%.c}
+	@$(CC) $(CFLAGS) -I.. -o $@ ${@:%.x=%.c}
 	@rm -f ${@:%.x=%.c}
 
 %.check : %.ref

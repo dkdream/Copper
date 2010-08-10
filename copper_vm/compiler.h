@@ -308,37 +308,4 @@ extern bool makeHeader(PrsInput input, PrsCursor at);
 extern bool makeInclude(PrsInput input, PrsCursor at);
 extern bool makeFooter(PrsInput input, PrsCursor at);
 
-
-extern unsigned cu_global_debug;
-extern void cu_debug(const char *filename, unsigned int linenum, const char *format, ...);
-extern void cu_error(const char *filename, unsigned int linenum, const char *format, ...);
-
-
-static inline void cu_noop() __attribute__((always_inline));
-static inline void cu_noop() { return; }
-
-#if 1
-#define CU_DEBUG(level, args...) ({ typeof (level) hold__ = (level); if (hold__ <= cu_global_debug) cu_debug(__FILE__,  __LINE__, args); })
-#else
-#define CU_DEBUG(level, args...) cu_noop()
-#endif
-
-#if 1
-#define CU_ON_DEBUG(level, arg) ({ typeof (level) hold__ = (level); if (hold__ <= cu_global_debug) arg; })
-#else
-#define CU_DEBUG(level, args...) cu_noop()
-#endif
-
-#if 1
-#define CU_ERROR(args...) cu_error(__FILE__,  __LINE__, args)
-#else
-#define CU_ERROR(args...) cu_noop()
-#endif
-
-#if 1
-#define CU_ERROR_AT(args...) cu_error(args)
-#else
-#define CU_ERROR_AT(args...) cu_noop()
-#endif
-
 #endif

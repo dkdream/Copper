@@ -242,6 +242,40 @@ extern bool text_Extend(struct prs_text *text, const unsigned room);
 extern bool input_Parse(char* name, PrsInput input);
 extern bool input_RunQueue(PrsInput input);
 extern bool input_Text(PrsInput input, PrsData *target);
+extern bool make_Queue(PrsQueue *target);
+extern bool make_Cache(unsigned size, PrsCache *target);
+
+extern unsigned cu_global_debug;
+extern void cu_debug(const char *filename, unsigned int linenum, const char *format, ...);
+extern void cu_error(const char *filename, unsigned int linenum, const char *format, ...);
+
+
+static inline void cu_noop() __attribute__((always_inline));
+static inline void cu_noop() { return; }
+
+#if 1
+#define CU_DEBUG(level, args...) ({ typeof (level) hold__ = (level); if (hold__ <= cu_global_debug) cu_debug(__FILE__,  __LINE__, args); })
+#else
+#define CU_DEBUG(level, args...) cu_noop()
+#endif
+
+#if 1
+#define CU_ON_DEBUG(level, arg) ({ typeof (level) hold__ = (level); if (hold__ <= cu_global_debug) arg; })
+#else
+#define CU_DEBUG(level, args...) cu_noop()
+#endif
+
+#if 1
+#define CU_ERROR(args...) cu_error(__FILE__,  __LINE__, args)
+#else
+#define CU_ERROR(args...) cu_noop()
+#endif
+
+#if 1
+#define CU_ERROR_AT(args...) cu_error(args)
+#else
+#define CU_ERROR_AT(args...) cu_noop()
+#endif
 
 #endif
 
