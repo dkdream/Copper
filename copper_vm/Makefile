@@ -48,7 +48,7 @@ test examples : $(COPPER.test) .FORCE
 
 # -- -------------------------------------------------
 
-cu_engine.o : cu_engine.c ; $(CC) $(CFLAGS) -c -o $@ $<
+cu_engine.o : cu_engine.c ; $(CC) $(CFLAGS) -I. -c -o $@ $<
 cu_engine.o : copper.h
 
 libCopper.a : copper.h
@@ -57,13 +57,13 @@ libCopper.a : cu_engine.o
 	$(AR) $(ARFLAGS) $@ cu_engine.o
 	$(RANLIB) $@
 
-compiler.o  : compiler.c  ; $(CC) $(CFLAGS) -c -o $@ $<
+compiler.o  : compiler.c  ; $(CC) $(CFLAGS) -I. -c -o $@ $<
 compiler.o  : copper.h compiler.h
 
 # -- -------------------------------------------------
 
 copper_o.c : copper_o.c.bootstrap ; cp $< $@
-copper_o.o : copper_o.c           ; $(CC) $(CFLAGS) -c -o $@ $<
+copper_o.o : copper_o.c           ; $(CC) $(CFLAGS) -I. -c -o $@ $<
 copper_o.o : copper.h compiler.h
 
 copper.ovm : main.o copper_o.o compiler.o libCopper.a

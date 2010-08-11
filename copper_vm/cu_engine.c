@@ -757,15 +757,6 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         return false;
     }
 
-    inline bool action(PrsName name) {
-        PrsAction thunk = 0;
-        if (input->action(input, name, &thunk)) {
-            thunk(input);
-            return true;
-        }
-        return true;
-    }
-
     inline void indent() {
         CU_ON_DEBUG(2,
                     { unsigned inx = level;
@@ -1013,39 +1004,6 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         return true;
     }
 
-    inline bool prs_string() {
-        PrsString    string = start->arg.string;
-        unsigned   remaning = string->length;
-        const PrsChar *text = string->text;
-
-        for ( ; 0 < remaning ; --remaning, ++text) {
-            PrsChar chr  = 0;
-
-            if (!current(&chr)) {
-                indent(); CU_DEBUG(2, "match \'%s\' to end-of-file at (%u,%u)\n",
-                                   char2string(*text),
-                                   at.line_number + 1,
-                                   at.char_offset);
-                reset();
-                return false;
-            }
-
-            indent(); CU_DEBUG(2, "match \'%s\' to \'%s\' at (%u,%u)\n",
-                               char2string(*text),
-                               char2string(chr),
-                               at.line_number + 1,
-                               at.char_offset);
-
-            if (chr != *text) {
-                reset();
-                return false;
-            }
-            next();
-        }
-
-        return true;
-    }
-
     inline bool prs_begin() {
         return add_event(begin_label);
     }
@@ -1060,14 +1018,6 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
             return false;
         }
         return true;
-    }
-
-    inline bool prs_action() {
-        return action(start->arg.name);
-    }
-
-    inline bool prs_event() {
-        return add_event(*(start->arg.label));
     }
 
     inline bool prs_apply() {
@@ -1122,7 +1072,6 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     inline bool run_node() {
         hold();
         switch (start->oper) {
-        case prs_Action:      return prs_action();
         case prs_AssertFalse: return prs_assert_false();
         case prs_AssertTrue:  return prs_assert_true();
         case prs_Choice:      return prs_choice();
@@ -1142,7 +1091,6 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         case prs_Thunk:       return prs_thunk();
         case prs_MatchText:   return prs_text();
         case prs_Void:        return false;
-        default: break;
         }
         return false;
     }

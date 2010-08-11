@@ -10,23 +10,20 @@
 #define COPPER_LEVEL    0
 
 enum prs_operator {
-    prs_Action,      // %action
     prs_Apply,       // @name - an named event
     prs_AssertFalse, // e !
     prs_AssertTrue,  // e &
     prs_Begin,       // set state.begin
     prs_Choice,      // e1 e2 /
     prs_End,         // set state.end
-    prs_Event,       // -transistional-
     prs_MatchChar,   // 'chr
     prs_MatchDot,    // .
     prs_MatchName,   // @name
     prs_MatchRange,  // begin-end
     prs_MatchSet,    // [...]
-    prs_MatchString, // -transistional-
     prs_MatchText,   // "..."
     prs_OneOrMore,   // e +
-    prs_Predicate,   // &predicate
+    prs_Predicate,   // %predicate
     prs_Sequence,    // e1 e2 ;
     prs_Thunk,       // { } - an unnamed event
     prs_ZeroOrMore,  // e *
@@ -36,29 +33,25 @@ enum prs_operator {
 
 static inline const char* oper2name(enum prs_operator oper) {
     switch (oper) {
-    case prs_Action:      return "prs_Action";      // %action
     case prs_Apply:       return "prs_Apply";       // @name - an named event
     case prs_AssertFalse: return "prs_AssertFalse"; // e !
     case prs_AssertTrue:  return "prs_AssertTrue";  // e &
     case prs_Begin:       return "prs_Begin";       // set state.begin
     case prs_Choice:      return "prs_Choice";      // e1 e2 /
     case prs_End:         return "prs_End";         // set state.end
-        //    case prs_Event:       return "prs_Event";       // { }
     case prs_MatchChar:   return "prs_MatchChar";   // 'chr
     case prs_MatchDot:    return "prs_MatchDot";    // .
     case prs_MatchName:   return "prs_MatchName";   // @name
     case prs_MatchRange:  return "prs_MatchRange";  // begin-end
     case prs_MatchSet:    return "prs_MatchSet";    // [...]
-        //    case prs_MatchString: return "prs_MatchString"; // "..."
     case prs_MatchText:   return "prs_MatchText";   // "..."
     case prs_OneOrMore:   return "prs_OneOrMore";   // e +
-    case prs_Predicate:   return "prs_Predicate";   // &predicate
+    case prs_Predicate:   return "prs_Predicate";   // %predicate
     case prs_Sequence:    return "prs_Sequence";    // e1 e2 ;
     case prs_Thunk:       return "prs_Thunk";       // { } - an unnamed event
     case prs_ZeroOrMore:  return "prs_ZeroOrMore";  // e *
     case prs_ZeroOrOne:   return "prs_ZeroOrOne";   // e ?
     case prs_Void:        break; // -nothing-
-    default: break;
     }
     return "prs-unknown";
 }
@@ -213,17 +206,14 @@ typedef bool (*AddName)(PrsInput, PrsName, PrsNode);              // add a PrsNo
 
 typedef bool (*FindPredicate)(PrsInput, PrsName, PrsPredicate*);  // find the PrsPredicate labelled name
 typedef bool (*FindEvent)(PrsInput, PrsName, PrsEvent*);          // find the PrsEvent labelled name
-typedef bool (*FindAction)(PrsInput, PrsName, PrsAction*);        // find the PrsAction labelled name
 
 struct prs_input {
     /* call-backs */
     MoreData      more;
     FindNode      node;
     AddName       attach;
-
     FindPredicate predicate;
     FindEvent     event;
-    FindAction    action;    // do we need these ?
 
     /* data */
     PrsText   data;

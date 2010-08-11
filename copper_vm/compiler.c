@@ -221,11 +221,6 @@ static bool file_FindEvent(PrsInput input, PrsName name, PrsEvent* target) {
     return hash_Find(file->events, name, (void**)target);
 }
 
-static bool file_FindAction(PrsInput input, PrsName name, PrsAction* target) {
-    struct prs_file *file = (struct prs_file *)input;
-    return hash_Find(file->actions, name, (void**)target);
-}
-
 static bool file_AddName(PrsInput input, PrsName name, PrsNode value) {
     struct prs_file *file = (struct prs_file *)input;
     return hash_Replace(file->nodes, (void*)name, value, noop_release);
@@ -239,10 +234,6 @@ extern bool file_SetPredicate(struct prs_file *file, PrsName name, PrsPredicate 
 
 extern bool file_SetEvent(struct prs_file *file, PrsName name, PrsEvent value) {
     return hash_Replace(file->events, (void*)name, value, noop_release);
-}
-
-extern bool file_SetAction(struct prs_file *file, PrsName name, PrsAction value) {
-    return hash_Replace(file->actions, (void*)name, value, noop_release);
 }
 
 static unsigned long encode_name(PrsName name) {
@@ -274,10 +265,9 @@ extern bool make_PrsFile(FILE* file, const char* filename, PrsInput *target) {
 
     result->base.more      = file_MoreData;
     result->base.node      = file_FindNode;
+    result->base.attach    = file_AddName;
     result->base.predicate = file_FindPredicate;
     result->base.event     = file_FindEvent;
-    result->base.action    = file_FindAction;
-    result->base.attach    = file_AddName;
 
     cu_InputInit(&result->base, 1024);
 
@@ -294,11 +284,6 @@ extern bool make_PrsFile(FILE* file, const char* filename, PrsInput *target) {
               (Matchkey) compare_name,
               100,
               &result->predicates);
-
-    make_Hash((Hashcode) encode_name,
-              (Matchkey) compare_name,
-              100,
-              &result->actions);
 
     make_Hash((Hashcode) encode_name,
               (Matchkey) compare_name,
@@ -971,7 +956,6 @@ static bool node_WriteTree(SynNode node, FILE* output)
 
     inline bool do_node() {
         switch (node.any->type) {
-        case syn_action:    return do_action();
         case syn_apply:     return do_apply();
         case syn_begin:     return do_begin();
         case syn_call:      return do_call();

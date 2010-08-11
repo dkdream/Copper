@@ -55,7 +55,6 @@ union syn_target {
 typedef union syn_target SynTarget;
 
 typedef enum syn_type {
-    syn_action,    // - %action (to be removed)
     syn_apply,     // - @name
     syn_begin,     // - set state.begin
     syn_call,      // - name
@@ -69,7 +68,7 @@ typedef enum syn_type {
     syn_include,   // - %include "..." or  %include <...>
     syn_not,       // - e !
     syn_plus,      // - e +
-    syn_predicate, // - &predicate
+    syn_predicate, // - %predicate
     syn_question,  // - e ?
     syn_rule,      // - identifier = ....
     syn_sequence,  // - e1 e2 ;
@@ -93,7 +92,6 @@ typedef enum syn_kind {
 
 static inline SynKind type2kind(SynType type) {
     switch (type) {
-    case syn_action:    return syn_text;      // - %action (to be removed)
     case syn_apply:     return syn_text;      // - @name
     case syn_begin:     return syn_any;       // - set state.begin
     case syn_call:      return syn_text;      // - name
@@ -107,7 +105,7 @@ static inline SynKind type2kind(SynType type) {
     case syn_include:   return syn_chunk;     // - %include "..." or  %include <...>
     case syn_not:       return syn_operator;  // - e !
     case syn_plus:      return syn_operator;  // - e +
-    case syn_predicate: return syn_text;      // - &predicate
+    case syn_predicate: return syn_text;      // - %predicate
     case syn_question:  return syn_operator;  // - e ?
     case syn_rule:      return syn_define;    // - identifier = ....
     case syn_sequence:  return syn_tree;      // - e1 e2 ;
@@ -123,7 +121,6 @@ static inline SynKind type2kind(SynType type) {
 
 static inline const char* type2name(SynType type) {
     switch (type) {
-    case syn_action:    return "syn_action";
     case syn_apply:     return "syn_apply";
     case syn_begin:     return "syn_begin";
     case syn_call:      return "syn_call";
@@ -266,7 +263,6 @@ struct prs_file {
     struct prs_buffer  buffer;
     struct prs_hash   *nodes;
     struct prs_hash   *predicates;
-    struct prs_hash   *actions;
     struct prs_hash   *events;
 
     // parsing state
@@ -281,7 +277,6 @@ extern bool make_PrsFile(FILE* file, const char* filename, PrsInput *input);
 extern bool file_WriteTree(PrsInput input, FILE* output, const char* name);
 extern bool file_SetPredicate(struct prs_file *file, PrsName name, PrsPredicate value);
 extern bool file_SetEvent(struct prs_file *file, PrsName name, PrsEvent value);
-extern bool file_SetAction(struct prs_file *file, PrsName name, PrsAction value);
 
 extern bool writeTree(PrsInput input, PrsCursor at);
 

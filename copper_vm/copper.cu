@@ -5,9 +5,11 @@
 #include "compiler.h"
 }
 
-grammar = ( - heading )? ( - define-rule )+ end-of-file @writeTree
+grammar = ( - heading )?
+          ( - define-rule )+
+          end-of-file @writeTree
 
-heading = '%header' - thunk  @makeHeader
+heading = '%header' - thunk @makeHeader
 
 define-rule = identifier       @checkRule
               EQUAL expression @defineRule
@@ -43,7 +45,7 @@ predicate  = !directive  '%' < [-a-zA-Z_][-a-zA-Z_0-9]* > -
 
 event      = '@' < [-a-zA-Z_][-a-zA-Z_0-9]* > -
 
-directive  = '%header' | '%begin' | '%end'
+directive  = '%header'
 
 identifier = < [-a-zA-Z_][-a-zA-Z_0-9]* > -
 
