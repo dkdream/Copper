@@ -5,37 +5,37 @@
 #include "compiler.h"
 }
 
-grammar = ( - heading )? ( - define-rule )+ end-of-file { writeTree(input,cursor); }
+grammar = ( - heading )? ( - define-rule )+ end-of-file @writeTree
 
-heading = '%header' - thunk { makeHeader(input,cursor); }
+heading = '%header' - thunk  @makeHeader
 
-define-rule = identifier       { checkRule(input,cursor);  }
-              EQUAL expression { defineRule(input,cursor); }
+define-rule = identifier       @checkRule
+              EQUAL expression @defineRule
               SEMICOLON?
 
-expression  = sequence ( BAR expression { makeChoice(input,cursor); }  )?
+expression  = sequence ( BAR expression @makeChoice )?
 
-sequence    = prefix ( sequence { makeSequence(input,cursor); } )?
+sequence    = prefix ( sequence @makeSequence )?
 
-prefix      = AND suffix { makeCheck(input,cursor); }
-            | NOT suffix { makeNot(input,cursor); }
+prefix      = AND suffix @makeCheck
+            | NOT suffix @makeNot
             | suffix
 
-suffix     = primary (QUESTION { makeQuestion(input,cursor); }
-                     | STAR    { makeStar(input,cursor); }
-                     | PLUS    { makePlus(input,cursor); }
+suffix     = primary (QUESTION @makeQuestion
+                     | STAR    @makeStar
+                     | PLUS    @makePlus
                      )?
 
-primary    = identifier !EQUAL     { makeCall(input,cursor); }
+primary    = identifier !EQUAL     @makeCall
            | OPEN expression CLOSE
-           | literal               { makeString(input,cursor);    }
-           | class                 { makeSet(input,cursor);       }
-           | DOT                   { makeDot(input,cursor);       }
-           | predicate             { makePredicate(input,cursor); }
-           | event                 { makeApply(input,cursor); }
-           | thunk                 { makeThunk(input,cursor);     }
-           | BEGIN                 { makeBegin(input,cursor);     }
-           | END                   { makeEnd(input,cursor);       }
+           | literal               @makeString
+           | class                 @makeSet
+           | DOT                   @makeDot
+           | predicate             @makePredicate
+           | event                 @makeApply
+           | thunk                 @makeThunk
+           | BEGIN                 @makeBegin
+           | END                   @makeEnd
 
 # Lexer syntax
 

@@ -107,8 +107,31 @@ int main(int argc, char **argv)
         CU_ERROR("unable create parser object for %s", infile);
     }
 
-    CU_DEBUG(1, "adding parser graph\n");
+    file_SetEvent((struct prs_file *)parser, "writeTree", writeTree);
+    file_SetEvent((struct prs_file *)parser, "checkRule", checkRule);
+    file_SetEvent((struct prs_file *)parser, "defineRule", defineRule);
+    file_SetEvent((struct prs_file *)parser, "makeEnd", makeEnd);
+    file_SetEvent((struct prs_file *)parser, "makeBegin", makeBegin);
+    file_SetEvent((struct prs_file *)parser, "makeThunk", makeThunk);
+    file_SetEvent((struct prs_file *)parser, "makeApply", makeApply);
+    file_SetEvent((struct prs_file *)parser, "makePredicate", makePredicate);
+    file_SetEvent((struct prs_file *)parser, "makeDot", makeDot);
+    file_SetEvent((struct prs_file *)parser, "makeSet", makeSet);
+    file_SetEvent((struct prs_file *)parser, "makeString", makeString);
+    file_SetEvent((struct prs_file *)parser, "makeCall", makeCall);
+    file_SetEvent((struct prs_file *)parser, "makePlus", makePlus);
+    file_SetEvent((struct prs_file *)parser, "makeStar", makeStar);
+    file_SetEvent((struct prs_file *)parser, "makeQuestion", makeQuestion);
+    file_SetEvent((struct prs_file *)parser, "makeNot", makeNot);
+    file_SetEvent((struct prs_file *)parser, "makeCheck", makeCheck);
+    file_SetEvent((struct prs_file *)parser, "makeSequence", makeSequence);
+    file_SetEvent((struct prs_file *)parser, "makeChoice", makeChoice);
+    file_SetEvent((struct prs_file *)parser, "defineRule", defineRule);
+    file_SetEvent((struct prs_file *)parser, "makeHeader", makeHeader);
+    file_SetEvent((struct prs_file *)parser, "makeInclude", makeInclude);
+    file_SetEvent((struct prs_file *)parser, "makeFooter", makeFooter);
 
+    CU_DEBUG(1, "adding parser graph\n");
     copper_graph(parser);
 
     CU_DEBUG(1, "parsing infile %s\n", infile);

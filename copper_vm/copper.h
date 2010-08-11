@@ -31,7 +31,7 @@ enum prs_operator {
     prs_Thunk,       // { } - an unnamed event
     prs_ZeroOrMore,  // e *
     prs_ZeroOrOne,   // e ?
-    prs_Void         // -nothing-
+    prs_Void        // -nothing-
 };
 
 static inline const char* oper2name(enum prs_operator oper) {
@@ -43,13 +43,13 @@ static inline const char* oper2name(enum prs_operator oper) {
     case prs_Begin:       return "prs_Begin";       // set state.begin
     case prs_Choice:      return "prs_Choice";      // e1 e2 /
     case prs_End:         return "prs_End";         // set state.end
-    case prs_Event:       return "prs_Event";       // { }
+        //    case prs_Event:       return "prs_Event";       // { }
     case prs_MatchChar:   return "prs_MatchChar";   // 'chr
     case prs_MatchDot:    return "prs_MatchDot";    // .
     case prs_MatchName:   return "prs_MatchName";   // @name
     case prs_MatchRange:  return "prs_MatchRange";  // begin-end
     case prs_MatchSet:    return "prs_MatchSet";    // [...]
-    case prs_MatchString: return "prs_MatchString"; // "..."
+        //    case prs_MatchString: return "prs_MatchString"; // "..."
     case prs_MatchText:   return "prs_MatchText";   // "..."
     case prs_OneOrMore:   return "prs_OneOrMore";   // e +
     case prs_Predicate:   return "prs_Predicate";   // &predicate
@@ -58,6 +58,7 @@ static inline const char* oper2name(enum prs_operator oper) {
     case prs_ZeroOrMore:  return "prs_ZeroOrMore";  // e *
     case prs_ZeroOrOne:   return "prs_ZeroOrOne";   // e ?
     case prs_Void:        break; // -nothing-
+    default: break;
     }
     return "prs-unknown";
 }
@@ -75,7 +76,6 @@ typedef struct prs_set    *PrsSet;
 typedef const  char       *PrsName;
 typedef struct prs_node   *PrsNode;
 typedef struct prs_pair   *PrsPair;
-typedef struct prs_label  *PrsLabel;
 /* parse event queue */
 typedef struct prs_thread *PrsThread;
 typedef struct prs_queue  *PrsQueue;
@@ -144,6 +144,8 @@ struct prs_label {
     PrsName   name;
 };
 
+typedef struct prs_label PrsLabel;
+
 struct prs_thread {
     PrsThread next;
     PrsCursor at;
@@ -190,7 +192,7 @@ struct prs_node {
         PrsNode   node;
         PrsPair   pair;
         PrsEvent  event;
-        PrsLabel  label;
+        PrsLabel *label;
     } arg;
 };
 

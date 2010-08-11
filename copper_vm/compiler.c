@@ -231,6 +231,20 @@ static bool file_AddName(PrsInput input, PrsName name, PrsNode value) {
     return hash_Replace(file->nodes, (void*)name, value, noop_release);
 }
 
+/* -- */
+
+extern bool file_SetPredicate(struct prs_file *file, PrsName name, PrsPredicate value) {
+    return hash_Replace(file->predicates, (void*)name, value, noop_release);
+}
+
+extern bool file_SetEvent(struct prs_file *file, PrsName name, PrsEvent value) {
+    return hash_Replace(file->events, (void*)name, value, noop_release);
+}
+
+extern bool file_SetAction(struct prs_file *file, PrsName name, PrsAction value) {
+    return hash_Replace(file->actions, (void*)name, value, noop_release);
+}
+
 static unsigned long encode_name(PrsName name) {
     const char *cursor = name;
 

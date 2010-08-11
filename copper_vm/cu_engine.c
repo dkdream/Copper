@@ -206,7 +206,7 @@ static bool queue_Run(PrsQueue queue,
     for ( ; current ; ) {
         PrsLabel label = current->label;
 
-        if (!label->function(input, current->at)) {
+        if (!label.function(input, current->at)) {
             queue->begin = current;
             return false;
         }
@@ -776,6 +776,12 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     }
 
     inline bool add_event(PrsLabel label) {
+        indent(); CU_DEBUG(2, "event %s(%x) at (%u,%u)\n",
+                           label.name,
+                           (unsigned) label.function,
+                           at.line_number + 1,
+                           at.char_offset);
+
         return queue_Event(queue,
                            at,
                            label);
@@ -1041,11 +1047,11 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     }
 
     inline bool prs_begin() {
-        return add_event(&begin_label);
+        return add_event(begin_label);
     }
 
     inline bool prs_end() {
-        return add_event(&end_label);
+        return add_event(end_label);
     }
 
     inline bool prs_predicate() {
@@ -1061,14 +1067,24 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     }
 
     inline bool prs_event() {
-        return add_event(start->arg.label);
+        return add_event(*(start->arg.label));
     }
 
     inline bool prs_apply() {
-        return false;
+        PrsLabel label = { 0, 0 };
+        PrsEvent event = 0;
+
+        if (!input->event(input, start->arg.name, &event)) return false;
+
+        label.name     = start->arg.name;
+        label.function = event;
+
+        add_event(label);
+
+        return true;
     }
     inline bool prs_thunk() {
-        return add_event(start->arg.label);
+        return add_event(*(start->arg.label));
     }
 
     inline bool prs_text() {
@@ -1110,13 +1126,11 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         case prs_AssertFalse: return prs_assert_false();
         case prs_AssertTrue:  return prs_assert_true();
         case prs_Choice:      return prs_choice();
-        case prs_Event:       return prs_event();
         case prs_MatchChar:   return prs_char();
         case prs_MatchDot:    return prs_dot();
         case prs_MatchName:   return prs_name();
         case prs_MatchRange:  return prs_between();
         case prs_MatchSet:    return prs_in();
-        case prs_MatchString: return prs_string();
         case prs_OneOrMore:   return prs_one_plus();
         case prs_Predicate:   return prs_predicate();
         case prs_Sequence:    return prs_and();
@@ -1128,6 +1142,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         case prs_Thunk:       return prs_thunk();
         case prs_MatchText:   return prs_text();
         case prs_Void:        return false;
+        default: break;
         }
         return false;
     }

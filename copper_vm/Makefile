@@ -41,7 +41,7 @@ uninstall : .FORCE
 	rm -f $(BINDIR)/copper
 
 push : .FORCE #-- put the new graph under version control
-	cp copper.c
+	cp copper.c copper_o.c.bootstrap
 
 test examples : $(COPPER.test) .FORCE
         $(MAKE) --directory=examples
@@ -115,14 +115,14 @@ do.stage.two  : do.stage.one  ; @$(MAKE) --no-print-directory STAGE=two  COPPER.
 clean : .FORCE
 	rm -f *~ *.o *.tmp
 	rm -f stage.*
-	rm -f copper_o.c copper.ovm
+	rm -f copper_o.c copper.ovm libCopper.a
 	rm -f copper.c copper.vm
 	echo $(MAKE) --directory=examples --no-print-directory $@
 
 clear : .FORCE
 	rm -f *~ *.o *.tmp
 	rm -f stage.*
-	rm -f copper.c copper.vm
+	rm -f copper.c copper.vm libCopper.a
 	$(MAKE) --directory=examples --no-print-directory $@
 
 scrub spotless : clean .FORCE

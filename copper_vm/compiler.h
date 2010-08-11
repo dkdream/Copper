@@ -279,6 +279,9 @@ struct prs_file {
 
 extern bool make_PrsFile(FILE* file, const char* filename, PrsInput *input);
 extern bool file_WriteTree(PrsInput input, FILE* output, const char* name);
+extern bool file_SetPredicate(struct prs_file *file, PrsName name, PrsPredicate value);
+extern bool file_SetEvent(struct prs_file *file, PrsName name, PrsEvent value);
+extern bool file_SetAction(struct prs_file *file, PrsName name, PrsAction value);
 
 extern bool writeTree(PrsInput input, PrsCursor at);
 
