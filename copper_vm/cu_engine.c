@@ -943,8 +943,23 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
 
     inline bool prs_char() {
         PrsChar chr = 0;
-        if (!current(&chr))           return false;
-        if (chr != start->arg.letter) return false;
+        if (!current(&chr)) {
+            indent(); CU_DEBUG(2, "match(\'%s\') to end-of-file at (%u,%u)\n",
+                               char2string(start->arg.letter),
+                               at.line_number + 1,
+                               at.char_offset);
+            return false;
+        }
+
+        indent(); CU_DEBUG(2, "match(\'%s\') to cursor(\'%s\') at (%u,%u)\n",
+                           char2string(start->arg.letter),
+                           char2string(chr),
+                           at.line_number + 1,
+                           at.char_offset);
+
+        if (chr != start->arg.letter) {
+            return false;
+        }
         next();
         return true;
     }
@@ -952,8 +967,21 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     inline bool prs_between() {
         PrsChar chr = 0;
         if (!current(&chr)) {
+            indent(); CU_DEBUG(2, "between(\'%s\',\'%s\') to end-of-file at (%u,%u)\n",
+                               char2string(start->arg.range->begin),
+                               char2string(start->arg.range->end),
+                               at.line_number + 1,
+                               at.char_offset);
             return false;
         }
+
+        indent(); CU_DEBUG(2, "between(\'%s\',\'%s\') to cursor(\'%s\') at (%u,%u)\n",
+                           char2string(start->arg.range->begin),
+                           char2string(start->arg.range->end),
+                           char2string(chr),
+                           at.line_number + 1,
+                           at.char_offset);
+
         if (chr < start->arg.range->begin) {
             return false;
         }
@@ -968,8 +996,18 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         PrsChar chr = 0;
 
         if (!current(&chr)) {
+            indent(); CU_DEBUG(2, "set(%s) to end-of-file at (%u,%u)\n",
+                               start->arg.set->label,
+                               at.line_number + 1,
+                               at.char_offset);
             return false;
         }
+
+        indent(); CU_DEBUG(2, "set(%s) to cursor(\'%s\') at (%u,%u)\n",
+                           start->arg.set->label,
+                           char2string(chr),
+                           at.line_number + 1,
+                           at.char_offset);
 
         unsigned             binx = chr;
         const unsigned char *bits = start->arg.set->bitfield;
@@ -1057,7 +1095,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
             PrsChar chr = 0;
 
             if (!current(&chr)) {
-                indent(); CU_DEBUG(2, "match \'%s\' to end-of-file at (%u,%u)\n",
+                indent(); CU_DEBUG(2, "match(\'%s\') to end-of-file at (%u,%u)\n",
                                    char2string(*text),
                                    at.line_number + 1,
                                    at.char_offset);
@@ -1065,7 +1103,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
                 return false;
             }
 
-            indent(); CU_DEBUG(2, "match \'%s\' to \'%s\' at (%u,%u)\n",
+            indent(); CU_DEBUG(2, "match(\'%s\') to cursor(\'%s\') at (%u,%u)\n",
                                char2string(*text),
                                char2string(chr),
                                at.line_number + 1,
