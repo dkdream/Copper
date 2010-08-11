@@ -1,82 +1,53 @@
-# Copper Grammar for copper
+# Copper Grammar for copper (vm)
+# Parser syntax
 
-%export grammar
+%header {
+#include "compiler.h"
+}
 
-%{
-#ifndef COPPER_BOOTSTRAP
-#include "copper.inc"
-#else
-#include "copper.bootstrap.inc"
-#endif
-%}
+grammar = ( - heading )?
+          ( - define-rule )+
+          end-of-file @writeTree
 
-# Hierarchical syntax
+heading = '%header' - thunk @makeHeader
 
-grammar     =  - ( heading
-                 | declaration
-                 | exportation
-                 | define-macro 
-                 | define-rule
-                 )+ trailer? end-of-file
+define-rule = identifier       @checkRule
+              EQUAL expression @defineRule
+              SEMICOLON?
 
-heading     =  '%{' < ( !'%}' . )* > RPERCENT { makeHeader(yytext); }
-declaration =  '%declare' - identifier        { declareRule(yytext); }
-exportation =  '%export'  - identifier        { exportRule(yytext); }
-trailer     =  '%%' < .* >                    { makeTrailer(yytext); }
+expression  = sequence ( BAR expression @makeChoice )?
 
-define-macro =  '%define' - macro  { checkMacro(yytext);   }
-                            action { defineMacro(yytext);  }
+sequence    = prefix ( sequence @makeSequence )?
 
-define-rule =  identifier                   { checkRule(yytext); }
-               EQUAL ( expression end       { defineRule(rule_with_end); }
-                     | expression           { defineRule(simple_rule); }
-                     | begin expression end { defineRule(rule_with_both); }
-                     | begin expression     { defineRule(rule_with_begin); }
-                     ) SEMICOLON?
-
-begin       = '%begin' - ( action { push(makeMark(0, yytext)); }
-                         | macro  { push(makeMark(yytext, fetchMacro(yytext))); }
-                         )
-end         = '%end'   - ( action { push(makeMark(0, yytext)); }
-                         | macro  { push(makeMark(yytext, fetchMacro(yytext))); }
-                         )
-
-expression  = sequence (BAR sequence  { Node *f= pop();  push(Alternate_append(pop(), f)); }  )*
-
-sequence    = prefix (prefix          { Node *f= pop();  push(Sequence_append(pop(), f)); }   )*
-
-prefix      = AND action    { push(makePredicate(0, yytext)); }
-            | AND macro     { push(makePredicate(yytext, fetchMacro(yytext))); }
-            | AND suffix    { push(makePeekFor(pop())); }
-            | NOT suffix    { push(makePeekNot(pop())); }
+prefix      = AND suffix @makeCheck
+            | NOT suffix @makeNot
             | suffix
 
-suffix     = primary (QUESTION { push(makeQuery(pop())); }
-                     | STAR    { push(makeStar (pop())); }
-                     | PLUS    { push(makePlus (pop())); }
+suffix     = primary (QUESTION @makeQuestion
+                     | STAR    @makeStar
+                     | PLUS    @makePlus
                      )?
 
-primary    = identifier                 { push(makeVariable(yytext)); }
-                COLON identifier !EQUAL { Node *name= makeName(findRule(yytext));  name->name.variable= pop();  push(name); }
-           | identifier !EQUAL          { push(makeName(findRule(yytext))); }
+primary    = identifier !EQUAL     @makeCall
            | OPEN expression CLOSE
-           | literal                    { push(makeString(yytext)); }
-           | class                      { push(makeClass(yytext)); }
-           | DOT                        { push(makeDot()); }
-           | action                     { push(makeAction(yytext)); }
-           | macro                      { push(makeAction(fetchMacro(yytext))); }
-           | BEGIN                      { push(makeMark("begin", "yySelf->begin_(yySelf, yystack)")); }
-           | END                        { push(makeMark("end", "yySelf->end_(yySelf, yystack)")); }
-           | MARK                       { push(makeAction("yySelf->mark_(yySelf, yyrulename);")); }
-           | COLLECT                    { push(makeAction("yySelf->collect_(yySelf, yyrulename);")); }
+           | literal               @makeString
+           | class                 @makeSet
+           | DOT                   @makeDot
+           | predicate             @makePredicate
+           | event                 @makeApply
+           | thunk                 @makeThunk
+           | BEGIN                 @makeBegin
+           | END                   @makeEnd
 
-# Lexical syntax
+# Lexer syntax
 
-macro      = !directive '%' < [-a-zA-Z_][-a-zA-Z_0-9]* > -
+predicate  = !directive  '%' < [-a-zA-Z_][-a-zA-Z_0-9]* > -
 
-directive  = '%{' | '%define' | '%declare' | '%export' | '%%' | '%begin' | '%end' | '%}'
+event      = '@' < [-a-zA-Z_][-a-zA-Z_0-9]* > -
 
-identifier =  < [-a-zA-Z_][-a-zA-Z_0-9]* > -
+directive  = '%header'
+
+identifier = < [-a-zA-Z_][-a-zA-Z_0-9]* > -
 
 literal    = ['] < ( !['] char )* > ['] -
            | ["] < ( !["] char )* > ["] -
@@ -91,14 +62,13 @@ char       = '\\' [abefnrtv'"\[\]\\]
            | '\\' [0-7][0-7]?
            | !'\\' .
 
-action     = '{' < braces* > '}' -
+thunk      = '{' < braces* > '}' - 
 
-braces     =    '{' (!'}' .)* '}'
-           |    !'}' .
+braces     = '{' braces* '}'
+           |  !'}' .
 
 EQUAL     = '=' -
 COLON     = ':' -
-SEMICOLON = ';' -
 BAR       = '|' -
 AND       = '&' -
 NOT       = '!' -
@@ -110,13 +80,10 @@ CLOSE     = ')' -
 DOT       = '.' -
 BEGIN     = '<' -
 END       = '>' -
-MARK      = '@' -
-COLLECT   = '$' -
-RPERCENT  = '%}' -
 
 -           = (space | comment)*
 space       = ' ' | '\t' | end-of-line
-comment     = '#' (!end-of-line .)* end-of-line
+comment     = '#' (!end-of-line .)*
 end-of-line = '\r\n' | '\n' | '\r'
 end-of-file = !.
 

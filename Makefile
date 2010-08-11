@@ -1,141 +1,131 @@
 PREFIX	= /tools/Copper
 BINDIR	= $(PREFIX)/bin
+INCDIR  = $(PREFIX)/include
+LIBDIR  = $(PREFIX)/lib
 
 TIME        := $(shell date +T=%s.%N)
 STAGE       := zero
-COPPER      := copper.x
-COPPER.test := copper-new
+COPPER      := copper.vm
+COPPER.test := copper.vm
 Copper.ext  := cu
 
 PATH := $(PATH):.
 
 DIFF   = diff
 CC     = gcc
+AR     = ar
+RANLIB = ranlib
+
 CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
 OFLAGS = -Wall
+ARFLAGS = rcu
 
-MAIN_ORIG = copper_main.o
-OBJS      = tree.o compile.o compile_vm.o
+OBJS = cu_engine.o compiler.o
 
-default : copper
+default : copper.vm
 
-all : copper
-new : copper-new
+all : copper.vm
 
-echo : ; echo $(TIME) $(COPPER)
+full : do.stage.two 
 
-copper : check
-	cp copper-new copper
-
-install : copper
+install : $(COPPER) copper.h libCopper.a
 	[ -d $(BINDIR) ] || mkdir -p $(BINDIR)
+	[ -d $(INCDIR) ] || mkdir -p $(INCDIR)
+	[ -d $(LIBDIR) ] || mkdir -p $(LIBDIR)
 	cp -p $< $(BINDIR)/copper
 	strip $(BINDIR)/copper
+	cp -p copper.h    $(INCDIR)/copper.h
+	cp -p libCopper.a $(LIBDIR)/libCopper.a
 
 uninstall : .FORCE
 	rm -f $(BINDIR)/copper
 
-compile.o : compile.inc
+push : .FORCE #-- put the new graph under version control
+	cp copper.c copper_o.c.bootstrap
 
-compile.inc : ascii2hex.x header.var footer.var preamble.var
-	./ascii2hex.x -x -lheader   header.var >$@
-	./ascii2hex.x -x -lpreamble preamble.var >>$@
-	./ascii2hex.x -x -lfooter   footer.var >>$@
+test examples : $(COPPER.test) .FORCE
+        $(MAKE) --directory=examples
 
-ascii2hex.x : ascii2hex.c
-	$(CC) $(CFLAGS) -o $@ $<
-	@./test_ascii2hex.sh "$(CC) $(CFLAGS)"
+# -- -------------------------------------------------
 
-check : copper-new .FORCE
-	-@rm -f stage.*
-	$(MAKE) do.stage.two 
-	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.c stage.two.c
-	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.inc stage.two.inc
-	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.heading stage.two.heading
-	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.footing stage.two.footing
-	$(DIFF) --ignore-blank-lines  --show-c-function stage.zero.all.c stage.two.all.c
-	$(MAKE) test
-	@echo PASSED
-	@echo Show differences
-	-@$(DIFF) --ignore-blank-lines  --show-c-function  copper.c stage.two.c
-	-@$(DIFF) --ignore-blank-lines  --show-c-function  copper.c copper.bootstrap.c
-	@cmp --quiet copper.c copper.bootstrap.c || ( echo; echo Ready to push; echo )
+cu_engine.o : cu_engine.c ; $(CC) $(CFLAGS) -I. -c -o $@ $<
+cu_engine.o : copper.h
 
-push : .FORCE
-	-@cp copper.bootstrap.c copper.bootstrap.c.Last
-	-@cmp --quiet copper.c copper.bootstrap.c || echo cp copper.c copper.bootstrap.c
-	-@cmp --quiet copper.c copper.bootstrap.c || cp copper.c copper.bootstrap.c
-	$(MAKE) bootstrap
+libCopper.a : copper.h
+libCopper.a : cu_engine.o
+	-$(RM) $@
+	$(AR) $(ARFLAGS) $@ cu_engine.o
+	$(RANLIB) $@
 
-test examples : copper-new .FORCE
-	$(MAKE) --directory=examples
+compiler.o  : compiler.c  ; $(CC) $(CFLAGS) -I. -c -o $@ $<
+compiler.o  : copper.h compiler.h
 
+# -- -------------------------------------------------
 
-# --
+copper_o.c : copper_o.c.bootstrap ; cp $< $@
+copper_o.o : copper_o.c           ; $(CC) $(CFLAGS) -I. -c -o $@ $<
+copper_o.o : copper.h compiler.h
 
-copper.c     : copper.cu $(COPPER)           ; $(COPPER) -C -s -o $@ copper.cu
-copper.o     : copper.c                      ; $(CC) $(CFLAGS) -c -o $@ $<
-copper-new   : $(MAIN_ORIG) copper.o $(OBJS) ; $(CC) $(CFLAGS) -o $@ $(MAIN_ORIG) copper.o $(OBJS)
+copper.ovm : main.o copper_o.o compiler.o libCopper.a
+	$(CC) $(CFLAGS) -o $@ main.o copper_o.o compiler.o -L. -lCopper
 
-copper.o $(OBJS) : header.var
+# -- -------------------------------------------------
 
-# --
+copper.c : copper.cu ./copper.ovm ; ./copper.ovm --name copper_graph --output $@ --file copper.cu
+copper.o : copper.c               ; $(CC) $(CFLAGS) -I. -c -o $@ $<
+main.o   : main.c                 ; $(CC) $(CFLAGS) -I. -c -o $@ $<
 
-# --
+copper.o main.o : copper.h compiler.h
+
+copper.vm : main.o copper.o compiler.o libCopper.a
+	$(CC) $(CFLAGS) -o $@ main.o copper.o compiler.o -L. -lCopper
+
+# -- -------------------------------------------------
 
 TEMPS =
-TEMPS += stage.$(STAGE).heading
-TEMPS += stage.$(STAGE).preamble
-TEMPS += stage.$(STAGE).footing
-TEMPS += stage.$(STAGE).all.o
+TEMPS += stage.$(STAGE).o
 TEMPS += stage.$(STAGE)
 
-current.stage : $(TEMPS)
+current.stage : compare
 
-stage.$(STAGE).c stage.$(STAGE).inc : copper.cu $(COPPER.test)
-	@rm -f stage.$(STAGE).c stage.$(STAGE).inc 
-	$(COPPER.test) -C -s -x -r stage.$(STAGE).inc -o stage.$(STAGE).c copper.cu
+stage.$(STAGE).c : copper.cu $(COPPER.test)
+	@rm -f stage.$(STAGE).c
+	$(COPPER.test) --name copper_graph --output $@ --file copper.cu
 
-stage.$(STAGE).all.c : copper.cu $(COPPER.test)
-	$(COPPER.test) -C -o $@ $<
+stage.$(STAGE).o : stage.$(STAGE).c
+	$(CC) $(CFLAGS) -I. -c -o $@ $<
 
-stage.$(STAGE).heading : copper.cu $(COPPER.test)
-	$(COPPER.test) -H -o $@
+stage.$(STAGE) : main.o stage.$(STAGE).o compiler.o libCopper.a
+	$(CC) $(CFLAGS) -o $@ main.o stage.$(STAGE).o compiler.o -L. -lCopper
 
-stage.$(STAGE).preamble : copper.cu $(COPPER.test)
-	$(COPPER.test) -P -o $@
+stage.$(STAGE).o : copper.h compiler.h
 
-stage.$(STAGE).footing : copper.cu $(COPPER.test)
-	$(COPPER.test) -F -o $@
-
-stage.$(STAGE).o : stage.$(STAGE).c stage.$(STAGE).inc
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-stage.$(STAGE) : $(MAIN_ORIG) stage.$(STAGE).o $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $+
+compare : $(COPPER.test) stage.$(STAGE) .FORCE
+	@./compare_graphs.sh $(COPPER.test) stage.$(STAGE)
+	@rm -f test.temp
 
 # --
 
-do.stage.zero : copper-new    ; @$(MAKE) --no-print-directory STAGE=zero COPPER.test=copper-new current.stage
+do.stage.zero : copper.vm     ; @$(MAKE) --no-print-directory STAGE=zero COPPER.test=copper.vm current.stage
 do.stage.one  : do.stage.zero ; @$(MAKE) --no-print-directory STAGE=one  COPPER.test=stage.zero current.stage
 do.stage.two  : do.stage.one  ; @$(MAKE) --no-print-directory STAGE=two  COPPER.test=stage.one  current.stage
 
 # --
 
 clean : .FORCE
-	rm -f *~ *.o copper copper-new copper.old.vm copper.new.vm
-	rm -f copper.c vm_copper.old.c vm_copper.new.c header.inc copper.log  compile.inc
+	rm -f *~ *.o *.tmp
 	rm -f stage.*
-	$(MAKE) --directory=examples --no-print-directory $@
+	rm -f copper_o.c copper.ovm libCopper.a
+	rm -f copper.c copper.vm
+	echo $(MAKE) --directory=examples --no-print-directory $@
 
 clear : .FORCE
-	rm -f *.o copper-new copper.old.vm copper.new.vm
-	rm -f copper.c vm_copper.old.c vm_copper.new.c
+	rm -f *~ *.o *.tmp
 	rm -f stage.*
+	rm -f copper.c copper.vm libCopper.a
 	$(MAKE) --directory=examples --no-print-directory $@
 
 scrub spotless : clean .FORCE
-	rm -f copper.x ascii2hex.x copper.[cd]
 	$(MAKE) --directory=examples --no-print-directory $@
 
 ##

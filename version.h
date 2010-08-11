@@ -1,3 +1,0 @@
-#define COPPER_MAJOR	1
-#define COPPER_MINOR	1
-#define COPPER_LEVEL	0
