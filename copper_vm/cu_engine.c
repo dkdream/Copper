@@ -16,6 +16,7 @@
 #include <string.h>
 #include <error.h>
 #include <stdarg.h>
+#include <assert.h>
 
 /* */
 
@@ -478,6 +479,9 @@ static bool cache_Find(PrsCache  cache,
                        PrsCursor cursor,
                        PrsPoint *target)
 {
+    assert(0 != cache);
+    assert(0 < cache->size);
+
     unsigned code  = (unsigned)node;
     unsigned index = code  % cache->size;
     PrsPoint list  = cache->table[index];
@@ -500,13 +504,14 @@ static bool input_CacheInsert(PrsInput  input,
                               PrsThread begin,
                               PrsThread end)
 {
-    if (!input) return false;
+    assert(0 != input);
 
     PrsCache cache = input->cache;
     PrsQueue queue = input->queue;
 
-    if (!cache) return false;
-    if (!queue) return false;
+    assert(0 != cache);
+    assert(0 != queue);
+    assert(0 < cache->size);
 
     PrsSlice segment = { 0, 0 };
 
@@ -561,12 +566,14 @@ static bool input_CacheInsert(PrsInput  input,
 }
 
 static bool input_CacheClear(PrsInput input) {
-    if (!input) return false;
+    assert(0 != input);
 
-     PrsCache cache = input->cache;
-     PrsQueue queue = input->queue;
+    PrsCache cache = input->cache;
+    PrsQueue queue = input->queue;
 
-    if (!cache) return true;
+    assert(0 != cache);
+    assert(0 != queue);
+    assert(0 < cache->size);
 
     unsigned  size  = cache->size;
     PrsPoint *table = cache->table;
@@ -677,14 +684,15 @@ static char *char2string(unsigned char value)
 }
 
 static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
-    if (!input) return false;
-    if (!start) return false;
+    assert(0 != input);
+    assert(0 != start);
 
     PrsCache cache = input->cache;
     PrsQueue queue = input->queue;
 
-    if (!queue) return false;
-    if (!cache) return false;
+    assert(0 != cache);
+    assert(0 != queue);
+    assert(0 < cache->size);
 
     PrsThread begin  = 0;
     PrsThread mark   = 0;
@@ -1024,6 +1032,11 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         PrsLabel label = { 0, 0 };
         PrsEvent event = 0;
 
+        indent(); CU_DEBUG(2, "fetching event %s at (%u,%u)\n",
+                           start->arg.name,
+                           at.line_number + 1,
+                           at.char_offset);
+
         if (!input->event(input, start->arg.name, &event)) return false;
 
         label.name     = start->arg.name;
@@ -1072,24 +1085,24 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     inline bool run_node() {
         hold();
         switch (start->oper) {
+        case prs_Apply:       return prs_apply();
         case prs_AssertFalse: return prs_assert_false();
         case prs_AssertTrue:  return prs_assert_true();
+        case prs_Begin:       return prs_begin();
         case prs_Choice:      return prs_choice();
+        case prs_End:         return prs_end();
         case prs_MatchChar:   return prs_char();
         case prs_MatchDot:    return prs_dot();
         case prs_MatchName:   return prs_name();
         case prs_MatchRange:  return prs_between();
         case prs_MatchSet:    return prs_in();
+        case prs_MatchText:   return prs_text();
         case prs_OneOrMore:   return prs_one_plus();
         case prs_Predicate:   return prs_predicate();
         case prs_Sequence:    return prs_and();
+        case prs_Thunk:       return prs_thunk();
         case prs_ZeroOrMore:  return prs_zero_plus();
         case prs_ZeroOrOne:   return prs_optional();
-        case prs_Begin:       return prs_begin();
-        case prs_End:         return prs_end();
-        case prs_Apply:       return prs_apply();
-        case prs_Thunk:       return prs_thunk();
-        case prs_MatchText:   return prs_text();
         case prs_Void:        return false;
         }
         return false;
@@ -1116,18 +1129,47 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
  *************************************************************************************/
 
 extern bool cu_InputInit(PrsInput input, unsigned cacheSize) {
-    if (!make_Cache(cacheSize, &input->cache)) return false;
-    if (!make_Queue(&input->queue)) return false;
+    assert(0 != input);
+
+    CU_DEBUG(3, "making cache %u\n", cacheSize);
+    if (!make_Cache(cacheSize, &(input->cache))) return false;
+
+    CU_DEBUG(3, "making queue\n");
+    if (!make_Queue(&(input->queue))) return false;
+
+    PrsCache cache = input->cache;
+    PrsQueue queue = input->queue;
+
+    assert(0 != cache);
+    assert(0 != queue);
+    assert(0 < cache->size);
+
+    CU_DEBUG(3, "InputInit done (cache %x queue %x)\n", (unsigned) cache, (unsigned) queue);
     return true;
 }
 
 extern bool cu_Parse(char* name, PrsInput input) {
+    assert(0 != input);
+
+    PrsCache cache = input->cache;
+    PrsQueue queue = input->queue;
+
+    assert(0 != cache);
+    assert(0 != queue);
+    assert(0 < cache->size);
+
     PrsNode start = 0;
 
+    CU_DEBUG(3, "requesting start node %s\n", name);
     if (!input->node(input, name, &start)) return false;
+
+    CU_DEBUG(3, "clearing cache %x\n", (unsigned) cache);
     if (!input_CacheClear(input))          return false;
+
+    CU_DEBUG(3, "clearing queue %x\n", (unsigned) queue);
     if (!queue_Clear(input->queue))        return false;
 
+    CU_DEBUG(3, "starting parce\n");
     return copper_vm(start, 0, input);
 }
 
