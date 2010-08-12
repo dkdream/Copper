@@ -18,14 +18,14 @@ enum prs_operator {
     prs_End,         // set state.end
     prs_MatchChar,   // 'chr
     prs_MatchDot,    // .
-    prs_MatchName,   // @name
+    prs_MatchName,   // name
     prs_MatchRange,  // begin-end
     prs_MatchSet,    // [...]
     prs_MatchText,   // "..."
     prs_OneOrMore,   // e +
     prs_Predicate,   // %predicate
     prs_Sequence,    // e1 e2 ;
-    prs_Thunk,       // { } - an unnamed event
+    prs_Thunk,       // {...} - an unnamed event
     prs_ZeroOrMore,  // e *
     prs_ZeroOrOne,   // e ?
     prs_Void        // -nothing-
@@ -41,7 +41,7 @@ static inline const char* oper2name(enum prs_operator oper) {
     case prs_End:         return "prs_End";         // set state.end
     case prs_MatchChar:   return "prs_MatchChar";   // 'chr
     case prs_MatchDot:    return "prs_MatchDot";    // .
-    case prs_MatchName:   return "prs_MatchName";   // @name
+    case prs_MatchName:   return "prs_MatchName";   // name
     case prs_MatchRange:  return "prs_MatchRange";  // begin-end
     case prs_MatchSet:    return "prs_MatchSet";    // [...]
     case prs_MatchText:   return "prs_MatchText";   // "..."
@@ -56,10 +56,32 @@ static inline const char* oper2name(enum prs_operator oper) {
     return "prs-unknown";
 }
 
-typedef enum prs_operator PrsOperator;
+enum prs_first_type {
+    pft_opaque,      // %predicate
+    pft_transparent, // @name, set state.begin, set state.end {...}
+    pft_fixed,       // "...", 'chr, [...], begin-end
+    pft_variable     // name
+};
+
+static inline const char* first2name(enum prs_first_type first) {
+    switch (first) {
+    case pft_transparent: return "pft_transparent";
+    case pft_fixed:       return "pft_fixed";
+    case pft_variable:    return "pft_variable";
+    default:
+        return "pft_opaque";
+    }
+}
+
+typedef enum prs_operator   PrsOperator;
+typedef enum prs_first_type PrsFirstType;
 
 /* parsing structure */
 typedef struct prs_input* PrsInput;
+
+/* */
+typedef struct prs_firstset  *PrsFirstSet;
+typedef struct prs_firstlist *PrsFirstList;
 
 /* parse node arguments */
 typedef unsigned char      PrsChar;
@@ -76,6 +98,15 @@ typedef struct prs_queue  *PrsQueue;
 /* parsing cache node */
 typedef struct prs_point *PrsPoint;
 typedef struct prs_cache *PrsCache;
+
+struct prs_firstset {
+    const unsigned char bitfield[32];
+};
+
+struct prs_firstlist {
+    const unsigned count;
+    const char* names[];
+};
 
 /* parsing data buffer */
 struct prs_text {
@@ -173,8 +204,10 @@ struct prs_cache {
 };
 
 struct prs_node {
-    PrsSet      first;  // the first set of node
-    PrsSet      follow; // the follow set of node
+    PrsFirstType type;
+    PrsFirstSet  first;  // the first set of node (if known)
+    PrsFirstList start;  // the list of name that start this not (if any)
+    PrsSet       follow; // the follow set of node
     PrsOperator oper;
     union prs_arg {
         PrsChar   letter;
@@ -189,8 +222,7 @@ struct prs_node {
     } arg;
 };
 
-typedef bool (*PrsPredicate)(PrsInput);         // user defined predicate
-typedef bool (*PrsFirstSet)(PrsInput, PrsSet*); // compute first set for user defined predicate/action
+typedef bool (*PrsPredicate)(PrsInput); // user defined predicate
 
 // do we need these ?
 // if a predicate ALWAY return true then is it an action

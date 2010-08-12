@@ -27,6 +27,8 @@ typedef struct syn_text     *SynText;
 typedef struct syn_chunk    *SynChunk;
 typedef struct syn_operator *SynOperator;
 typedef struct syn_tree     *SynTree;
+/* */
+typedef struct syn_first *SynFirst;
 
 union syn_node {
     SynAny      any;
@@ -148,19 +150,28 @@ static inline const char* type2name(SynType type) {
     return "syn-unknown";
 }
 
+struct syn_first {
+    PrsFirstType   type;
+    unsigned char *bitfield;
+    unsigned       count;
+    PrsData        name[];
+};
+
 // use for
 // - .
 // - set state.begin
 // - set state.end
 // and as a generic node
 struct syn_any {
-    SynType type;
+    SynType  type;
+    SynFirst first;
 };
 
 // use for
 // - identifier = ....
 struct syn_define {
     SynType   type;
+    SynFirst  first;
     SynDefine next;
     PrsData   name;
     SynNode   value;
@@ -169,20 +180,21 @@ struct syn_define {
 // use for
 // - 'chr
 struct syn_char {
-    SynType type;
-    char    value;
+    SynType  type;
+    SynFirst first;
+    unsigned char value;
 };
 
 // use for
-// - %action (to be removed)
 // - @name
 // - [...]
 // - "..."
 // - '...'
-// - &predicate
+// - %predicate
 struct syn_text {
-    SynType type;
-    PrsData value;
+    SynType  type;
+    SynFirst first;
+    PrsData  value;
 };
 
 // use for
@@ -192,6 +204,7 @@ struct syn_text {
 // - %footer ...
 struct syn_chunk {
     SynType  type;
+    SynFirst first;
     SynChunk next;
     PrsData  value;
 };
@@ -203,17 +216,19 @@ struct syn_chunk {
 // - e *
 // - e ?
 struct syn_operator {
-    SynType type;
-    SynNode value;
+    SynType  type;
+    SynFirst first;
+    SynNode  value;
 };
 
 // use for
 // - e1 e2 /
 // - e1 e2 ;
 struct syn_tree {
-    SynType type;
-    SynNode before;
-    SynNode after;
+    SynType  type;
+    SynFirst first;
+    SynNode  before;
+    SynNode  after;
 };
 
 /*------------------------------------------------------------*/
