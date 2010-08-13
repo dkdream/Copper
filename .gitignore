@@ -27,5 +27,9 @@ vm_copper.new.c
 copper.old.vm
 copper.new.vm
 test.cu
+copper.ovm
+copper.vm
+copper_o.c
+libCopper.a
 
 

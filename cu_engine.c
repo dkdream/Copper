@@ -786,6 +786,54 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
                            label);
     }
 
+    inline bool checkFirstSet() {
+        PrsFirstSet  first = start->first;
+        PrsFirstList list  = start->start;
+
+        if (!first) return true;
+        if (list) {
+            if (0 < list->count) return true;
+        }
+
+        switch (start->type) {
+        case pft_opaque:   return true;
+        case pft_variable: return true;
+        default: break;
+        }
+
+        hold();
+
+        PrsChar chr = 0;
+        if (!current(&chr)) return true;
+
+        unsigned             binx = chr;
+        const unsigned char *bits = first->bitfield;
+
+        if (bits[binx >> 3] & (1 << (binx & 7))) {
+            indent(); CU_DEBUG(2, "checkFirst to cursor(\'%s\') at (%u,%u) %s\n",
+                               char2string(chr),
+                               at.line_number + 1,
+                               at.char_offset,
+                               "continue");
+            match = true;
+            return true;
+        }
+
+        indent(); CU_DEBUG(2, "checkFirst to cursor(\'%s\') at (%u,%u) %s\n",
+                           char2string(chr),
+                           at.line_number + 1,
+                           at.char_offset,
+                           "skip");
+
+        if (pft_transparent == start->type) {
+            match = true;
+        } else {
+            match = false;
+        }
+
+        return false;
+    }
+
     inline bool cache_begin() {
         if (!hold()) return false;
 
@@ -996,6 +1044,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         PrsChar chr = 0;
 
         if (!current(&chr)) {
+
             indent(); CU_DEBUG(2, "set(%s) to end-of-file at (%u,%u)\n",
                                start->arg.set->label,
                                at.line_number + 1,
@@ -1145,6 +1194,8 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         }
         return false;
     }
+
+    if (!checkFirstSet()) return match;
 
     if (!cache_begin()) {
         return run_node();

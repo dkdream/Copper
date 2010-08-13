@@ -112,20 +112,17 @@ do.stage.two  : do.stage.one  ; @$(MAKE) --no-print-directory STAGE=two  COPPER.
 
 # --
 
-clean : .FORCE
-	rm -f *~ *.o *.tmp
-	rm -f stage.*
-	rm -f libCopper.a
-	rm -f copper.c copper.vm
-	echo $(MAKE) --directory=examples --no-print-directory $@
-
 clear : .FORCE
 	rm -f *~ *.o *.tmp
 	rm -f stage.*
-	rm -f copper.c copper.vm libCopper.a
 	$(MAKE) --directory=examples --no-print-directory $@
 
+clean : clear .FORCE
+	rm -f copper.c copper.vm libCopper.a
+	echo $(MAKE) --directory=examples --no-print-directory $@
+
 scrub spotless : clean .FORCE
+	rm -rf copper.ovm copper_o.c
 	$(MAKE) --directory=examples --no-print-directory $@
 
 ##

@@ -601,37 +601,20 @@ extern bool makeFooter(PrsInput input, PrsCursor at) {
     return makeChunk(file, syn_footer, 0);
 }
 
-static char *makeConstCChar(unsigned char value)
-{
-    static char text[4];
 
-    switch (value) {
-    case '\a': return "\\a"; /* bel */
-    case '\b': return "\\b"; /* bs */
-    case '\e': return "\\e"; /* esc */
-    case '\f': return "\\f"; /* ff */
-    case '\n': return "\\n"; /* nl */
-    case '\r': return "\\r"; /* cr */
-    case '\t': return "\\t"; /* ht */
-    case '\v': return "\\v"; /* vt */
-    case '\'': return "\\'"; /* ' */
-    case '\"': return "\\\"";
-    case '\\': return "\\\\";
-    default:
-        break;
-    }
-
-    text[0] = (char) value;
-    text[1] = 0;
-    return text;
-}
+static void data_Write(PrsData data, FILE* output);
+static void char_Write(unsigned char value, FILE* output);
+static void charclass_Write(unsigned char *bits, FILE* output);
+static void namelist_Write(unsigned count, PrsData name[], FILE* output);
 
 static unsigned char *makeBitfield(PrsData data)
 {
     static unsigned char bits[32];
     bool clear = false;
 
-    const unsigned char *cclass = (const unsigned char *) convert(data);
+    const char *cclass = data.start;
+    unsigned inx = 0;
+    unsigned max = data.length;
 
     inline void set(int value) {
         if (clear) {
@@ -641,10 +624,10 @@ static unsigned char *makeBitfield(PrsData data)
         }
     }
 
-    int   curr;
-    int   prev= -1;
+    int curr;
+    int prev= -1;
 
-    if ('^' != *cclass) {
+    if ('^' != cclass[inx]) {
         memset(bits, 0, 32);
     } else {
         memset(bits, 255, 32);
@@ -652,15 +635,17 @@ static unsigned char *makeBitfield(PrsData data)
         ++cclass;
     }
 
-    for ( ; (curr = *cclass++) ; ) {
-        if ('-' == curr && *cclass && prev >= 0) {
-            for (curr = *cclass++;  prev <= curr;  ++prev) set(prev);
+    for ( ; inx < max ; ) {
+        curr = cclass[inx++];
+
+        if ('-' == curr && (inx < max) && prev >= 0) {
+            for (curr = cclass[inx++];  prev <= curr;  ++prev) set(prev);
             prev = -1;
             continue;
         }
 
-        if ('\\' == curr && *cclass) {
-            switch (curr = *cclass++) {
+        if ('\\' == curr && (inx < max)) {
+            switch (curr = cclass[inx++]) {
             case 'a':  curr = '\a'; break;      /* bel */
             case 'b':  curr = '\b'; break;      /* bs */
             case 'e':  curr = '\e'; break;      /* esc */
@@ -677,45 +662,36 @@ static unsigned char *makeBitfield(PrsData data)
         set(prev = curr);
     }
 
+    //    printf("make ->");
+    //    charclass_Write(bits, stdout);
+    //    printf("\n");
+
     return bits;
 }
 
-static char *textCharClass(unsigned char *bits)
+static int data_FirstChar(PrsData data)
 {
-    assert(0 != bits);
+    const char *at = data.start;
+    unsigned inx = 0;
+    unsigned max = data.length;
 
-    static char string[256];
+    int curr = at[inx++];
 
-    int   inx = 0;
-    char *ptr = string;
-
-    for ( ; inx < 32;  ++inx) {
-        ptr += sprintf(ptr, "\\%03o", bits[inx]);
-    }
-
-    return string;
-}
-
-static char *makeConstCString(PrsData data)
-{
-    const unsigned char *cclass = (const unsigned char *) convert(data);
-
-    static char string[256];
-    int         chr;
-    char*       ptr = string;
-
-    while ((chr = *cclass++)) {
-        switch (chr) {
-        case '\'':
-        case '\"':
-        case '\\':
-            *ptr++ = '\\';
-        default:
-            *ptr++ = chr;
+    if (('\\' == curr) && (inx < max)) {
+        switch (curr = at[inx++]) {
+        case 'a':  curr = '\a'; break;      /* bel */
+        case 'b':  curr = '\b'; break;      /* bs */
+        case 'e':  curr = '\e'; break;      /* esc */
+        case 'f':  curr = '\f'; break;      /* ff */
+        case 'n':  curr = '\n'; break;      /* nl */
+        case 'r':  curr = '\r'; break;      /* cr */
+        case 't':  curr = '\t'; break;      /* ht */
+        case 'v':  curr = '\v'; break;      /* vt */
+        default: break;
         }
     }
-    *ptr = 0;
-    return string;
+
+    return curr;
 }
 
 static bool node_ComputeSets(SynNode node)
@@ -727,7 +703,10 @@ static bool node_ComputeSets(SynNode node)
 
         first = malloc(fullsize);
 
-        if (!first) return false;
+        if (!first) {
+            printf("malloc failed\n");
+            return false;
+        }
 
         memset(first, 0, fullsize);
 
@@ -736,6 +715,7 @@ static bool node_ComputeSets(SynNode node)
         if (set) {
             bitfield = malloc(sizeof(unsigned char) * 32);
             if (!bitfield) {
+                printf("malloc failed\n");
                 free(first);
                 return false;
             }
@@ -760,6 +740,9 @@ static bool node_ComputeSets(SynNode node)
         for ( ; inx < 32 ; ++inx) {
             bits[inx] |= src[inx];
         }
+        //        printf("merge ->");
+        //        charclass_Write(bits, stdout);
+        //        printf("\n");
     }
 
     inline void concat(SynFirst before, SynFirst after) {
@@ -779,6 +762,10 @@ static bool node_ComputeSets(SynNode node)
 
         unsigned char *bits = first->bitfield;
         bits[value >> 3] |=  (1 << (value & 7));
+
+        //        printf("set(%u) ->", value);
+        //        charclass_Write(bits, stdout);
+        //        printf("\n");
     }
 
     inline void clear(int value) {
@@ -787,6 +774,10 @@ static bool node_ComputeSets(SynNode node)
 
         unsigned char *bits = first->bitfield;
         bits[value >> 3] &= ~(1 << (value & 7));
+
+        //        printf("clear(%u) ->", value);
+        //        charclass_Write(bits, stdout);
+        //        printf("\n");
     }
 
     inline void invert() {
@@ -798,6 +789,9 @@ static bool node_ComputeSets(SynNode node)
         for ( ; inx < 32 ; ++inx) {
             bits[inx] ^= 255;
         }
+        //        printf("invert ->");
+        //        charclass_Write(bits, stdout);
+        //        printf("\n");
     }
 
     inline bool copy(SynFirst child) {
@@ -864,7 +858,7 @@ static bool node_ComputeSets(SynNode node)
     }
 
     inline bool do_dot() {
-        if (allocate(pft_fixed, true, 0)) return false;
+        if (!allocate(pft_fixed, true, 0)) return false;
         invert();
         return true;
     }
@@ -961,7 +955,7 @@ static bool node_ComputeSets(SynNode node)
 
     inline bool do_string() {
         if (!allocate(pft_fixed, true, 0)) return false;
-         set(node.text->value.start[0]);
+        set(data_FirstChar(node.text->value));
         return true;
     }
 
@@ -995,6 +989,91 @@ static bool node_ComputeSets(SynNode node)
     return allocate(pft_opaque, false, 0);
 }
 
+static void data_cooked_Write(PrsData data, FILE* output)
+{
+    unsigned    count = data.length;
+    const char* ptr   = (const char*) data.start;
+    int         chr;
+
+    fprintf(output, "\"");
+
+    for ( ; count ; --count, ++ptr) {
+        chr = *ptr;
+        switch (chr) {
+        case '\'':
+        case '\"':
+        case '\\':
+            fprintf(output, "\\");
+        default:
+            break;
+        }
+        fprintf(output, "%c", chr);
+    }
+
+    fprintf(output, "\"");
+}
+
+static void data_Write(PrsData data, FILE* output)
+{
+    unsigned    count = data.length;
+    const char* ptr   = (const char*) data.start;
+
+    fprintf(output, "\"");
+
+    for ( ; count ; --count, ++ptr) {
+        fprintf(output, "%c", *ptr);
+    }
+
+    fprintf(output, "\"");
+}
+
+static void char_Write(unsigned char value, FILE* output)
+{
+    switch (value) {
+    case '\a': fprintf(output, "\'%s\'", "\\a");  return; /* bel */
+    case '\b': fprintf(output, "\'%s\'", "\\b");  return; /* bs */
+    case '\e': fprintf(output, "\'%s\'", "\\e");  return; /* esc */
+    case '\f': fprintf(output, "\'%s\'", "\\f");  return; /* ff */
+    case '\n': fprintf(output, "\'%s\'", "\\n");  return; /* nl */
+    case '\r': fprintf(output, "\'%s\'", "\\r");  return; /* cr */
+    case '\t': fprintf(output, "\'%s\'", "\\t");  return; /* ht */
+    case '\v': fprintf(output, "\'%s\'", "\\v");  return; /* vt */
+    case '\'': fprintf(output, "\'%s\'", "\\'");  return; /* ' */
+    case '\"': fprintf(output, "\'%s\'", "\\\""); return; /* " */
+    case '\\': fprintf(output, "\'%s\'", "\\\\"); return; /* \ */
+    default:   fprintf(output, "\'%c\'", value);  return;
+    }
+}
+
+static void charclass_Write(unsigned char *bits, FILE* output)
+{
+   assert(0 != bits);
+
+   fprintf(output, "\"");
+
+   int inx = 0;
+   for ( ; inx < 32;  ++inx) {
+       fprintf(output, "\\%03o", bits[inx]);
+   }
+
+   fprintf(output, "\"");
+}
+
+static void namelist_Write(unsigned count, PrsData name[], FILE* output)
+{
+    if (1 > count) return;
+
+    unsigned index = 0;
+
+    fprintf(output, "{ \"%s\"", convert(name[index]));
+
+    for (++index ; index < count ; ++index) {
+        fprintf(output, ", \"%s\"", convert(name[index]));
+    }
+
+    fprintf(output, " }");
+}
+
 static bool node_WriteSets(SynNode node, FILE* output)
 {
     switch (type2kind(node.any->type)) {
@@ -1023,26 +1102,21 @@ static bool node_WriteSets(SynNode node, FILE* output)
 
     if (first->bitfield) {
         fprintf(output,
-                "static struct prs_firstset  first_%x_set   = { \"%s\" };\n",
-                (unsigned) node.any,
-                textCharClass(first->bitfield));
+                "static struct prs_firstset  first_%x_set  = { ",
+                (unsigned) node.any);
+
+        charclass_Write(first->bitfield, output);
+
+        fprintf(output, " };\n");
     }
 
     if (first->count) {
-         fprintf(output,
-                "static struct prs_firstlist first_%x_list  = { %u, ",
+        fprintf(output,
+                "static struct prs_firstlist first_%x_list = { %u, ",
                 (unsigned) node.any,
                 first->count);
 
-        unsigned index = 0;
-
-        if (index < first->count) {
-            fprintf(output, "{ \"%s\"", convert(first->name[index]));
-            for (++index ; index < first->count ; ++index) {
-                fprintf(output, ", \"%s\"", convert(first->name[index]));
-            }
-            fprintf(output, " }");
-        }
+        namelist_Write(first->count, first->name, output);
 
         fprintf(output, " };\n");
     }
@@ -1052,14 +1126,19 @@ static bool node_WriteSets(SynNode node, FILE* output)
 
 static bool node_FirstSet(SynNode node, FILE* output, const char **target)
 {
-    static char buffer[64];
+    static char     buffer[600];
+    static unsigned index = 0;
 
     if (!node.any->first) {
         *target = "pft_opaque,0,0,0,";
         return true;
     }
 
-    char *ptr = buffer;
+    char *start = buffer + (index * 100);
+    char *ptr   = start;
+
+    ++index;
+    if (5 < index) index = 0;
 
     SynFirst first = node.any->first;
 
@@ -1079,7 +1158,7 @@ static bool node_FirstSet(SynNode node, FILE* output, const char **target)
 
     ptr += sprintf(ptr, "%u, ", 0);
 
-    *target = buffer;
+    *target = start;
 
     return true;
 }
@@ -1092,86 +1171,113 @@ static bool node_WriteTree(SynNode node, FILE* output)
 
     inline bool do_apply() {
         if (!node_FirstSet(node, output, &first_sets)) return false;
+
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_Apply, (union prs_arg) ((PrsName)\"%s\") };\n",
+                "static struct prs_node  node_%x  = { %s prs_Apply, (union prs_arg) ((PrsName)",
                 (unsigned) node.any,
-                first_sets,
-                makeConstCString(node.text->value));
+                first_sets);
+
+        data_Write(node.text->value, output);
+
+        fprintf(output,") };\n");
+
         return true;
     }
 
     inline bool do_begin() {
         if (!node_FirstSet(node, output, &first_sets)) return false;
+
         fprintf(output,
                 "static struct prs_node  node_%x  = { %s prs_Begin, };\n",
                 (unsigned) node.any,
                 first_sets);
+
         return true;
     }
 
     inline bool do_call() {
         if (!node_FirstSet(node, output, &first_sets)) return false;
+
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_MatchName, (union prs_arg) ((PrsName)\"%s\") };\n",
+                "static struct prs_node  node_%x  = { %s prs_MatchName, (union prs_arg) ((PrsName)",
                 (unsigned) node.any,
-                first_sets,
-                convert(node.text->value));
+                first_sets);
+
+        data_Write(node.text->value, output);
+
+        fprintf(output, ") };\n");
+
         return true;
     }
 
     inline bool do_char() {
         if (!node_FirstSet(node, output, &first_sets)) return false;
+
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_MatchChar, (union prs_arg) ((PrsChar)\'%s\') };\n",
+                "static struct prs_node  node_%x  = { %s prs_MatchChar, (union prs_arg) ((PrsChar)",
                 (unsigned) node.any,
-                first_sets,
-                makeConstCChar(node.character->value));
+                first_sets);
+
+        char_Write(node.character->value, output);
+
+        fprintf(output, ") };\n");
+
         return true;
     }
 
     inline bool do_check() {
         if (!node_WriteTree(node.operator->value, output)) return false;
         if (!node_FirstSet(node, output, &first_sets)) return false;
+
         fprintf(output,
                 "static struct prs_node  node_%x  = { %s prs_AssertTrue, (union prs_arg) (&node_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.operator->value.any);
+
         return true;
     }
 
     inline bool do_choice() {
         if (!node_WriteTree(node.tree->before, output)) return false;
         if (!node_WriteTree(node.tree->after, output))  return false;
+
         fprintf(output,
                 "static struct prs_pair  pair_%x  = { &node_%x, &node_%x };\n",
                 (unsigned) node.any,
                 (unsigned) node.tree->before.any,
                 (unsigned) node.tree->after.any);
+
         if (!node_FirstSet(node, output, &first_sets)) return false;
+
         fprintf(output,
                 "static struct prs_node  node_%x  = { %s prs_Choice, (union prs_arg) (&pair_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.any);
+
         return true;
     }
 
     inline bool do_dot() {
         if (!node_FirstSet(node, output, &first_sets)) return false;
+
         fprintf(output,
                 "static struct prs_node  node_%x  = { %s prs_MatchDot };\n",
                 (unsigned) node.any,
                 first_sets);
+
         return true;
     }
 
     inline bool do_end() {
         if (!node_FirstSet(node, output, &first_sets)) return false;
+
         fprintf(output,
                 "static struct prs_node  node_%x  = { %s prs_End, };\n",
                 (unsigned) node.any,
                 first_sets);
+
         return true;
     }
 
@@ -1190,43 +1296,54 @@ static bool node_WriteTree(SynNode node, FILE* output)
     inline bool do_not() {
         if (!node_WriteTree(node.operator->value, output)) return false;
         if (!node_FirstSet(node, output, &first_sets)) return false;
+
         fprintf(output,
                 "static struct prs_node  node_%x  = { %s prs_AssertFalse, (union prs_arg) (&node_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.operator->value.any);
+
         return true;
     }
 
     inline bool do_plus() {
         if (!node_WriteTree(node.operator->value, output)) return false;
         if (!node_FirstSet(node, output, &first_sets)) return false;
+
         fprintf(output,
                 "static struct prs_node  node_%x  = { %s prs_OneOrMore, (union prs_arg) (&node_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.operator->value.any);
+
         return true;
     }
 
     inline bool do_predicate() {
         if (!node_FirstSet(node, output, &first_sets)) return false;
+
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_Predicate, (union prs_arg) ((PrsName)\"%s\") };\n",
+                "static struct prs_node  node_%x  = { %s prs_Predicate, (union prs_arg) ((PrsName)",
                 (unsigned) node.any,
-                first_sets,
-                convert(node.text->value));
+                first_sets);
+
+        data_Write(node.text->value, output);
+
+        fprintf(output, ") };\n");
+
         return true;
     }
 
     inline bool do_question() {
         if (!node_WriteTree(node.operator->value, output)) return false;
         if (!node_FirstSet(node, output, &first_sets)) return false;
+
         fprintf(output,
                 "static struct prs_node  node_%x  = { %s prs_ZeroOrOne, (union prs_arg) (&node_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.operator->value.any);
+
         return true;
     }
 
@@ -1237,53 +1354,73 @@ static bool node_WriteTree(SynNode node, FILE* output)
     inline bool do_sequence() {
         if (!node_WriteTree(node.tree->before, output)) return false;
         if (!node_WriteTree(node.tree->after, output))  return false;
-        if (!node_FirstSet(node, output, &first_sets)) return false;
+
         fprintf(output,
                 "static struct prs_pair  pair_%x  = { &node_%x, &node_%x };\n",
                 (unsigned) node.any,
                 (unsigned) node.tree->before.any,
                 (unsigned) node.tree->after.any);
+
+        if (!node_FirstSet(node, output, &first_sets))  return false;
+
         fprintf(output,
                 "static struct prs_node  node_%x  = { %s prs_Sequence, (union prs_arg) (&pair_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.any);
+
         return true;
     }
 
     inline bool do_set() {
         fprintf(output,
-                "static struct prs_set   set_%x   = { \"%s\", \"%s\" };\n",
-                (unsigned) node.any,
-                makeConstCString(node.text->value),
-                textCharClass(makeBitfield(node.text->value)));
+                "static struct prs_set   set_%x   = { ",
+                (unsigned) node.any);
+
+        data_cooked_Write(node.text->value, output);
+
+        fprintf(output, ", ");
+
+        charclass_Write(makeBitfield(node.text->value), output);
+
+        fprintf(output, " };\n");
+
         if (!node_FirstSet(node, output, &first_sets)) return false;
+
         fprintf(output,
                 "static struct prs_node  node_%x  = { %s prs_MatchSet, (union prs_arg) (&set_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.any);
+
         return true;
     }
 
     inline bool do_star() {
         if (!node_WriteTree(node.operator->value, output)) return false;
-        if (!node_FirstSet(node, output, &first_sets)) return false;
+        if (!node_FirstSet(node, output, &first_sets))     return false;
+
         fprintf(output,
                 "static struct prs_node  node_%x  = { %s prs_ZeroOrMore, (union prs_arg) (&node_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.operator->value.any);
+
         return true;
     }
 
     inline bool do_string() {
         if (!node_FirstSet(node, output, &first_sets)) return false;
+
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_MatchText, (union prs_arg) ((PrsName)\"%s\") };\n",
+                "static struct prs_node  node_%x  = { %s prs_MatchText, (union prs_arg) ((PrsName)",
                 (unsigned) node.any,
-                first_sets,
-                convert(node.text->value));
+                first_sets);
+
+        data_Write(node.text->value, output);
+
+        fprintf(output, ") };\n");
+
         return true;
     }
 
@@ -1293,12 +1430,15 @@ static bool node_WriteTree(SynNode node, FILE* output)
                 (unsigned) node.any,
                 (unsigned) node.any,
                 (unsigned) node.any);
+
         if (!node_FirstSet(node, output, &first_sets)) return false;
+
         fprintf(output,
                 "static struct prs_node  node_%x  = { %s prs_Thunk, (union prs_arg) (&label_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.any);
+
         return true;
     }
 
