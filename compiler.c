@@ -1129,16 +1129,17 @@ static bool node_FirstSet(SynNode node, FILE* output, const char **target)
     static char     buffer[600];
     static unsigned index = 0;
 
-    if (!node.any->first) {
-        *target = "pft_opaque,0,0,0,";
-        return true;
-    }
-
     char *start = buffer + (index * 100);
     char *ptr   = start;
 
     ++index;
     if (5 < index) index = 0;
+
+    if (!node.any->first) {
+        sprintf(ptr, "pft_opaque,0,0,\"%x\",0,", (unsigned) node.any);
+        *target = start;
+        return true;
+    }
 
     SynFirst first = node.any->first;
 
@@ -1157,6 +1158,8 @@ static bool node_FirstSet(SynNode node, FILE* output, const char **target)
     }
 
     ptr += sprintf(ptr, "%u, ", 0);
+
+    ptr += sprintf(ptr, "\"_%x\", ", (unsigned) node.any);
 
     *target = start;
 

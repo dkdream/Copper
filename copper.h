@@ -98,6 +98,7 @@ typedef struct prs_queue  *PrsQueue;
 /* parsing cache node */
 typedef struct prs_point *PrsPoint;
 typedef struct prs_cache *PrsCache;
+typedef void*             PrsMetaData;
 
 struct prs_firstset {
     const unsigned char bitfield[32];
@@ -205,10 +206,11 @@ struct prs_cache {
 
 struct prs_node {
     PrsFirstType type;
-    PrsFirstSet  first;  // the first set of node (if known)
-    PrsFirstList start;  // the list of name that start this not (if any)
-    PrsSet       follow; // the follow set of node
-    PrsOperator oper;
+    PrsFirstSet  first;    // the static first set of node (if known)
+    PrsFirstList start;    // the static list of name that start this note (if any)
+    PrsMetaData  metadata; // dynamically allocated state use by the engine.
+    PrsName      label;    // the compiler assigned label (for debugging)
+    PrsOperator  oper;
     union prs_arg {
         PrsChar   letter;
         PrsString string;

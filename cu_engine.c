@@ -701,6 +701,14 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     PrsCursor at;
     unsigned  depth;
 
+    char buffer[10];
+
+    inline const char* node_label() {
+        if (start->label) return start->label;
+        sprintf(buffer, "%x__", (unsigned) start);
+        return buffer;
+    }
+
     inline bool hold() {
         mark = queue->end;
         at   = input->cursor;
@@ -790,18 +798,43 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         PrsFirstSet  first = start->first;
         PrsFirstList list  = start->start;
 
-        if (!first) return true;
+        hold();
+
+        if (!first) {
+            indent(); CU_DEBUG(2, "checkFirst(%s) at (%u,%u) (skipped no first)\n",
+                               node_label(),
+                               at.line_number + 1,
+                               at.char_offset);
+
+            return true;
+        }
         if (list) {
-            if (0 < list->count) return true;
+            if (0 < list->count) {
+                indent(); CU_DEBUG(2, "checkFirst(%s) at (%u,%u) (skipped call nodes)\n",
+                                   node_label(),
+                                   at.line_number + 1,
+                                   at.char_offset);
+                return true;
+            }
         }
 
         switch (start->type) {
-        case pft_opaque:   return true;
-        case pft_variable: return true;
+        case pft_opaque:
+            indent(); CU_DEBUG(2, "checkFirst(%s) at (%u,%u) (skipped opaque)\n",
+                               node_label(),
+                               at.line_number + 1,
+                               at.char_offset);
+            return true;
+
+        case pft_variable:
+            indent(); CU_DEBUG(2, "checkFirst(%s) at (%u,%u) (skipped variable)\n",
+                               node_label(),
+                               at.line_number + 1,
+                               at.char_offset);
+            return true;
+
         default: break;
         }
-
-        hold();
 
         PrsChar chr = 0;
         if (!current(&chr)) return true;
@@ -810,7 +843,8 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         const unsigned char *bits = first->bitfield;
 
         if (bits[binx >> 3] & (1 << (binx & 7))) {
-            indent(); CU_DEBUG(2, "checkFirst to cursor(\'%s\') at (%u,%u) %s\n",
+            indent(); CU_DEBUG(2, "checkFirst(%s) to cursor(\'%s\') at (%u,%u) %s\n",
+                               node_label(),
                                char2string(chr),
                                at.line_number + 1,
                                at.char_offset,
@@ -819,7 +853,8 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
             return true;
         }
 
-        indent(); CU_DEBUG(2, "checkFirst to cursor(\'%s\') at (%u,%u) %s\n",
+        indent(); CU_DEBUG(2, "checkFirst(%s) to cursor(\'%s\') at (%u,%u) %s\n",
+                           node_label(),
                            char2string(chr),
                            at.line_number + 1,
                            at.char_offset,
@@ -837,9 +872,9 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     inline bool cache_begin() {
         if (!hold()) return false;
 
-        indent(); CU_DEBUG(2, "%s (%x) at (%u,%u)\n",
+        indent(); CU_DEBUG(2, "%s (%s) at (%u,%u)\n",
                            oper2name(start->oper),
-                           (unsigned) start,
+                           node_label(),
                            at.line_number + 1,
                            at.char_offset);
 
@@ -870,18 +905,18 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
             input->cursor = point->cursor.end;
             if (!queue_AppendSlice(queue, point->segment)) return false;
 
-            indent(); CU_DEBUG(2, "%s (%x) at (%u,%u) to (%u,%u) using cache result %s\n",
+            indent(); CU_DEBUG(2, "%s (%s) at (%u,%u) to (%u,%u) using cache result %s\n",
                                oper2name(start->oper),
-                               (unsigned) start,
+                               node_label(),
                                at.line_number + 1,
                                at.char_offset,
                                point->cursor.end.line_number + 1,
                                point->cursor.end.char_offset,
                                "passed");
         } else {
-            indent(); CU_DEBUG(2, "%s (%x) at (%u,%u) using cache result %s\n",
+            indent(); CU_DEBUG(2, "%s (%s) at (%u,%u) using cache result %s\n",
                                oper2name(start->oper),
-                               (unsigned) start,
+                               node_label(),
                                at.line_number + 1,
                                at.char_offset,
                                "failed");
@@ -894,18 +929,18 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         cursor.end = input->cursor;
 
         if (match) {
-            indent(); CU_DEBUG(2, "%s (%x) at (%u,%u) to (%u,%u) result %s\n",
+            indent(); CU_DEBUG(2, "%s (%s) at (%u,%u) to (%u,%u) result %s\n",
                                oper2name(start->oper),
-                               (unsigned) start,
+                               node_label(),
                                cursor.begin.line_number + 1,
                                cursor.begin.char_offset,
                                cursor.end.line_number + 1,
                                cursor.end.char_offset,
                                "passed");
         } else {
-            indent(); CU_DEBUG(2, "%s (%x) at (%u,%u) result %s\n",
+            indent(); CU_DEBUG(2, "%s (%s) at (%u,%u) result %s\n",
                                oper2name(start->oper),
-                               (unsigned) start,
+                               node_label(),
                                cursor.begin.line_number + 1,
                                cursor.begin.char_offset,
                                "failed");
