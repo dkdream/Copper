@@ -709,10 +709,9 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         return buffer;
     }
 
-    inline bool hold() {
+    inline void hold() {
         mark = queue->end;
         at   = input->cursor;
-        return true;
     }
 
     inline bool reset()   {
@@ -773,17 +772,17 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         return false;
     }
 
-    inline void indent() {
-        CU_ON_DEBUG(2,
+    inline void indent(unsigned debug) {
+        CU_ON_DEBUG(debug,
                     { unsigned inx = level;
                         for ( ; inx ; --inx) {
-                            CU_DEBUG(2, " |");
+                            CU_DEBUG(debug, " |");
                         }
                     });
     }
 
     inline bool add_event(PrsLabel label) {
-        indent(); CU_DEBUG(2, "event %s(%x) at (%u,%u)\n",
+        indent(2); CU_DEBUG(2, "event %s(%x) at (%u,%u)\n",
                            label.name,
                            (unsigned) label.function,
                            at.line_number + 1,
@@ -801,64 +800,71 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         hold();
 
         if (!first) {
-            indent(); CU_DEBUG(2, "checkFirst(%s) at (%u,%u) (skipped no first)\n",
-                               node_label(),
-                               at.line_number + 1,
-                               at.char_offset);
+            indent(4); CU_DEBUG(4, "checkFirst(%s) at (%u,%u) (skipped no first)\n",
+                                node_label(),
+                                at.line_number + 1,
+                                at.char_offset);
 
             return true;
         }
+
         if (list) {
             if (0 < list->count) {
-                indent(); CU_DEBUG(2, "checkFirst(%s) at (%u,%u) (skipped call nodes)\n",
-                                   node_label(),
-                                   at.line_number + 1,
-                                   at.char_offset);
+                indent(4); CU_DEBUG(4, "checkFirst(%s) at (%u,%u) (skipped call nodes)\n",
+                                    node_label(),
+                                    at.line_number + 1,
+                                    at.char_offset);
                 return true;
             }
         }
 
         switch (start->type) {
         case pft_opaque:
-            indent(); CU_DEBUG(2, "checkFirst(%s) at (%u,%u) (skipped opaque)\n",
-                               node_label(),
-                               at.line_number + 1,
-                               at.char_offset);
+            indent(4); CU_DEBUG(4, "checkFirst(%s) at (%u,%u) (skipped opaque)\n",
+                                node_label(),
+                                at.line_number + 1,
+                                at.char_offset);
             return true;
 
         case pft_variable:
-            indent(); CU_DEBUG(2, "checkFirst(%s) at (%u,%u) (skipped variable)\n",
-                               node_label(),
-                               at.line_number + 1,
-                               at.char_offset);
+            indent(4); CU_DEBUG(4, "checkFirst(%s) at (%u,%u) (skipped variable)\n",
+                                node_label(),
+                                at.line_number + 1,
+                                at.char_offset);
             return true;
 
         default: break;
         }
 
         PrsChar chr = 0;
-        if (!current(&chr)) return true;
+        if (!current(&chr)) {
+            indent(4); CU_DEBUG(4, "checkFirst(%s) at (%u,%u) (skipped eof)\n",
+                                node_label(),
+                                at.line_number + 1,
+                                at.char_offset);
+            return true;
+        }
 
         unsigned             binx = chr;
         const unsigned char *bits = first->bitfield;
 
         if (bits[binx >> 3] & (1 << (binx & 7))) {
-            indent(); CU_DEBUG(2, "checkFirst(%s) to cursor(\'%s\') at (%u,%u) %s\n",
-                               node_label(),
-                               char2string(chr),
-                               at.line_number + 1,
-                               at.char_offset,
-                               "continue");
+            indent(4); CU_DEBUG(4, "checkFirst(%s) to cursor(\'%s\') at (%u,%u) %s\n",
+                                node_label(),
+                                char2string(chr),
+                                at.line_number + 1,
+                                at.char_offset,
+                                "continue");
             match = true;
             return true;
         }
 
-        indent(); CU_DEBUG(2, "checkFirst(%s) to cursor(\'%s\') at (%u,%u) %s\n",
-                           node_label(),
-                           char2string(chr),
-                           at.line_number + 1,
-                           at.char_offset,
-                           "skip");
+        indent(4); CU_DEBUG(4, "checkFirst(%s) to cursor(\'%s\') at (%u,%u) %s\n",
+                            node_label(),
+                            char2string(chr),
+                            at.line_number + 1,
+                            at.char_offset,
+                            "skip");
 
         if (pft_transparent == start->type) {
             match = true;
@@ -870,9 +876,11 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     }
 
     inline bool cache_begin() {
-        if (!hold()) return false;
+        hold();
 
-        indent(); CU_DEBUG(2, "%s (%s) at (%u,%u)\n",
+        if (!checkFirstSet()) return false;
+
+        indent(2); CU_DEBUG(2, "%s (%s) at (%u,%u) begin\n",
                            oper2name(start->oper),
                            node_label(),
                            at.line_number + 1,
@@ -882,7 +890,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         begin        = mark;
         cursor.begin = at;
 
-        return true;;
+        return true;
     }
 
     inline void queue_check(const char *filename, unsigned int linenumber) {
@@ -905,7 +913,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
             input->cursor = point->cursor.end;
             if (!queue_AppendSlice(queue, point->segment)) return false;
 
-            indent(); CU_DEBUG(2, "%s (%s) at (%u,%u) to (%u,%u) using cache result %s\n",
+            indent(2); CU_DEBUG(2, "%s (%s) at (%u,%u) to (%u,%u) using cache result %s\n",
                                oper2name(start->oper),
                                node_label(),
                                at.line_number + 1,
@@ -914,7 +922,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
                                point->cursor.end.char_offset,
                                "passed");
         } else {
-            indent(); CU_DEBUG(2, "%s (%s) at (%u,%u) using cache result %s\n",
+            indent(2); CU_DEBUG(2, "%s (%s) at (%u,%u) using cache result %s\n",
                                oper2name(start->oper),
                                node_label(),
                                at.line_number + 1,
@@ -929,7 +937,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         cursor.end = input->cursor;
 
         if (match) {
-            indent(); CU_DEBUG(2, "%s (%s) at (%u,%u) to (%u,%u) result %s\n",
+            indent(2); CU_DEBUG(2, "%s (%s) at (%u,%u) to (%u,%u) result %s\n",
                                oper2name(start->oper),
                                node_label(),
                                cursor.begin.line_number + 1,
@@ -938,7 +946,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
                                cursor.end.char_offset,
                                "passed");
         } else {
-            indent(); CU_DEBUG(2, "%s (%s) at (%u,%u) result %s\n",
+            indent(2); CU_DEBUG(2, "%s (%s) at (%u,%u) result %s\n",
                                oper2name(start->oper),
                                node_label(),
                                cursor.begin.line_number + 1,
@@ -1027,14 +1035,14 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     inline bool prs_char() {
         PrsChar chr = 0;
         if (!current(&chr)) {
-            indent(); CU_DEBUG(2, "match(\'%s\') to end-of-file at (%u,%u)\n",
+            indent(2); CU_DEBUG(2, "match(\'%s\') to end-of-file at (%u,%u)\n",
                                char2string(start->arg.letter),
                                at.line_number + 1,
                                at.char_offset);
             return false;
         }
 
-        indent(); CU_DEBUG(2, "match(\'%s\') to cursor(\'%s\') at (%u,%u)\n",
+        indent(2); CU_DEBUG(2, "match(\'%s\') to cursor(\'%s\') at (%u,%u)\n",
                            char2string(start->arg.letter),
                            char2string(chr),
                            at.line_number + 1,
@@ -1050,7 +1058,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     inline bool prs_between() {
         PrsChar chr = 0;
         if (!current(&chr)) {
-            indent(); CU_DEBUG(2, "between(\'%s\',\'%s\') to end-of-file at (%u,%u)\n",
+            indent(2); CU_DEBUG(2, "between(\'%s\',\'%s\') to end-of-file at (%u,%u)\n",
                                char2string(start->arg.range->begin),
                                char2string(start->arg.range->end),
                                at.line_number + 1,
@@ -1058,7 +1066,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
             return false;
         }
 
-        indent(); CU_DEBUG(2, "between(\'%s\',\'%s\') to cursor(\'%s\') at (%u,%u)\n",
+        indent(2); CU_DEBUG(2, "between(\'%s\',\'%s\') to cursor(\'%s\') at (%u,%u)\n",
                            char2string(start->arg.range->begin),
                            char2string(start->arg.range->end),
                            char2string(chr),
@@ -1080,14 +1088,14 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
 
         if (!current(&chr)) {
 
-            indent(); CU_DEBUG(2, "set(%s) to end-of-file at (%u,%u)\n",
+            indent(2); CU_DEBUG(2, "set(%s) to end-of-file at (%u,%u)\n",
                                start->arg.set->label,
                                at.line_number + 1,
                                at.char_offset);
             return false;
         }
 
-        indent(); CU_DEBUG(2, "set(%s) to cursor(\'%s\') at (%u,%u)\n",
+        indent(2); CU_DEBUG(2, "set(%s) to cursor(\'%s\') at (%u,%u)\n",
                            start->arg.set->label,
                            char2string(chr),
                            at.line_number + 1,
@@ -1108,7 +1116,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         PrsNode value;
         if (!node(start->arg.name, &value)) return false;
 
-        indent(); CU_DEBUG(2, "%s at (%u,%u)\n",
+        indent(2); CU_DEBUG(2, "%s at (%u,%u)\n",
                            start->arg.name,
                            at.line_number + 1,
                            at.char_offset);
@@ -1116,7 +1124,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         // note the same name maybe call from two or more uncached nodes
         bool result = copper_vm(value, level+1, input);
 
-        indent(); CU_DEBUG(2, "%s at (%u,%u) result %s\n",
+        indent(2); CU_DEBUG(2, "%s at (%u,%u) result %s\n",
                            start->arg.name,
                            at.line_number + 1,
                            at.char_offset,
@@ -1154,7 +1162,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         PrsLabel label = { 0, 0 };
         PrsEvent event = 0;
 
-        indent(); CU_DEBUG(2, "fetching event %s at (%u,%u)\n",
+        indent(2); CU_DEBUG(2, "fetching event %s at (%u,%u)\n",
                            start->arg.name,
                            at.line_number + 1,
                            at.char_offset);
@@ -1179,7 +1187,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
             PrsChar chr = 0;
 
             if (!current(&chr)) {
-                indent(); CU_DEBUG(2, "match(\'%s\') to end-of-file at (%u,%u)\n",
+                indent(2); CU_DEBUG(2, "match(\'%s\') to end-of-file at (%u,%u)\n",
                                    char2string(*text),
                                    at.line_number + 1,
                                    at.char_offset);
@@ -1187,7 +1195,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
                 return false;
             }
 
-            indent(); CU_DEBUG(2, "match(\'%s\') to cursor(\'%s\') at (%u,%u)\n",
+            indent(2); CU_DEBUG(2, "match(\'%s\') to cursor(\'%s\') at (%u,%u)\n",
                                char2string(*text),
                                char2string(chr),
                                at.line_number + 1,
@@ -1230,10 +1238,8 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
         return false;
     }
 
-    if (!checkFirstSet()) return match;
-
     if (!cache_begin()) {
-        return run_node();
+        return match;
     }
 
     if (cache_check()) {

@@ -133,7 +133,7 @@ static bool buffer_GetLine(struct prs_buffer *input, PrsInput base)
 
     input->cursor += count;
 
-    return false;
+    return true;
 }
 
 static bool file_MoreData(PrsInput input) {

@@ -82,7 +82,7 @@ BEGIN     = '<' -
 END       = '>' -
 
 -           = (space | comment)*
-space       = ' ' | '\t' | end-of-line
+space       = ' ' | '\t' | '\r\n' | '\n' | '\r'
 comment     = '#' (!end-of-line .)*
 end-of-line = '\r\n' | '\n' | '\r'
 end-of-file = !.
