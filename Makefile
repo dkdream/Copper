@@ -46,6 +46,9 @@ push : .FORCE #-- put the new graph under version control
 test examples : $(COPPER.test) .FORCE
         $(MAKE) --directory=examples
 
+err_test: copper.vm .FORCE
+	./copper.ovm --name test --file test_error.cu
+
 # -- -------------------------------------------------
 
 cu_engine.o : cu_engine.c ; $(CC) $(CFLAGS) -I. -c -o $@ $<

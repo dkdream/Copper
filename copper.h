@@ -268,6 +268,7 @@ extern bool cu_MarkedText(PrsInput input, PrsData *target);
 extern unsigned cu_global_debug;
 extern void     cu_debug(const char *filename, unsigned int linenum, const char *format, ...);
 extern void     cu_error(const char *filename, unsigned int linenum, const char *format, ...);
+extern void     cu_error_part(const char *format, ...);
 
 static inline void cu_noop() __attribute__((always_inline));
 static inline void cu_noop() { return; }
@@ -288,6 +289,12 @@ static inline void cu_noop() { return; }
 #define CU_ERROR(args...) cu_error(__FILE__,  __LINE__, args)
 #else
 #define CU_ERROR(args...) cu_noop()
+#endif
+
+#if 1
+#define CU_ERROR_PART(args...) cu_error_part(args)
+#else
+#define CU_ERROR_PART(args...) cu_noop()
 #endif
 
 #if 1

@@ -11,6 +11,7 @@
 #include <getopt.h>
 #include <libgen.h>
 #include <stdio.h>
+#include <ctype.h>
 
 static char* program_name = 0;
 
@@ -135,8 +136,56 @@ int main(int argc, char **argv)
     copper_graph(parser);
 
     CU_DEBUG(1, "parsing infile %s\n", infile);
+
     if (!cu_Parse("grammar", parser)) {
-        CU_ERROR("syntax error");
+
+        int pos     = parser->cursor.text_inx;
+        int limit   = parser->data.limit;
+        int reached = parser->reach.text_inx;
+
+        if (reached >= limit && feof(input)) {
+            CU_ERROR("%s:%d [%d] syntax error",
+                     infile,
+                     parser->reach.line_number + 1,
+                     parser->reach.char_offset);
+        } else {
+            char *buffer = parser->data.buffer;
+            int start    = reached;
+            int chr;
+            int inx;
+
+            for ( ; pos <= start ; --start) {
+                chr = buffer[start];
+                if ('\n' == chr) break;
+            }
+
+            if ('\n' == chr) start += 1;
+
+            CU_ERROR_PART("%s:%d:%d: syntax error in text\n",
+                          infile,
+                          parser->reach.line_number + 1,
+                          parser->reach.char_offset - 1);
+
+            for (inx = start ; inx < limit ; ++inx) {
+                int chr =  buffer[inx];
+                CU_ERROR_PART("%c", chr);
+                if ('\n' == chr) break;
+            }
+            for (inx = start ; inx < reached ; ++inx) {
+                int chr =  buffer[inx];
+                if (!isblank(chr)) {
+                    CU_ERROR_PART("-");
+                    continue;
+                }
+                if (' ' == chr) {
+                    CU_ERROR_PART("-");
+                    continue;
+                }
+                CU_ERROR_PART("%c", chr);
+            }
+            CU_ERROR_PART("^\n");
+            CU_ERROR("\n");
+        }
     }
 
     CU_DEBUG(1, "running events\n");

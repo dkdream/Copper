@@ -712,6 +712,9 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     inline void hold() {
         mark = queue->end;
         at   = input->cursor;
+        if (at.text_inx > input->reach.text_inx) {
+            input->reach = at;
+        }
     }
 
     inline bool reset()   {
@@ -1377,6 +1380,12 @@ extern void cu_error(const char *filename,
     printf("file %s line %u :: ", filename, linenum);
     vprintf(format, ap);
     exit(1);
+}
+
+extern void cu_error_part(const char *format, ...)
+{
+    va_list ap; va_start (ap, format);
+    vprintf(format, ap);
 }
 
 
