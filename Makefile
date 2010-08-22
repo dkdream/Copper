@@ -20,7 +20,8 @@ CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
 OFLAGS = -Wall
 ARFLAGS = rcu
 
-OBJS = cu_engine.o compiler.o
+OBJS    = cu_engine.o compiler.o
+DEPENDS = 
 
 default : copper.vm
 
@@ -50,9 +51,10 @@ err_test: copper.vm .FORCE
 	./copper.ovm --name test --file test_error.cu
 
 # -- -------------------------------------------------
+DEPENDS += .depends/cu_engine.d
+DEPENDS += .depends/compiler.d
 
-cu_engine.o : cu_engine.c ; $(CC) $(CFLAGS) -I. -c -o $@ $<
-cu_engine.o : copper.h
+cu_engine.o : cu_engine.c
 
 libCopper.a : copper.h
 libCopper.a : cu_engine.o
@@ -60,25 +62,23 @@ libCopper.a : cu_engine.o
 	$(AR) $(ARFLAGS) $@ cu_engine.o
 	$(RANLIB) $@
 
-compiler.o  : compiler.c  ; $(CC) $(CFLAGS) -I. -c -o $@ $<
-compiler.o  : copper.h compiler.h
+compiler.o  : compiler.c
 
 # -- -------------------------------------------------
+DEPENDS += .depends/copper_o.d
 
 copper_o.c : copper_o.c.bootstrap ; cp $< $@
-copper_o.o : copper_o.c           ; $(CC) $(CFLAGS) -I. -c -o $@ $<
-copper_o.o : copper.h compiler.h
+copper_o.o : copper_o.c
 
 copper.ovm : main.o copper_o.o compiler.o libCopper.a
 	$(CC) $(CFLAGS) -o $@ main.o copper_o.o compiler.o -L. -lCopper
 
 # -- -------------------------------------------------
+DEPENDS += .depends/main.d
 
 copper.c : copper.cu ./copper.ovm ; ./copper.ovm --name copper_graph --output $@ --file copper.cu
-copper.o : copper.c               ; $(CC) $(CFLAGS) -I. -c -o $@ $<
-main.o   : main.c                 ; $(CC) $(CFLAGS) -I. -c -o $@ $<
-
-copper.o main.o : copper.h compiler.h
+copper.o : copper.c
+main.o   : main.c
 
 copper.vm : main.o copper.o compiler.o libCopper.a
 	$(CC) $(CFLAGS) -o $@ main.o copper.o compiler.o -L. -lCopper
@@ -96,12 +96,9 @@ stage.$(STAGE).c : copper.cu $(COPPER.test)
 	$(COPPER.test) --name copper_graph --output $@ --file copper.cu
 
 stage.$(STAGE).o : stage.$(STAGE).c
-	$(CC) $(CFLAGS) -I. -c -o $@ $<
 
 stage.$(STAGE) : main.o stage.$(STAGE).o compiler.o libCopper.a
 	$(CC) $(CFLAGS) -o $@ main.o stage.$(STAGE).o compiler.o -L. -lCopper
-
-stage.$(STAGE).o : copper.h compiler.h
 
 compare : $(COPPER.test) stage.$(STAGE) .FORCE
 	@./compare_graphs.sh $(COPPER.test) stage.$(STAGE)
@@ -121,6 +118,7 @@ clear : .FORCE
 	$(MAKE) --directory=examples --no-print-directory $@
 
 clean : clear .FORCE
+	rm -rf .depends
 	rm -f copper.c copper.vm libCopper.a
 	echo $(MAKE) --directory=examples --no-print-directory $@
 
@@ -143,3 +141,14 @@ copper.bootstrap.o : copper.bootstrap.c
 	$(CC) $(CFLAGS) -DCOPPER_BOOTSTRAP -c -o $@ $<
 
 .FORCE :
+
+##
+## rules
+##
+.depends : ; @mkdir .depends
+
+.depends/%.d : %.c .depends ; @gcc -MM -MP -MG $(CFLAGS) -I. -MF $@ $<
+
+%.o : %.c ; $(CC) $(CFLAGS) -I. -c -o $@ $<
+
+-include $(DEPENDS)
