@@ -732,20 +732,18 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     }
 
     inline bool next() {
-        input->cursor.text_inx    += 1;
-        input->cursor.char_offset += 1;
-
         unsigned point = input->cursor.text_inx;
-        unsigned limit = input->data.limit;
-
-        if (point >= limit) {
-            if (!more()) return false;
-        }
 
         if ('\n' == input->data.buffer[point]) {
             input->cursor.line_number += 1;
             input->cursor.char_offset  = 0;
+        } else {
+            input->cursor.char_offset += 1;
         }
+
+        input->cursor.text_inx += 1;
+
+        unsigned limit = input->data.limit;
 
         return true;
     }
@@ -1190,7 +1188,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
             PrsChar chr = 0;
 
             if (!current(&chr)) {
-                indent(2); CU_DEBUG(2, "match(\'%s\') to end-of-file at (%u,%u)\n",
+                indent(2); CU_DEBUG(2, "match(\"%s\") to end-of-file at (%u,%u)\n",
                                    char2string(*text),
                                    at.line_number + 1,
                                    at.char_offset);
@@ -1198,7 +1196,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
                 return false;
             }
 
-            indent(2); CU_DEBUG(2, "match(\'%s\') to cursor(\'%s\') at (%u,%u)\n",
+            indent(2); CU_DEBUG(2, "match(\"%s\") to cursor(\'%s\') at (%u,%u)\n",
                                char2string(*text),
                                char2string(chr),
                                at.line_number + 1,
