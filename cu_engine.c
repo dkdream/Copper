@@ -72,13 +72,15 @@ static bool make_Point(PrsNode  node,
     return true;
 }
 
-static bool make_Thread(PrsCursor at,
+static bool make_Thread(const char* rule,
+                        PrsCursor at,
                         PrsLabel  label,
                         PrsThread *target)
 {
     struct prs_thread *result = malloc(sizeof(struct prs_thread));
 
     result->next  = 0;
+    result->rule  = rule;
     result->at    = at;
     result->label = label;
 
@@ -163,19 +165,21 @@ static unsigned queue_Count(PrsQueue  queue) {
     return result;
 }
 
-static bool queue_Event(PrsQueue  queue,
-                        PrsCursor at,
-                        PrsLabel  label)
+static bool queue_Event(PrsQueue    queue,
+                        const char* rule,
+                        PrsCursor   at,
+                        PrsLabel    label)
 {
     if (!queue) return true;
 
     struct prs_thread *result = queue->free_list;
 
     if (!result) {
-        make_Thread(at, label, &result);
+        make_Thread(rule, at, label, &result);
     } else {
         queue->free_list = result->next;
         result->next     = 0;
+        result->rule     = rule;
         result->at       = at;
         result->label    = label;
     }
@@ -207,6 +211,8 @@ static bool queue_Run(PrsQueue queue,
     for ( ; current ; ) {
         PrsLabel label = current->label;
 
+        input->context.rule = current->rule;
+
         if (!label.function(input, current->at)) {
             queue->begin = current;
             return false;
@@ -233,12 +239,13 @@ static bool queue_CloneEvent(PrsQueue   queue,
     struct prs_thread *result = queue->free_list;
 
     if (!result) {
-        return make_Thread(value->at, value->label, target);
+        return make_Thread(value->rule, value->at, value->label, target);
     }
 
     queue->free_list = result->next;
 
     result->next  = 0;
+    result->rule  = value->rule;
     result->at    = value->at;
     result->label = value->label;
 
@@ -628,7 +635,7 @@ static bool input_CacheFree(PrsInput input) {
 
 static bool mark_begin(PrsInput input, PrsCursor at) {
     if (!input) return false;
-    input->slice.begin = at;
+    input->context.begin = at;
     return true;
 }
 
@@ -636,7 +643,7 @@ static struct prs_label begin_label = { &mark_begin, "set.begin" };
 
 static bool mark_end(PrsInput input, PrsCursor at) {
     if (!input) return false;
-    input->slice.end = at;
+    input->context.end = at;
     return true;
 }
 
@@ -683,7 +690,11 @@ static char *char2string(unsigned char value)
     return text;
 }
 
-static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
+static bool copper_vm(const char* rulename,
+                      PrsNode start,
+                      unsigned level,
+                      PrsInput input)
+{
     assert(0 != input);
     assert(0 != start);
 
@@ -743,7 +754,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
 
         input->cursor.text_inx += 1;
 
-        unsigned limit = input->data.limit;
+        //unsigned limit = input->data.limit;
 
         return true;
     }
@@ -790,6 +801,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
                            at.char_offset);
 
         return queue_Event(queue,
+                           rulename,
                            at,
                            label);
     }
@@ -965,11 +977,11 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     }
 
     inline bool prs_and() {
-        if (!copper_vm(start->arg.pair->left, level+1, input))  {
+        if (!copper_vm(rulename, start->arg.pair->left, level+1, input))  {
             reset();
             return false;
         }
-        if (!copper_vm(start->arg.pair->right, level+1, input)) {
+        if (!copper_vm(rulename, start->arg.pair->right, level+1, input)) {
             reset();
             return false;
         }
@@ -978,11 +990,11 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     }
 
     inline bool prs_choice() {
-        if (copper_vm(start->arg.pair->left, level+1, input)) {
+        if (copper_vm(rulename, start->arg.pair->left, level+1, input)) {
             return true;
         }
         reset();
-        if (copper_vm(start->arg.pair->right, level+1, input)) {
+        if (copper_vm(rulename, start->arg.pair->right, level+1, input)) {
             return true;
         }
         reset();
@@ -990,7 +1002,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     }
 
     inline bool prs_zero_plus() {
-        while (copper_vm(start->arg.node, level+1, input)) {
+        while (copper_vm(rulename, start->arg.node, level+1, input)) {
             hold();
         }
         reset();
@@ -999,7 +1011,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
 
     inline bool prs_one_plus() {
         bool result = false;
-        while (copper_vm(start->arg.node, level+1, input)) {
+        while (copper_vm(rulename, start->arg.node, level+1, input)) {
             result = true;
             hold();
         }
@@ -1008,7 +1020,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     }
 
     inline bool prs_optional() {
-        if (copper_vm(start->arg.node, level+1, input)) {
+        if (copper_vm(rulename, start->arg.node, level+1, input)) {
             return true;
         }
         reset();
@@ -1016,7 +1028,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     }
 
     inline bool prs_assert_true() {
-        if (copper_vm(start->arg.node, level+1, input)) {
+        if (copper_vm(rulename, start->arg.node, level+1, input)) {
             reset();
             return true;
         }
@@ -1025,7 +1037,7 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     }
 
     inline bool prs_assert_false() {
-        if (copper_vm(start->arg.node, level+1, input)) {
+        if (copper_vm(rulename, start->arg.node, level+1, input)) {
             reset();
             return false;
         }
@@ -1114,19 +1126,20 @@ static bool copper_vm(PrsNode start, unsigned level, PrsInput input) {
     }
 
     inline bool prs_name() {
+        const char *label = start->arg.name;
         PrsNode value;
-        if (!node(start->arg.name, &value)) return false;
+        if (!node(label, &value)) return false;
 
         indent(2); CU_DEBUG(2, "%s at (%u,%u)\n",
-                           start->arg.name,
+                           label,
                            at.line_number + 1,
                            at.char_offset);
 
         // note the same name maybe call from two or more uncached nodes
-        bool result = copper_vm(value, level+1, input);
+        bool result = copper_vm(label, value, level+1, input);
 
         indent(2); CU_DEBUG(2, "%s at (%u,%u) result %s\n",
-                           start->arg.name,
+                           label,
                            at.line_number + 1,
                            at.char_offset,
                            (result ? "passed" : "failed"));
@@ -1279,7 +1292,7 @@ extern bool cu_InputInit(PrsInput input, unsigned cacheSize) {
     return true;
 }
 
-extern bool cu_Parse(char* name, PrsInput input) {
+extern bool cu_Parse(const char* name, PrsInput input) {
     assert(0 != input);
 
     PrsCache cache = input->cache;
@@ -1301,7 +1314,7 @@ extern bool cu_Parse(char* name, PrsInput input) {
     if (!queue_Clear(input->queue))        return false;
 
     CU_DEBUG(3, "starting parce\n");
-    return copper_vm(start, 0, input);
+    return copper_vm(name, start, 0, input);
 }
 
 extern bool cu_AppendData(PrsInput input,
@@ -1335,8 +1348,8 @@ extern bool cu_MarkedText(PrsInput input, PrsData *target) {
     if (!input)  return false;
     if (!target) return false;
 
-    unsigned text_begin = input->slice.begin.text_inx;
-    unsigned text_end   = input->slice.end.text_inx;
+    unsigned text_begin = input->context.begin.text_inx;
+    unsigned text_end   = input->context.end.text_inx;
 
     if (text_begin > text_end) return false;
 

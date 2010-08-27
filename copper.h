@@ -154,8 +154,9 @@ struct prs_cursor {
 typedef struct prs_cursor PrsCursor;
 
 struct prs_state {
-    PrsCursor begin;
-    PrsCursor end;
+    const char* rule;
+    PrsCursor   begin;
+    PrsCursor   end;
 };
 
 typedef struct prs_state PrsState;
@@ -172,9 +173,10 @@ struct prs_label {
 typedef struct prs_label PrsLabel;
 
 struct prs_thread {
-    PrsThread next;
-    PrsCursor at;
-    PrsLabel  label;
+    PrsThread   next;
+    const char* rule;
+    PrsCursor   at;
+    PrsLabel    label;
 };
 
 struct prs_slice {
@@ -256,11 +258,11 @@ struct prs_input {
 
     PrsCache cache;
     PrsQueue queue;
-    PrsState slice;
+    PrsState context;
 };
 
 extern bool cu_InputInit(PrsInput input, unsigned cacheSize);
-extern bool cu_Parse(char* name, PrsInput input);
+extern bool cu_Parse(const char* name, PrsInput input);
 extern bool cu_AppendData(PrsInput input, const unsigned count, const char *src);
 extern bool cu_RunQueue(PrsInput input);
 extern bool cu_MarkedText(PrsInput input, PrsData *target);
