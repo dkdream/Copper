@@ -1128,7 +1128,10 @@ static bool copper_vm(const char* rulename,
     inline bool prs_name() {
         const char *label = start->arg.name;
         PrsNode value;
-        if (!node(label, &value)) return false;
+        if (!node(label, &value)) {
+            indent(2); CU_DEBUG(2, "node %s not found\n", label);
+            return false;
+        }
 
         indent(2); CU_DEBUG(2, "%s at (%u,%u)\n",
                            label,
