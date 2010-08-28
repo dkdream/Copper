@@ -1129,7 +1129,7 @@ static bool copper_vm(const char* rulename,
         const char *label = start->arg.name;
         PrsNode value;
         if (!node(label, &value)) {
-            indent(2); CU_DEBUG(2, "node %s not found\n", label);
+            CU_ERROR("node %s not found\n", label);
             return false;
         }
 

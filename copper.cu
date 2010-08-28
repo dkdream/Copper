@@ -80,6 +80,7 @@ CLOSE     = ')' -
 DOT       = '.' -
 BEGIN     = '<' -
 END       = '>' -
+SEMICOLON = ';' -
 
 -           = (space | comment)*
 space       = ' ' | '\t' | '\r\n' | '\n' | '\r'
