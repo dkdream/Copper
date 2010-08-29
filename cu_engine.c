@@ -407,8 +407,13 @@ static bool queue_AppendSlice(PrsQueue queue,
 
     if (!queue_CloneSlice(queue, segment, &slice)) return false;
 
-    queue->end->next = slice.begin;
-    queue->end       = slice.end;
+    if (queue->end) {
+        queue->end->next = slice.begin;
+        queue->end       = slice.end;
+    } else {
+        queue->begin = slice.begin;
+        queue->end   = slice.end;
+    }
 
     return true;
 }
@@ -1382,6 +1387,7 @@ extern void cu_debug(const char *filename,
 
     //    printf("file %s line %u :: ", filename, linenum);
     vprintf(format, ap);
+    fflush(stdout);
 }
 
 extern void cu_error(const char *filename,
