@@ -778,15 +778,20 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool node(PrsName name, PrsNode* target) {
-        return input->node(input, name, target);
+        if (!input->node(input, name, target)) {
+            CU_ERROR("node %s not found\n", name);
+            return false;
+        }
+        return true;
     }
 
     inline bool predicate(PrsName name) {
         PrsPredicate test = 0;
-        if (input->predicate(input, name, &test)) {
-            return test(input);
+        if (!input->predicate(input, name, &test)) {
+            CU_ERROR("predicate %s not found\n", name);
+            return false;
         }
-        return false;
+        return test(input);
     }
 
     inline void indent(unsigned debug) {
@@ -1105,7 +1110,6 @@ static bool copper_vm(const char* rulename,
         PrsChar chr = 0;
 
         if (!current(&chr)) {
-
             indent(2); CU_DEBUG(2, "set(%s) to end-of-file at (%u,%u)\n",
                                start->arg.set->label,
                                at.line_number + 1,
@@ -1131,23 +1135,21 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool prs_name() {
-        const char *label = start->arg.name;
-        PrsNode value;
-        if (!node(label, &value)) {
-            CU_ERROR("node %s not found\n", label);
-            return false;
-        }
+        const char *name = start->arg.name;
+        PrsNode     value;
+
+        if (!node(name, &value)) return false;
 
         indent(2); CU_DEBUG(2, "%s at (%u,%u)\n",
-                           label,
+                           name,
                            at.line_number + 1,
                            at.char_offset);
 
         // note the same name maybe call from two or more uncached nodes
-        bool result = copper_vm(label, value, level+1, input);
+        bool result = copper_vm(name, value, level+1, input);
 
         indent(2); CU_DEBUG(2, "%s at (%u,%u) result %s\n",
-                           label,
+                           name,
                            at.line_number + 1,
                            at.char_offset,
                            (result ? "passed" : "failed"));
@@ -1181,17 +1183,20 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool prs_apply() {
-        PrsLabel label = { 0, 0 };
-        PrsEvent event = 0;
+        const char *name  = start->arg.name;
+        PrsLabel    label = { 0, name };
+        PrsEvent    event = 0;
 
         indent(2); CU_DEBUG(2, "fetching event %s at (%u,%u)\n",
-                           start->arg.name,
+                           name,
                            at.line_number + 1,
                            at.char_offset);
 
-        if (!input->event(input, start->arg.name, &event)) return false;
+        if (!input->event(input, name, &event)) {
+            CU_ERROR("event %s not found\n", name);
+            return false;
+        }
 
-        label.name     = start->arg.name;
         label.function = event;
 
         add_event(label);
