@@ -362,6 +362,40 @@ static bool cache_Find(PrsCache cache, PrsNode node, unsigned offset) {
     return false;
 }
 
+static bool cache_Rmove(PrsCache cache, PrsNode node, unsigned offset) {
+    if (!cache) return false;
+
+    unsigned code  = offset;
+    unsigned index = code  % cache->size;
+    PrsPoint list  = cache->table[index];
+
+    if (node   == list->node) {
+        if (offset == list->offset) {
+            cache->table[index] = list->next;
+            list->next = cache->free_list;
+            cache->free_list = list;
+            return true;
+        }
+    }
+
+    PrsPoint prev = list;
+
+    for ( ; list->next ; ) {
+        prev = list;
+        list = list->next;
+        if (node   != list->node)   continue;
+        if (offset != list->offset) continue;
+
+        prev->next = list->next;
+        list->next = cache->free_list;
+        cache->free_list = list;
+
+        return true;
+    }
+
+    return true;
+}
+
 static bool cache_Clear(PrsCache cache) {
     if (!cache) return false;
 
@@ -578,11 +612,11 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool prs_and() {
-        if (!copper_vm(rulename, start->arg.pair->left, level+1, input))  {
+        if (!copper_vm(rulename, start->arg.pair->left, level, input))  {
             reset();
             return false;
         }
-        if (!copper_vm(rulename, start->arg.pair->right, level+1, input)) {
+        if (!copper_vm(rulename, start->arg.pair->right, level, input)) {
             reset();
             return false;
         }
@@ -591,11 +625,11 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool prs_choice() {
-        if (copper_vm(rulename, start->arg.pair->left, level+1, input)) {
+        if (copper_vm(rulename, start->arg.pair->left, level, input)) {
             return true;
         }
         reset();
-        if (copper_vm(rulename, start->arg.pair->right, level+1, input)) {
+        if (copper_vm(rulename, start->arg.pair->right, level, input)) {
             return true;
         }
         reset();
@@ -603,7 +637,7 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool prs_zero_plus() {
-        while (copper_vm(rulename, start->arg.node, level+1, input)) {
+        while (copper_vm(rulename, start->arg.node, level, input)) {
             hold();
         }
         reset();
@@ -612,7 +646,7 @@ static bool copper_vm(const char* rulename,
 
     inline bool prs_one_plus() {
         bool result = false;
-        while (copper_vm(rulename, start->arg.node, level+1, input)) {
+        while (copper_vm(rulename, start->arg.node, level, input)) {
             result = true;
             hold();
         }
@@ -621,7 +655,7 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool prs_optional() {
-        if (copper_vm(rulename, start->arg.node, level+1, input)) {
+        if (copper_vm(rulename, start->arg.node, level, input)) {
             return true;
         }
         reset();
@@ -629,7 +663,7 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool prs_assert_true() {
-        if (copper_vm(rulename, start->arg.node, level+1, input)) {
+        if (copper_vm(rulename, start->arg.node, level, input)) {
             reset();
             return true;
         }
@@ -638,7 +672,7 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool prs_assert_false() {
-        if (copper_vm(rulename, start->arg.node, level+1, input)) {
+        if (copper_vm(rulename, start->arg.node, level, input)) {
             reset();
             return false;
         }
