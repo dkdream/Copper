@@ -370,6 +370,7 @@ static bool cache_Clear(PrsCache cache) {
 
     for ( ; index < columns ; ++index ) {
         PrsPoint list = cache->table[index];
+        cache->table[index] = 0;
         for ( ; list ; ) {
             PrsPoint next = list->next;
             list->next = cache->free_list;
