@@ -269,6 +269,119 @@ static char *char2string(unsigned char value)
     return text;
 }
 
+static bool make_Point(PrsPoint *target)
+{
+    unsigned fullsize = sizeof(struct prs_point);
+
+    struct prs_point *result = malloc(fullsize);
+    memset(result, 0, fullsize);
+
+    *target = result;
+
+    return true;
+}
+
+static bool cache_MorePoints(PrsCache value, unsigned count) {
+    if (!value) return false;
+
+    PrsPoint list = value->free_list;
+
+    for ( ; count ; --count) {
+        PrsPoint head;
+
+        if (!make_Point(&head)) return false;
+
+        head->next = list;
+        value->free_list = head;
+        list = head;
+    }
+
+    return true;
+}
+
+
+static bool make_Cache(unsigned size, PrsCache *target) {
+    unsigned fullsize = (sizeof(struct prs_cache) + (size * sizeof(PrsPoint)));
+
+    struct prs_cache *result = malloc(fullsize);
+    memset(result, 0, fullsize);
+
+    result->size = size;
+
+    if (!cache_MorePoints(result, size)) return false;
+
+    *target = result;
+
+    return true;
+}
+
+static bool cache_Point(PrsCache cache, PrsNode node, unsigned offset) {
+    if (!cache) return false;
+
+    unsigned code  = offset;
+    unsigned index = code  % cache->size;
+    PrsPoint list  = cache->table[index];
+
+    for ( ; list ; list = list->next) {
+        if (node   != list->node)   continue;
+        if (offset != list->offset) continue;
+        return true;
+    }
+
+    if (!cache->free_list) {
+        if (!cache_MorePoints(cache, cache->size)) return false;
+    }
+
+    PrsPoint head = cache->free_list;
+
+    head->node   = node;
+    head->offset = offset;
+
+    cache->free_list = head->next;
+
+    head->next = cache->table[index];
+
+    cache->table[index] = head;
+
+    return true;
+}
+
+static bool cache_Find(PrsCache cache, PrsNode node, unsigned offset) {
+    if (!cache) return false;
+
+    unsigned code  = offset;
+    unsigned index = code  % cache->size;
+    PrsPoint list  = cache->table[index];
+
+    for ( ; list ; list = list->next) {
+        if (node   != list->node)   continue;
+        if (offset != list->offset) continue;
+        return true;
+    }
+
+    return false;
+}
+
+static bool cache_Clear(PrsCache cache) {
+    if (!cache) return false;
+
+    unsigned index   = 0;
+    unsigned columns = cache->size;
+
+    for ( ; index < columns ; ++index ) {
+        PrsPoint list = cache->table[index];
+        for ( ; list ; ) {
+            PrsPoint next = list->next;
+            list->next = cache->free_list;
+            cache->free_list = list;
+            list = next;
+        }
+    }
+
+    return true;
+}
+
+
 static bool copper_vm(const char* rulename,
                       PrsNode start,
                       unsigned level,
@@ -631,7 +744,7 @@ static bool copper_vm(const char* rulename,
         // note the same name maybe call from two or more uncached nodes
         result = copper_vm(name, value, level+1, input);
 
-        indent(2); CU_DEBUG(2, "%s at (%u,%u) result %s\n",
+        indent(2); CU_DEBUG(1, "%s at (%u,%u) result %s\n",
                            name,
                            at.line_number + 1,
                            at.char_offset,
@@ -754,7 +867,17 @@ static bool copper_vm(const char* rulename,
         return result;
     }
 
-    return run_node();
+    unsigned offset = at.text_inx;
+
+    if (cache_Find(input->cache, start, offset)) return false;
+
+    result = run_node();
+
+    if (!result) {
+        cache_Point(input->cache, start, offset);
+    }
+
+    return result;
 }
 
 /*************************************************************************************
@@ -769,10 +892,16 @@ extern bool cu_InputInit(PrsInput input, unsigned cacheSize) {
     if (!make_Queue(&(input->queue))) return false;
 
     PrsQueue queue = input->queue;
-
     assert(0 != queue);
 
-    CU_DEBUG(3, "InputInit done (queue %x)\n", (unsigned) queue);
+    CU_DEBUG(3, "making cache\n");
+    if (!make_Cache(cacheSize, &(input->cache))) return false;
+
+    PrsCache cache = input->cache;
+    assert(0 != cache);
+    assert(cacheSize == cache->size);
+
+    CU_DEBUG(3, "InputInit done (queue %x) (cache %x)\n", (unsigned) queue, (unsigned) cache);
 
     return true;
 }
@@ -780,17 +909,18 @@ extern bool cu_InputInit(PrsInput input, unsigned cacheSize) {
 extern bool cu_Parse(const char* name, PrsInput input) {
     assert(0 != input);
 
-    PrsQueue queue = input->queue;
-
-    assert(0 != queue);
-
     PrsNode start = 0;
 
     CU_DEBUG(3, "requesting start node %s\n", name);
     if (!input->node(input, name, &start)) return false;
 
-    CU_DEBUG(3, "clearing queue %x\n", (unsigned) queue);
-    if (!queue_Clear(input->queue))        return false;
+    assert(0 != input->queue);
+    CU_DEBUG(3, "clearing queue %x\n", (unsigned) input->queue);
+    if (!queue_Clear(input->queue)) return false;
+
+    assert(0 != input->cache);
+    CU_DEBUG(3, "clearing queue %x\n", (unsigned) input->cache);
+    if (!cache_Clear(input->cache)) return false;
 
     CU_DEBUG(3, "starting parce\n");
     return copper_vm(name, start, 0, input);

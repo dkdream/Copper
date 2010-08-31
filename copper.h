@@ -193,11 +193,9 @@ struct prs_queue {
 };
 
 struct prs_point {
-    PrsPoint  next;
-    PrsNode   node;
-    PrsState  cursor;
-    bool      match;
-    PrsSlice  segment;
+    PrsPoint next;
+    PrsNode  node;
+    unsigned offset;
 };
 
 struct prs_cache {
