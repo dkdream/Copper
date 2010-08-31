@@ -732,9 +732,11 @@ static bool copper_vm(const char* rulename,
 
         bool result;
 
-        if (checkFirstSet(start, &result)) {
+        if (checkFirstSet(value, &result)) {
             return result;
         }
+
+        if (cache_Find(input->cache, value, at.text_inx)) return false;
 
         indent(2); CU_DEBUG(2, "%s at (%u,%u)\n",
                            name,
@@ -867,14 +869,12 @@ static bool copper_vm(const char* rulename,
         return result;
     }
 
-    unsigned offset = at.text_inx;
-
-    if (cache_Find(input->cache, start, offset)) return false;
+    if (cache_Find(input->cache, start, at.text_inx)) return false;
 
     result = run_node();
 
     if (!result) {
-        cache_Point(input->cache, start, offset);
+        cache_Point(input->cache, start, at.text_inx);
     }
 
     return result;
