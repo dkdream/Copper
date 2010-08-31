@@ -1,0 +1,442 @@
+/***************************
+ **
+ ** Project: *current project*
+ **
+ ** Routine List:
+ **    <routine-list-end>
+ **
+ **
+ **
+ ***/
+#include "copper.h"
+
+/* */
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <error.h>
+#include <stdarg.h>
+#include <assert.h>
+
+/* */
+static bool make_Point(PrsNode  node,
+                       PrsState cursor,
+                       bool     match,
+                       PrsSlice segment,
+                       PrsPoint next,
+                       PrsPoint *target)
+{
+    struct prs_point *result = malloc(sizeof(struct prs_point));
+
+    result->next    = next;
+    result->node    = node;
+    result->cursor  = cursor;
+    result->match   = match;
+    result->segment = segment;
+    result->segment = segment;
+
+    *target = result;
+
+    return true;
+}
+
+static bool make_Cache(unsigned size, PrsCache *target) {
+    unsigned fullsize = (sizeof(struct prs_cache) + (size * sizeof(PrsPoint)));
+
+    struct prs_cache *result = malloc(fullsize);
+    memset(result, 0, fullsize);
+
+    result->size = size;
+
+    *target = result;
+
+    return true;
+}
+
+static void queue_Check(PrsQueue  queue,
+                        const char *filename,
+                        unsigned int linenumber)
+{
+    if (!queue) return;
+
+    if (!queue->begin) {
+        if (!queue->end) return;
+        CU_ERROR_AT(filename,  linenumber,
+                    "invalid queue depth 0 end %x",
+                    (unsigned) queue->end);
+    }
+
+    unsigned depth = 0;
+
+    PrsThread current = queue->begin;
+    PrsThread end     = queue->end;
+
+    bool found = false;
+
+    for ( ; current ; current = current->next) {
+        if (end == current) found = true;
+        depth += 1;
+    }
+
+    if (!found) {
+        CU_ERROR_AT(filename,  linenumber,
+                    "invalid queue depth %u end %x",
+                    depth, (unsigned) queue->end);
+    }
+}
+
+static unsigned queue_Count(PrsQueue  queue) {
+    if (!queue)        return 0;
+    if (!queue->begin) return 0;
+
+    unsigned result = 0;
+
+    PrsThread current = queue->begin;
+    PrsThread end     = queue->end;
+
+    bool found = false;
+
+    for ( ; current ; current = current->next) {
+        if (end == current) found = true;
+        result += 1;
+    }
+
+    return result;
+}
+
+static bool queue_CloneEvent(PrsQueue   queue,
+                             PrsThread  value,
+                             PrsThread *target)
+{
+    if (!queue) return false;
+    if (!value) return false;
+
+    struct prs_thread *result = queue->free_list;
+
+    if (!result) {
+        return make_Thread(value->rule, value->at, value->label, target);
+    }
+
+    queue->free_list = result->next;
+
+    result->next  = 0;
+    result->rule  = value->rule;
+    result->at    = value->at;
+    result->label = value->label;
+
+    *target = result;
+
+    return true;
+}
+
+// (begin-end] or [begin->next-end]
+// start after begin upto and including end
+// the slice = { clone(begin->next), clone(end) }
+static bool queue_Slice(PrsQueue   queue,
+                        PrsThread  begin,
+                        PrsThread  end,
+                        PrsSlice  *slice)
+{
+    if (!slice) return false;
+    if (!begin) {
+        return (0 == end);
+    }
+
+    if (slice->begin) {
+        queue_FreeList(queue, slice->begin);
+    }
+
+    if (begin == end) {
+        slice->begin = 0;
+        slice->end   = 0;
+        return true;
+    }
+
+    PrsThread last;
+    PrsThread node = begin->next;
+
+    queue_CloneEvent(queue, node, &last);
+
+    slice->begin = last;
+
+    for ( ; node ; ) {
+        if (node == end) {
+            slice->end = last;
+            return true;
+        }
+        node = node->next;
+        queue_CloneEvent(queue, node, &last->next);
+        last = last->next;
+    }
+
+    queue_FreeList(queue, slice->begin);
+
+    slice->begin = 0;
+    slice->end   = 0;
+
+    return false;
+}
+
+static bool queue_CloneSlice(PrsQueue  queue,
+                             PrsSlice  segment,
+                             PrsSlice *slice)
+{
+    if (!queue)         return true;
+    if (!segment.begin) return true;
+    if (!segment.end)   return false;
+
+    if (slice->begin) {
+        queue_FreeList(queue, slice->begin);
+    }
+
+    PrsThread last;
+    PrsThread node = segment.begin;
+
+    queue_CloneEvent(queue, node, &last);
+
+    slice->begin = last;
+
+    for ( ; node ; ) {
+        if (node == segment.end) {
+            slice->end = last;
+            return true;
+        }
+        node = node->next;
+        queue_CloneEvent(queue, node, &last->next);
+        last = last->next;
+    }
+
+    queue_FreeList(queue, slice->begin);
+
+    slice->begin = 0;
+    slice->end   = 0;
+
+    return false;
+}
+
+static bool queue_AppendSlice(PrsQueue queue,
+                              PrsSlice segment)
+{
+    if (!queue)         return true;
+    if (!segment.begin) return true;
+    if (!segment.end)   return false;
+
+    PrsSlice slice = { 0, 0 };
+
+    if (!queue_CloneSlice(queue, segment, &slice)) return false;
+
+    if (queue->end) {
+        queue->end->next = slice.begin;
+        queue->end       = slice.end;
+    } else {
+        queue->begin = slice.begin;
+        queue->end   = slice.end;
+    }
+
+    return true;
+}
+
+static bool queue_Free(PrsQueue *target) {
+    if (!target) return true;
+
+    PrsQueue queue = *target;
+
+    if (!queue_Clear(queue)) return false;
+
+    PrsThread free_list = queue->free_list;
+
+    queue->free_list = 0;
+
+    for ( ; free_list ; ) {
+        PrsThread next = free_list->next;
+        free(free_list);
+        free_list = next;
+    }
+
+    free(queue);
+
+    *target = 0;
+
+    return true;
+}
+
+static bool cache_Point(PrsCache cache,
+                        PrsNode  node,
+                        PrsState cursor,
+                        bool     match,
+                        PrsSlice segment,
+                        PrsPoint next,
+                        PrsPoint *target)
+{
+    if (!cache) {
+        return make_Point(node, cursor, match, segment, next, target);
+    }
+
+    struct prs_point *result = cache->free_list;
+
+    if (!result) {
+        return make_Point(node, cursor, match, segment, next, target);
+    }
+
+    cache->free_list = result->next;
+
+    result->next    = next;
+    result->node    = node;
+    result->cursor  = cursor;
+    result->match   = match;
+    result->segment = segment;
+
+    *target = result;
+
+    return true;
+}
+
+static bool cache_Find(PrsCache  cache,
+                       PrsNode   node,
+                       PrsCursor cursor,
+                       PrsPoint *target)
+{
+    assert(0 != cache);
+    assert(0 < cache->size);
+
+    unsigned code  = (unsigned)node;
+    unsigned index = code  % cache->size;
+    PrsPoint list  = cache->table[index];
+
+    for ( ; list ; list = list->next) {
+        if (node != list->node) continue;
+        if (cursor.text_inx != list->cursor.begin.text_inx) continue;
+        *target = list;
+        return true;
+    }
+
+    return false;
+}
+static bool input_CacheInsert(PrsInput  input,
+                              unsigned  depth,
+                              PrsNode   node,
+                              PrsState  cursor,
+                              bool      match,
+                              PrsThread begin,
+                              PrsThread end)
+{
+    assert(0 != input);
+
+    PrsCache cache = input->cache;
+    PrsQueue queue = input->queue;
+
+    assert(0 != cache);
+    assert(0 != queue);
+    assert(0 < cache->size);
+
+    PrsSlice segment = { 0, 0 };
+
+    if (match) {
+        if (!queue_Slice(queue, begin, end, &segment)) return false;
+        unsigned check = queue_Count(input->queue);
+
+        if (depth > check) CU_ERROR("invalid change in queue %u -> %u",
+                                    depth, check);
+    } else {
+        if (!queue_TrimTo(input->queue, begin)) return false;
+
+        unsigned check = queue_Count(input->queue);
+
+        if (depth > check) CU_ERROR("invalid change in queue %u -> %u  %x",
+                                    depth, check,
+                                    (unsigned) begin);
+
+    }
+
+
+    unsigned code  = (unsigned)node;
+    unsigned index = code  % cache->size;
+    PrsPoint list  = cache->table[index];
+
+    for ( ; list ; list = list->next) {
+        if (node != list->node) continue;
+        if (cursor.begin.text_inx != list->cursor.begin.text_inx) continue;
+
+        // found
+        // free the old segment
+        queue_FreeList(queue, list->segment.begin);
+
+        list->cursor.end = cursor.end;
+        list->match      = match;
+        list->segment    = segment;
+        return true;
+    }
+
+    if (!cache_Point(cache,
+                     node,
+                     cursor,
+                     match,
+                     segment,
+                     cache->table[index],
+                     &list))
+        return false;
+
+    cache->table[index] = list;
+
+    return true;
+}
+
+static bool input_CacheClear(PrsInput input) {
+    assert(0 != input);
+
+    PrsCache cache = input->cache;
+    PrsQueue queue = input->queue;
+
+    assert(0 != cache);
+    assert(0 != queue);
+    assert(0 < cache->size);
+
+    unsigned  size  = cache->size;
+    PrsPoint *table = cache->table;
+
+    for ( ; size-- ; ) {
+        PrsPoint value = table[size];
+        table[size] = 0;
+        for ( ; value ; ) {
+            PrsPoint next = value->next;
+            queue_FreeList(queue, value->segment.begin);
+
+            value->node          = 0;
+            value->segment.begin = 0;
+            value->segment.end   = 0;
+            value->next          = cache->free_list;
+            cache->free_list     = value;
+
+            value = next;
+        }
+    }
+
+    return true;
+}
+
+static bool input_CacheFree(PrsInput input) {
+    if (!input) return true;
+
+    PrsCache cache = input->cache;
+
+    if (!cache) return true;
+
+    if (!input_CacheClear(input)) return false;
+
+    input->cache = 0;
+
+    PrsPoint free_list = cache->free_list;
+
+    cache->free_list = 0;
+
+    for ( ; free_list ; ) {
+        PrsPoint next = free_list->next;
+        free(free_list);
+        free_list = next;
+    }
+
+    free(cache);
+
+    return true;
+}
+

@@ -51,27 +51,6 @@ static bool text_Extend(struct prs_text *text, const unsigned room) {
     return true;
 }
 
-static bool make_Point(PrsNode  node,
-                       PrsState cursor,
-                       bool     match,
-                       PrsSlice segment,
-                       PrsPoint next,
-                       PrsPoint *target)
-{
-    struct prs_point *result = malloc(sizeof(struct prs_point));
-
-    result->next    = next;
-    result->node    = node;
-    result->cursor  = cursor;
-    result->match   = match;
-    result->segment = segment;
-    result->segment = segment;
-
-    *target = result;
-
-    return true;
-}
-
 static bool make_Thread(const char* rule,
                         PrsCursor at,
                         PrsLabel  label,
@@ -99,70 +78,6 @@ static bool make_Queue(PrsQueue *target) {
     *target = result;
 
     return true;
-}
-
-static bool make_Cache(unsigned size, PrsCache *target) {
-    unsigned fullsize = (sizeof(struct prs_cache) + (size * sizeof(PrsPoint)));
-
-    struct prs_cache *result = malloc(fullsize);
-    memset(result, 0, fullsize);
-
-    result->size = size;
-
-    *target = result;
-
-    return true;
-}
-
-static void queue_Check(PrsQueue  queue,
-                        const char *filename,
-                        unsigned int linenumber)
-{
-    if (!queue) return;
-
-    if (!queue->begin) {
-        if (!queue->end) return;
-        CU_ERROR_AT(filename,  linenumber,
-                    "invalid queue depth 0 end %x",
-                    (unsigned) queue->end);
-    }
-
-    unsigned depth = 0;
-
-    PrsThread current = queue->begin;
-    PrsThread end     = queue->end;
-
-    bool found = false;
-
-    for ( ; current ; current = current->next) {
-        if (end == current) found = true;
-        depth += 1;
-    }
-
-    if (!found) {
-        CU_ERROR_AT(filename,  linenumber,
-                    "invalid queue depth %u end %x",
-                    depth, (unsigned) queue->end);
-    }
-}
-
-static unsigned queue_Count(PrsQueue  queue) {
-    if (!queue)        return 0;
-    if (!queue->begin) return 0;
-
-    unsigned result = 0;
-
-    PrsThread current = queue->begin;
-    PrsThread end     = queue->end;
-
-    bool found = false;
-
-    for ( ; current ; current = current->next) {
-        if (end == current) found = true;
-        result += 1;
-    }
-
-    return result;
 }
 
 static bool queue_Event(PrsQueue    queue,
@@ -229,31 +144,6 @@ static bool queue_Run(PrsQueue queue,
     return true;
 }
 
-static bool queue_CloneEvent(PrsQueue   queue,
-                             PrsThread  value,
-                             PrsThread *target)
-{
-    if (!queue) return false;
-    if (!value) return false;
-
-    struct prs_thread *result = queue->free_list;
-
-    if (!result) {
-        return make_Thread(value->rule, value->at, value->label, target);
-    }
-
-    queue->free_list = result->next;
-
-    result->next  = 0;
-    result->rule  = value->rule;
-    result->at    = value->at;
-    result->label = value->label;
-
-    *target = result;
-
-    return true;
-}
-
 static bool queue_FreeList(PrsQueue queue,
                            PrsThread list)
 {
@@ -311,113 +201,6 @@ static bool queue_TrimTo(PrsQueue  queue,
 
 }
 
-// (begin-end] or [begin->next-end]
-// start after begin upto and including end
-// the slice = { clone(begin->next), clone(end) }
-static bool queue_Slice(PrsQueue   queue,
-                        PrsThread  begin,
-                        PrsThread  end,
-                        PrsSlice  *slice)
-{
-    if (!slice) return false;
-    if (!begin) {
-        return (0 == end);
-    }
-
-    if (slice->begin) {
-        queue_FreeList(queue, slice->begin);
-    }
-
-    if (begin == end) {
-        slice->begin = 0;
-        slice->end   = 0;
-        return true;
-    }
-
-    PrsThread last;
-    PrsThread node = begin->next;
-
-    queue_CloneEvent(queue, node, &last);
-
-    slice->begin = last;
-
-    for ( ; node ; ) {
-        if (node == end) {
-            slice->end = last;
-            return true;
-        }
-        node = node->next;
-        queue_CloneEvent(queue, node, &last->next);
-        last = last->next;
-    }
-
-    queue_FreeList(queue, slice->begin);
-
-    slice->begin = 0;
-    slice->end   = 0;
-
-    return false;
-}
-
-static bool queue_CloneSlice(PrsQueue  queue,
-                             PrsSlice  segment,
-                             PrsSlice *slice)
-{
-    if (!queue)         return true;
-    if (!segment.begin) return true;
-    if (!segment.end)   return false;
-
-    if (slice->begin) {
-        queue_FreeList(queue, slice->begin);
-    }
-
-    PrsThread last;
-    PrsThread node = segment.begin;
-
-    queue_CloneEvent(queue, node, &last);
-
-    slice->begin = last;
-
-    for ( ; node ; ) {
-        if (node == segment.end) {
-            slice->end = last;
-            return true;
-        }
-        node = node->next;
-        queue_CloneEvent(queue, node, &last->next);
-        last = last->next;
-    }
-
-    queue_FreeList(queue, slice->begin);
-
-    slice->begin = 0;
-    slice->end   = 0;
-
-    return false;
-}
-
-static bool queue_AppendSlice(PrsQueue queue,
-                              PrsSlice segment)
-{
-    if (!queue)         return true;
-    if (!segment.begin) return true;
-    if (!segment.end)   return false;
-
-    PrsSlice slice = { 0, 0 };
-
-    if (!queue_CloneSlice(queue, segment, &slice)) return false;
-
-    if (queue->end) {
-        queue->end->next = slice.begin;
-        queue->end       = slice.end;
-    } else {
-        queue->begin = slice.begin;
-        queue->end   = slice.end;
-    }
-
-    return true;
-}
-
 static bool queue_Clear(PrsQueue queue) {
     if (!queue) return true;
 
@@ -428,215 +211,6 @@ static bool queue_Clear(PrsQueue queue) {
 
     return queue_FreeList(queue, node);
 }
-
-#if 0
-static bool queue_Free(PrsQueue *target) {
-    if (!target) return true;
-
-    PrsQueue queue = *target;
-
-    if (!queue_Clear(queue)) return false;
-
-    PrsThread free_list = queue->free_list;
-
-    queue->free_list = 0;
-
-    for ( ; free_list ; ) {
-        PrsThread next = free_list->next;
-        free(free_list);
-        free_list = next;
-    }
-
-    free(queue);
-
-    *target = 0;
-
-    return true;
-}
-#endif
-
-static bool cache_Point(PrsCache cache,
-                        PrsNode  node,
-                        PrsState cursor,
-                        bool     match,
-                        PrsSlice segment,
-                        PrsPoint next,
-                        PrsPoint *target)
-{
-    if (!cache) {
-        return make_Point(node, cursor, match, segment, next, target);
-    }
-
-    struct prs_point *result = cache->free_list;
-
-    if (!result) {
-        return make_Point(node, cursor, match, segment, next, target);
-    }
-
-    cache->free_list = result->next;
-
-    result->next    = next;
-    result->node    = node;
-    result->cursor  = cursor;
-    result->match   = match;
-    result->segment = segment;
-
-    *target = result;
-
-     return true;
-}
-
-static bool cache_Find(PrsCache  cache,
-                       PrsNode   node,
-                       PrsCursor cursor,
-                       PrsPoint *target)
-{
-    assert(0 != cache);
-    assert(0 < cache->size);
-
-    unsigned code  = (unsigned)node;
-    unsigned index = code  % cache->size;
-    PrsPoint list  = cache->table[index];
-
-    for ( ; list ; list = list->next) {
-        if (node != list->node) continue;
-        if (cursor.text_inx != list->cursor.begin.text_inx) continue;
-        *target = list;
-        return true;
-    }
-
-    return false;
-}
-
-static bool input_CacheInsert(PrsInput  input,
-                              unsigned  depth,
-                              PrsNode   node,
-                              PrsState  cursor,
-                              bool      match,
-                              PrsThread begin,
-                              PrsThread end)
-{
-    assert(0 != input);
-
-    PrsCache cache = input->cache;
-    PrsQueue queue = input->queue;
-
-    assert(0 != cache);
-    assert(0 != queue);
-    assert(0 < cache->size);
-
-    PrsSlice segment = { 0, 0 };
-
-    if (match) {
-        if (!queue_Slice(queue, begin, end, &segment)) return false;
-        unsigned check = queue_Count(input->queue);
-
-        if (depth > check) CU_ERROR("invalid change in queue %u -> %u",
-                                    depth, check);
-    } else {
-        if (!queue_TrimTo(input->queue, begin)) return false;
-
-        unsigned check = queue_Count(input->queue);
-
-        if (depth > check) CU_ERROR("invalid change in queue %u -> %u  %x",
-                                    depth, check,
-                                    (unsigned) begin);
-
-    }
-
-
-    unsigned code  = (unsigned)node;
-    unsigned index = code  % cache->size;
-    PrsPoint list  = cache->table[index];
-
-    for ( ; list ; list = list->next) {
-        if (node != list->node) continue;
-        if (cursor.begin.text_inx != list->cursor.begin.text_inx) continue;
-
-        // found
-        // free the old segment
-        queue_FreeList(queue, list->segment.begin);
-
-        list->cursor.end = cursor.end;
-        list->match      = match;
-        list->segment    = segment;
-        return true;
-    }
-
-    if (!cache_Point(cache,
-                     node,
-                     cursor,
-                     match,
-                     segment,
-                     cache->table[index],
-                     &list))
-        return false;
-
-    cache->table[index] = list;
-
-    return true;
-}
-
-static bool input_CacheClear(PrsInput input) {
-    assert(0 != input);
-
-    PrsCache cache = input->cache;
-    PrsQueue queue = input->queue;
-
-    assert(0 != cache);
-    assert(0 != queue);
-    assert(0 < cache->size);
-
-    unsigned  size  = cache->size;
-    PrsPoint *table = cache->table;
-
-    for ( ; size-- ; ) {
-        PrsPoint value = table[size];
-        table[size] = 0;
-        for ( ; value ; ) {
-            PrsPoint next = value->next;
-            queue_FreeList(queue, value->segment.begin);
-
-            value->node          = 0;
-            value->segment.begin = 0;
-            value->segment.end   = 0;
-            value->next          = cache->free_list;
-            cache->free_list     = value;
-
-            value = next;
-        }
-    }
-
-    return true;
-}
-
-#if 0
-static bool input_CacheFree(PrsInput input) {
-    if (!input) return true;
-
-    PrsCache cache = input->cache;
-
-    if (!cache) return true;
-
-    if (!input_CacheClear(input)) return false;
-
-    input->cache = 0;
-
-    PrsPoint free_list = cache->free_list;
-
-    cache->free_list = 0;
-
-    for ( ; free_list ; ) {
-        PrsPoint next = free_list->next;
-        free(free_list);
-        free_list = next;
-    }
-
-    free(cache);
-
-    return true;
-}
-#endif
 
 static bool mark_begin(PrsInput input, PrsCursor at) {
     if (!input) return false;
@@ -703,19 +277,11 @@ static bool copper_vm(const char* rulename,
     assert(0 != input);
     assert(0 != start);
 
-    PrsCache cache = input->cache;
     PrsQueue queue = input->queue;
-
-    assert(0 != cache);
     assert(0 != queue);
-    assert(0 < cache->size);
 
-    PrsThread begin  = 0;
     PrsThread mark   = 0;
-    bool      match  = false;
-    PrsState  cursor;
     PrsCursor at;
-    unsigned  depth;
 
     char buffer[10];
 
@@ -816,9 +382,9 @@ static bool copper_vm(const char* rulename,
                            label);
     }
 
-    inline bool checkFirstSet() {
-        PrsFirstSet  first = start->first;
-        PrsFirstList list  = start->start;
+    inline bool checkFirstSet(PrsNode node, bool *target) {
+        PrsFirstSet  first = node->first;
+        PrsFirstList list  = node->start;
 
         hold();
 
@@ -828,7 +394,7 @@ static bool copper_vm(const char* rulename,
                                 at.line_number + 1,
                                 at.char_offset);
 
-            return true;
+            return false;
         }
 
         if (list) {
@@ -837,24 +403,24 @@ static bool copper_vm(const char* rulename,
                                     node_label(),
                                     at.line_number + 1,
                                     at.char_offset);
-                return true;
+                return false;
             }
         }
 
-        switch (start->type) {
+        switch (node->type) {
         case pft_opaque:
             indent(4); CU_DEBUG(4, "checkFirst(%s) at (%u,%u) (skipped opaque)\n",
                                 node_label(),
                                 at.line_number + 1,
                                 at.char_offset);
-            return true;
+            return false;
 
         case pft_variable:
             indent(4); CU_DEBUG(4, "checkFirst(%s) at (%u,%u) (skipped variable)\n",
                                 node_label(),
                                 at.line_number + 1,
                                 at.char_offset);
-            return true;
+            return false;
 
         default: break;
         }
@@ -865,7 +431,7 @@ static bool copper_vm(const char* rulename,
                                 node_label(),
                                 at.line_number + 1,
                                 at.char_offset);
-            return true;
+            return false;
         }
 
         unsigned             binx = chr;
@@ -878,8 +444,7 @@ static bool copper_vm(const char* rulename,
                                 at.line_number + 1,
                                 at.char_offset,
                                 "continue");
-            match = true;
-            return true;
+            return false;
         }
 
         indent(4); CU_DEBUG(4, "checkFirst(%s) to cursor(\'%s\') at (%u,%u) %s\n",
@@ -889,101 +454,13 @@ static bool copper_vm(const char* rulename,
                             at.char_offset,
                             "skip");
 
-        if (pft_transparent == start->type) {
-            match = true;
+        if (pft_transparent == node->type) {
+            *target = true;
         } else {
-            match = false;
-        }
-
-        return false;
-    }
-
-    inline bool cache_begin() {
-        hold();
-
-        if (!checkFirstSet()) return false;
-
-        indent(2); CU_DEBUG(2, "%s (%s) at (%u,%u) begin\n",
-                           oper2name(start->oper),
-                           node_label(),
-                           at.line_number + 1,
-                           at.char_offset);
-
-        depth        = queue_Count(queue);
-        begin        = mark;
-        cursor.begin = at;
-
-        return true;
-    }
-
-    inline void queue_check(const char *filename, unsigned int linenumber) {
-        unsigned check = queue_Count(queue);
-
-        if (depth > check)  CU_ERROR_AT(filename, linenumber,
-                                        "invalid change in queue %u -> %u",
-                                        depth, check);
-
-        queue_Check(queue, filename, linenumber);
-    }
-
-    inline bool cache_check() {
-        PrsPoint point = 0;
-        if (!cache_Find(cache, start, cursor.begin, &point)) return false;
-
-        match = point->match;
-
-        if (match) {
-            input->cursor = point->cursor.end;
-            if (!queue_AppendSlice(queue, point->segment)) return false;
-
-            indent(2); CU_DEBUG(2, "%s (%s) at (%u,%u) to (%u,%u) using cache result %s\n",
-                               oper2name(start->oper),
-                               node_label(),
-                               at.line_number + 1,
-                               at.char_offset,
-                               point->cursor.end.line_number + 1,
-                               point->cursor.end.char_offset,
-                               "passed");
-        } else {
-            indent(2); CU_DEBUG(2, "%s (%s) at (%u,%u) using cache result %s\n",
-                               oper2name(start->oper),
-                               node_label(),
-                               at.line_number + 1,
-                               at.char_offset,
-                               "failed");
+            *target = false;
         }
 
         return true;
-    }
-
-    inline bool cache_end() {
-        cursor.end = input->cursor;
-
-        if (match) {
-            indent(2); CU_DEBUG(2, "%s (%s) at (%u,%u) to (%u,%u) result %s\n",
-                               oper2name(start->oper),
-                               node_label(),
-                               cursor.begin.line_number + 1,
-                               cursor.begin.char_offset,
-                               cursor.end.line_number + 1,
-                               cursor.end.char_offset,
-                               "passed");
-        } else {
-            indent(2); CU_DEBUG(2, "%s (%s) at (%u,%u) result %s\n",
-                               oper2name(start->oper),
-                               node_label(),
-                               cursor.begin.line_number + 1,
-                               cursor.begin.char_offset,
-                               "failed");
-        }
-
-       return input_CacheInsert(input,
-                                depth,
-                                start,
-                                cursor,
-                                match,
-                                begin,
-                                queue->end);
     }
 
     inline bool prs_and() {
@@ -1140,13 +617,19 @@ static bool copper_vm(const char* rulename,
 
         if (!node(name, &value)) return false;
 
+        bool result;
+
+        if (checkFirstSet(start, &result)) {
+            return result;
+        }
+
         indent(2); CU_DEBUG(2, "%s at (%u,%u)\n",
                            name,
                            at.line_number + 1,
                            at.char_offset);
 
         // note the same name maybe call from two or more uncached nodes
-        bool result = copper_vm(name, value, level+1, input);
+        result = copper_vm(name, value, level+1, input);
 
         indent(2); CU_DEBUG(2, "%s at (%u,%u) result %s\n",
                            name,
@@ -1265,19 +748,13 @@ static bool copper_vm(const char* rulename,
         return false;
     }
 
-    if (!cache_begin()) {
-        return match;
+    bool result;
+
+    if (checkFirstSet(start, &result)) {
+        return result;
     }
 
-    if (cache_check()) {
-        return match;
-    }
-
-    match = run_node();
-
-    cache_end();
-
-    return match;
+    return run_node();
 }
 
 /*************************************************************************************
@@ -1288,40 +765,29 @@ static bool copper_vm(const char* rulename,
 extern bool cu_InputInit(PrsInput input, unsigned cacheSize) {
     assert(0 != input);
 
-    CU_DEBUG(3, "making cache %u\n", cacheSize);
-    if (!make_Cache(cacheSize, &(input->cache))) return false;
-
     CU_DEBUG(3, "making queue\n");
     if (!make_Queue(&(input->queue))) return false;
 
-    PrsCache cache = input->cache;
     PrsQueue queue = input->queue;
 
-    assert(0 != cache);
     assert(0 != queue);
-    assert(0 < cache->size);
 
-    CU_DEBUG(3, "InputInit done (cache %x queue %x)\n", (unsigned) cache, (unsigned) queue);
+    CU_DEBUG(3, "InputInit done (queue %x)\n", (unsigned) queue);
+
     return true;
 }
 
 extern bool cu_Parse(const char* name, PrsInput input) {
     assert(0 != input);
 
-    PrsCache cache = input->cache;
     PrsQueue queue = input->queue;
 
-    assert(0 != cache);
     assert(0 != queue);
-    assert(0 < cache->size);
 
     PrsNode start = 0;
 
     CU_DEBUG(3, "requesting start node %s\n", name);
     if (!input->node(input, name, &start)) return false;
-
-    CU_DEBUG(3, "clearing cache %x\n", (unsigned) cache);
-    if (!input_CacheClear(input))          return false;
 
     CU_DEBUG(3, "clearing queue %x\n", (unsigned) queue);
     if (!queue_Clear(input->queue))        return false;
