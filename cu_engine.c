@@ -595,7 +595,7 @@ static bool copper_vm(const char* rulename,
             return false;
         }
 
-        indent(4); CU_DEBUG(4, "checkFirst(%s) to cursor(\'%s\') at (%u,%u) %s\n",
+        indent(2); CU_DEBUG(1, "checkFirst(%s) to cursor(\'%s\') at (%u,%u) %s\n",
                             node_label(),
                             char2string(chr),
                             at.line_number + 1,
@@ -771,7 +771,14 @@ static bool copper_vm(const char* rulename,
             return result;
         }
 
-        if (cache_Find(input->cache, value, at.text_inx)) return false;
+        if (cache_Find(input->cache, value, at.text_inx)) {
+            indent(2); CU_DEBUG(1, "%s at (%u,%u) (cached0 result failed\n",
+                                name,
+                                at.line_number + 1,
+                                at.char_offset);
+            return false;
+        }
+
 
         indent(2); CU_DEBUG(2, "%s at (%u,%u)\n",
                            name,
@@ -781,11 +788,13 @@ static bool copper_vm(const char* rulename,
         // note the same name maybe call from two or more uncached nodes
         result = copper_vm(name, value, level+1, input);
 
-        indent(2); CU_DEBUG(1, "%s at (%u,%u) result %s\n",
-                           name,
-                           at.line_number + 1,
-                           at.char_offset,
-                           (result ? "passed" : "failed"));
+        indent(2); CU_DEBUG(1, "%s at (%u,%u) to (%u,%u) result %s\n",
+                            name,
+                            at.line_number + 1,
+                            at.char_offset,
+                            input->cursor.line_number + 1,
+                            input->cursor.char_offset,
+                            (result ? "passed" : "failed"));
 
         return result;
     }
