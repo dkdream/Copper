@@ -843,7 +843,7 @@ static bool copper_vm(const char* rulename,
         }
 
         if (cache_Find(input->cache, value, at.text_inx)) {
-            indent(2); CU_DEBUG(1, "%s at (%u,%u) (cached0 result failed\n",
+            indent(2); CU_DEBUG(1, "rule \"%s\" at (%u,%u) (cached result failed\n",
                                 name,
                                 at.line_number + 1,
                                 at.char_offset);
@@ -851,7 +851,7 @@ static bool copper_vm(const char* rulename,
         }
 
 
-        indent(2); CU_DEBUG(2, "%s at (%u,%u)\n",
+        indent(2); CU_DEBUG(2, "rule \"%s\" at (%u,%u)\n",
                            name,
                            at.line_number + 1,
                            at.char_offset);
@@ -859,7 +859,7 @@ static bool copper_vm(const char* rulename,
         // note the same name maybe call from two or more uncached nodes
         result = copper_vm(name, value, level+1, input);
 
-        indent(2); CU_DEBUG(1, "%s at (%u,%u) to (%u,%u) result %s\n",
+        indent(2); CU_DEBUG(1, "rule \"%s\" at (%u,%u) to (%u,%u) result %s\n",
                             name,
                             at.line_number + 1,
                             at.char_offset,
