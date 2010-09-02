@@ -626,7 +626,7 @@ static bool copper_vm(const char* rulename,
             return false;
         }
 
-#if 0
+#if 1
         if (!meta->done) {
             indent(2); CU_DEBUG(1, "check (%s) using unfinish meta data\n",
                                 node_label());

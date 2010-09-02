@@ -24,6 +24,39 @@ struct meta_blob {
     struct prs_metaset   first;
 };
 
+static inline bool set_Equals(PrsMetaSet left, PrsMetaSet right) {
+
+    unsigned char *lbits = left->bitfield;
+    unsigned char *rbits = right->bitfield;
+
+    unsigned inx = 0;
+    for ( ; inx < 32 ; ++inx) {
+        if (lbits[inx] != rbits[inx]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static inline bool set_Contains(PrsMetaSet contains, PrsMetaSet group) {
+
+    unsigned char *cbits = contains->bitfield;
+    unsigned char *gbits = group->bitfield;
+
+    unsigned inx = 0;
+    for ( ; inx < 32 ; ++inx) {
+        if (cbits[inx] != gbits[inx]) {
+            unsigned char check = cbits[inx] & gbits[inx];
+            if (gbits[inx] != check) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
 static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *target)
 {
     PrsMetaFirst result = 0;
@@ -53,7 +86,9 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
 
             result->done   = false;
             result->node   = node;
+
             node->metadata = result;
+
             return true;
         }
 
@@ -75,6 +110,7 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
         result->done   = false;
         result->node   = node;
         result->first  = set;
+
         node->metadata = result;
 
         if (node->first) {
@@ -309,9 +345,33 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     return false;
 }
 
-static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target)
+static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, bool *changed)
 {
+    struct prs_metaset holding;
     PrsMetaFirst result = 0;
+
+    inline void copy() {
+        unsigned char *src    = result->first->bitfield;
+        unsigned char *bits   = holding.bitfield;
+        unsigned inx = 0;
+        for ( ; inx < 32 ; ++inx) {
+            bits[inx] = src[inx];
+        }
+    }
+
+    inline bool match() {
+        unsigned char *src    = result->first->bitfield;
+        unsigned char *bits   = holding.bitfield;
+        unsigned inx = 0;
+        for ( ; inx < 32 ; ++inx) {
+            if (bits[inx] != src[inx]) {
+                CU_DEBUG(1, "meta_Recheck changed\n");
+                *changed = true;
+                return false;
+            }
+        }
+        return true;
+    }
 
     inline bool isTransparent(PrsNode value) {
         assert(value);
@@ -367,57 +427,64 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target)
     // [...]
     // "..."
     inline bool do_Nothing() {
+        if (!result->done) {
+            CU_DEBUG(1, "meta_Recheck node(%s) not done\n", oper2name(node->oper));
+        }
         return true;
     }
 
     // e !
     inline bool do_AssertFalse() {
+        copy();
+
         PrsMetaFirst child;
 
-        if (!meta_Recheck(input, node->arg.node, &child)) return false;
+        if (!meta_Recheck(input, node->arg.node, &child, changed)) return false;
 
         remove(child);
 
-        result->done = child->done;
+        result->done = match();
 
         return true;
     }
 
     // e &
     inline bool do_AssertTrue() {
+        copy();
+
         PrsMetaFirst child;
 
-        if (!meta_Recheck(input, node->arg.node, &child)) return false;
+        if (!meta_Recheck(input, node->arg.node, &child, changed)) return false;
 
         merge(child);
 
-        result->done = child->done;
+        result->done = match();
 
         return true;
     }
 
     // e1 e2 /
     inline bool do_Choice() {
+        copy();
+
         PrsMetaFirst left;
         PrsMetaFirst right;
 
-        if (!meta_Recheck(input, node->arg.pair->left,  &left))  return false;
-        if (!meta_Recheck(input, node->arg.pair->right, &right)) return false;
+        if (!meta_Recheck(input, node->arg.pair->left,  &left,  changed)) return false;
+        if (!meta_Recheck(input, node->arg.pair->right, &right, changed)) return false;
 
         merge(left);
         merge(right);
 
-        if (left->done) {
-            if (right->done) {
-                result->done = true;
-            }
-        }
+        result->done = match();
 
         return true;
     }
 
     // name
     inline bool do_MatchName() {
+        copy();
+
         const char *name = node->arg.name;
         PrsNode     value;
 
@@ -430,9 +497,7 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target)
 
         merge(child);
 
-        if (child->done) {
-            result->done = child->done;
-        }
+        result->done = match();
 
         return true;
     }
@@ -441,45 +506,47 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target)
     // e *
     // e ?
     inline bool do_CopyChild() {
+        copy();
+
         PrsMetaFirst child;
 
-        if (!meta_Recheck(input, node->arg.node, &child)) return false;
+        if (!meta_Recheck(input, node->arg.node, &child, changed)) return false;
 
         merge(child);
 
-        result->done = child->done;
+        result->done = match();
 
         return true;
     }
 
     // e1 e2 ;
     inline bool do_Sequence() {
+        copy();
+
         PrsMetaFirst left;
         PrsMetaFirst right;
 
-        if (!meta_Recheck(input, node->arg.pair->left,  &left))  return false;
-        if (!meta_Recheck(input, node->arg.pair->right, &right)) return false;
+        if (!meta_Recheck(input, node->arg.pair->left,  &left,  changed)) return false;
+        if (!meta_Recheck(input, node->arg.pair->right, &right, changed)) return false;
 
-        if (!isTransparent(node->arg.pair->left)) {
-            merge(left);
-            result->done = left->done;
-        } else {
-            merge(left);
+        merge(left);
+
+        if (isTransparent(node->arg.pair->left)) {
             merge(right);
-            result->done = left->done && right->done;
         }
+
+        result->done = match();
 
         return true;
     }
 
-    if (!input)  return false;
-    if (!node)   return false;
+    if (!input)   return false;
+    if (!node)    return false;
+    if (!changed) return false;
 
     result = node->metadata;
 
     if (target) *target = result;
-
-    if (result->done) return true;
 
     switch (node->oper) {
     case prs_Apply:       return do_Nothing();
@@ -637,11 +704,14 @@ static bool tree_StartFirstSets(PrsInput input, PrsTree tree) {
 
     PrsNode node = tree->node;
 
-    if (node->metadata) return true;
-
     if (!meta_StartFirstSets(input, node, 0)) {
         CU_DEBUG(1, "meta_StartFirstSets checking %s failed\n", oper2name(node->oper));
         return false;
+    }
+
+    if (!node->metadata) {
+        CU_DEBUG(1, "meta_StartFirstSets error: not metadata for %s\n", oper2name(node->oper));
+        return true;
     }
 
     if (!tree_StartFirstSets(input, tree->left)) {
@@ -655,72 +725,27 @@ static bool tree_StartFirstSets(PrsInput input, PrsTree tree) {
     return true;
 }
 
-static bool tree_MergeFirstSets(PrsInput input, PrsTree tree, bool *done) {
-    struct prs_metaset holding;
-    PrsMetaFirst metadata = 0;
-
-    inline void copy() {
-        unsigned char *src    = metadata->first->bitfield;
-        unsigned char *bits   = holding.bitfield;
-        unsigned inx = 0;
-        for ( ; inx < 32 ; ++inx) {
-            bits[inx] = src[inx];
-        }
-    }
-
-    inline bool match() {
-        unsigned char *src    = metadata->first->bitfield;
-        unsigned char *bits   = holding.bitfield;
-        unsigned inx = 0;
-        for ( ; inx < 32 ; ++inx) {
-            if (bits[inx] != src[inx]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
+static bool tree_MergeFirstSets(PrsInput input, PrsTree tree, bool *changed) {
     if (!input)      return false;
-    if (!done)       return false;
     if (!tree)       return true;
     if (!tree->node) return false;
+    if (!changed)    return false;
 
     PrsNode node = tree->node;
 
-    if (!node->metadata) return false;
-
-    metadata = node->metadata;
-
-    if (!metadata->first) {
-        switch (node->oper) {
-        case prs_Apply:     break;
-        case prs_Begin:     break;
-        case prs_End:       break;
-        case prs_Predicate: break;
-        case prs_Thunk:     break;
-        default:
-            return false;
-        }
-        return true;
+    if (!node->metadata) {
+        CU_DEBUG(1, "tree_MergeFirstSets error: not metadata for %s\n", oper2name(node->oper));
+        return false;
     }
 
-    bool state = metadata->done;
-
-    copy();
-
-    if (!meta_Recheck(input, node, 0)) return false;
-
-    if (!match()) {
-        *done = false;
+    if (!meta_Recheck(input, node, 0, changed)) {
+        CU_DEBUG(1, "meta_Recheck checking %s failed\n", oper2name(node->oper));
+        return false;
     }
 
-    if (state != metadata->done) {
-        *done = false;
-    }
+    if (!tree_MergeFirstSets(input, tree->left, changed)) return false;
 
-    if (!tree_MergeFirstSets(input, tree->left, done)) return false;
-
-    return tree_MergeFirstSets(input, tree->right, done);
+    return tree_MergeFirstSets(input, tree->right, changed);
 }
 
 
@@ -748,14 +773,17 @@ extern bool cu_FillMetadata(PrsInput input) {
 
     if (!tree_StartFirstSets(input, root)) return false;
 
-    bool done = false;
+    bool changed = true;
 
-    for ( ; !done ; ) {
-        done = true;
-        if (!tree_MergeFirstSets(input, root, &done)) return false;
+    for ( ; changed ; ) {
+        changed = false;
+        CU_DEBUG(1, "tree_MergeFirstSets begin\n");
+        if (!tree_MergeFirstSets(input, root, &changed)) {
+            CU_DEBUG(1, "tree_MergeFirstSets error\n");
+            return false;
+        }
+        CU_DEBUG(1, "tree_MergeFirstSets end\n");
     }
-
-    if (!tree_MarkDone(input, root)) return false;
 
     return true;
 
