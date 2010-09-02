@@ -19,13 +19,9 @@
 
 /* */
 
-struct meta_set {
-    unsigned char bitfield[32];
-};
-
 struct meta_blob {
     struct prs_metafirst meta;
-    struct meta_set      first;
+    struct prs_metaset   first;
 };
 
 static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *target)
@@ -295,6 +291,7 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     case prs_Void:
         break;
     }
+    return false;
 }
 
 static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target)
@@ -397,7 +394,7 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target)
 
         if (left->done) {
             if (right->done) {
-                result->done;
+                result->done = true;
             }
         }
 
@@ -489,6 +486,7 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target)
     case prs_Void:
         break;
     }
+    return false;
 }
 
 static bool meta_Clear(PrsInput input, PrsNode node)
@@ -537,6 +535,8 @@ static bool meta_Clear(PrsInput input, PrsNode node)
     case prs_Void:
         break;
     }
+
+    return false;
 }
 
 static bool tree_Clear(PrsInput input, PrsTree tree) {
@@ -562,13 +562,12 @@ static bool tree_Fill(PrsInput input, PrsTree tree) {
 
 static bool tree_StartFirstSets(PrsInput input, PrsTree tree) {
     if (!input)      return false;
-    if (!done)       return false;
     if (!tree)       return true;
     if (!tree->node) return false;
 
     PrsNode node = tree->node;
 
-    if (node->metadata) return true
+    if (node->metadata) return true;
 
     if (!meta_StartFirstSets(input, node, 0)) return false;
 
@@ -578,7 +577,7 @@ static bool tree_StartFirstSets(PrsInput input, PrsTree tree) {
 }
 
 static bool tree_MergeFirstSets(PrsInput input, PrsTree tree, bool *done) {
-    struct meta_set holding;
+    struct prs_metaset holding;
     PrsMetaFirst metadata = 0;
 
     inline void copy() {
@@ -627,11 +626,117 @@ static bool tree_MergeFirstSets(PrsInput input, PrsTree tree, bool *done) {
 
     if (!meta_Recheck(input, node, 0)) return false;
 
-    if (!match()) *done = false;
+    if (match()) *done = false;
 
     if (!tree_MergeFirstSets(input, tree->left, done)) return false;
 
     return tree_MergeFirstSets(input, tree->right, done);
+}
+
+
+static bool tree_MarkDone(PrsInput input, PrsTree tree) {
+    if (!input)      return false;
+    if (!tree)       return true;
+    if (!tree->node) return false;
+
+    PrsNode node = tree->node;
+
+    if (!node->metadata) return false;
+
+    PrsMetaFirst metadata = node->metadata;
+
+    metadata->done = true;
+
+    if (!tree_MarkDone(input, tree->left)) return false;
+
+    return tree_MarkDone(input, tree->right);
+}
+
+extern bool cu_FillMetadata(PrsInput input) {
+    if (!input) return false;
+    if (!input->map);
+
+    PrsTree root = input->map;
+
+    if (!tree_StartFirstSets(input, root)) return false;
+
+    bool done = false;
+
+    for ( ; done ; ) {
+        done = true;
+        if (!tree_MergeFirstSets(input, root, &done)) return false;
+    }
+
+    if (!tree_MarkDone(input, root)) return false;
+
+    if (!tree_MergeFirstSets(input, root, &done)) return false;
+
+    return done;
+
+    (void) tree_Fill;
+    (void) tree_StartFirstSets;
+    (void) tree_MergeFirstSets;
+}
+
+
+extern bool cu_AddName(PrsInput input, PrsName name, PrsNode node) {
+    assert(0 != input);
+    assert(0 != name);
+    assert(0 != node);
+
+    inline bool fetch(PrsNode *target) {
+        if (!input->node(input, name, target)) {
+            CU_ERROR("node %s not found\n", name);
+            return false;
+        }
+        return true;
+    }
+
+    inline bool allocate(PrsTree *target) {
+        unsigned fullsize = sizeof(struct prs_tree);
+
+        PrsTree result = malloc(fullsize);
+
+        if (!result) return false;
+
+        *target = result;
+
+        result->name = name;
+
+        if (!fetch(&result->node)) return false;
+
+        return true;
+    }
+
+    if (!input->attach(input, name, node)) return false;
+
+    PrsTree root = input->map;
+
+    if (!root) {
+        return allocate(&input->map);
+    }
+
+    for ( ; ; ) {
+        int direction = strcmp(root->name, name);
+
+        if (0 < direction) {
+            if (root->left) {
+                root = root->left;
+                continue;
+            }
+            return allocate(&root->left);
+        }
+
+        if (0 > direction) {
+            if (root->right) {
+                root = root->right;
+                continue;
+            }
+            return allocate(&root->right);
+        }
+
+        return fetch(&root->node);
+    }
 }
 
 

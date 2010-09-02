@@ -135,6 +135,9 @@ int main(int argc, char **argv)
     CU_DEBUG(1, "adding parser graph\n");
     copper_graph(parser);
 
+    CU_DEBUG(1, "filling parser metadata\n");
+    cu_FillMetadata(parser);
+
     CU_DEBUG(1, "parsing infile %s\n", infile);
 
     if (!cu_Parse("grammar", parser)) {
