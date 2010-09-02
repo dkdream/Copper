@@ -582,8 +582,8 @@ static bool copper_vm(const char* rulename,
             return false;
         }
 
-        unsigned             binx = chr;
-        const unsigned char *bits = first->bitfield;
+        unsigned             binx   = chr;
+        const unsigned char *bits   = first->bitfield;
 
         if (bits[binx >> 3] & (1 << (binx & 7))) {
             indent(4); CU_DEBUG(4, "checkFirst(%s) to cursor(\'%s\') at (%u,%u) %s\n",
@@ -595,18 +595,22 @@ static bool copper_vm(const char* rulename,
             return false;
         }
 
-        indent(2); CU_DEBUG(1, "checkFirst(%s) to cursor(\'%s\') at (%u,%u) %s\n",
+        bool result;
+
+        if (pft_transparent == node->type) {
+            *target = result = true;
+        } else {
+            *target = result = false;
+        }
+
+        indent(2); CU_DEBUG(1, "checkFirst(%s) to cursor(\'%s\') at (%u,%u) %s result %s\n",
                             node_label(),
                             char2string(chr),
                             at.line_number + 1,
                             at.char_offset,
-                            "skip");
+                            "skip",
+                            (result ? "passed" : "failed"));
 
-        if (pft_transparent == node->type) {
-            *target = true;
-        } else {
-            *target = false;
-        }
 
         return true;
     }
@@ -655,18 +659,21 @@ static bool copper_vm(const char* rulename,
             return false;
         }
 
-        indent(2); CU_DEBUG(1, "checkMeta(%s) to cursor(\'%s\') at (%u,%u) %s\n",
+        bool result;
+
+        if (pft_transparent == node->type) {
+            *target = result = true;
+        } else {
+            *target = result = false;
+        }
+
+        indent(2); CU_DEBUG(1, "checkMeta(%s) to cursor(\'%s\') at (%u,%u) %s result %s\n",
                             node_label(),
                             char2string(chr),
                             at.line_number + 1,
                             at.char_offset,
-                            "skip");
-
-        if (pft_transparent == node->type) {
-            *target = true;
-        } else {
-            *target = false;
-        }
+                            "skip",
+                            (result ? "passed" : "failed"));
 
         return true;
     }
@@ -828,6 +835,10 @@ static bool copper_vm(const char* rulename,
         bool result;
 
         if (checkFirstSet(value, &result)) {
+            return result;
+        }
+
+        if (checkMetadata(value, &result)) {
             return result;
         }
 
