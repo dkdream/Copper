@@ -16,6 +16,7 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 /* */
 
@@ -57,6 +58,14 @@ static inline bool set_Contains(PrsMetaSet contains, PrsMetaSet group) {
     return true;
 }
 
+static inline const char* node_label(PrsNode node) {
+    char buffer[10];
+    if (node->label) return node->label;
+    sprintf(buffer, "%x__", (unsigned) node);
+    return buffer;
+}
+
+
 static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *target)
 {
     PrsMetaFirst result = 0;
@@ -64,10 +73,21 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     inline bool isTransparent(PrsNode value) {
         assert(value);
 
-        if (value->oper == prs_Begin)     return true;
-        if (value->oper == prs_End)       return true;
-        if (value->oper == prs_Predicate) return true;
-        if (value->oper == prs_Thunk)     return true;
+        if (value->oper == prs_Begin)      return true;
+        if (value->oper == prs_End)        return true;
+        if (value->oper == prs_Predicate)  return true;
+        if (value->oper == prs_Thunk)      return true;
+        if (value->oper == prs_ZeroOrMore) return true;
+        if (value->oper == prs_ZeroOrOne)  return true;
+        if (value->oper == prs_MatchName) {
+            const char *name = value->arg.name;
+            PrsNode     test;
+            if (!input->node(input, name, &test)) {
+                CU_ERROR("node %s not found\n", name);
+                return false;
+            }
+            return isTransparent(test);
+        }
 
         return value->type == pft_transparent;
     }
@@ -221,12 +241,6 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
         merge(left);
         merge(right);
 
-        if (left->done) {
-            if (right->done) {
-                result->done = true;
-            }
-        }
-
         return true;
     }
 
@@ -237,7 +251,7 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     // "..."
     inline bool do_CopyNode() {
         if (!allocate(true)) return false;
-        result->done  = true;
+        result->done = true;
         return true;
     }
 
@@ -259,8 +273,6 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
 
         merge(child);
 
-        result->done = child->done;
-
         return true;
     }
 
@@ -278,8 +290,6 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
         }
 
         merge(child);
-
-        result->done = child->done;
 
         return true;
     }
@@ -300,14 +310,16 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
             return false;
         }
 
-        if (!isTransparent(node->arg.pair->left)) {
-            merge(left);
-            result->done = left->done;
-        } else {
-            merge(left);
+        merge(left);
+        merge(right);
+
+#if 0
+        if (isTransparent(node->arg.pair->left)) {
             merge(right);
-            result->done = left->done && right->done;
+        } else {
+            CU_DEBUG(1, "meta_StartFirstSets %s(%s) not transparent\n", node_label(node->arg.pair->left), oper2name(node->arg.pair->left->oper));
         }
+#endif
 
         return true;
     }
@@ -365,7 +377,6 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
         unsigned inx = 0;
         for ( ; inx < 32 ; ++inx) {
             if (bits[inx] != src[inx]) {
-                CU_DEBUG(1, "meta_Recheck changed\n");
                 *changed = true;
                 return false;
             }
@@ -376,10 +387,21 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
     inline bool isTransparent(PrsNode value) {
         assert(value);
 
-        if (value->oper == prs_Begin)     return true;
-        if (value->oper == prs_End)       return true;
-        if (value->oper == prs_Predicate) return true;
-        if (value->oper == prs_Thunk)     return true;
+        if (value->oper == prs_Begin)      return true;
+        if (value->oper == prs_End)        return true;
+        if (value->oper == prs_Predicate)  return true;
+        if (value->oper == prs_Thunk)      return true;
+        if (value->oper == prs_ZeroOrMore) return true;
+        if (value->oper == prs_ZeroOrOne)  return true;
+        if (value->oper == prs_MatchName) {
+            const char *name = value->arg.name;
+            PrsNode     test;
+            if (!input->node(input, name, &test)) {
+                CU_ERROR("node %s not found\n", name);
+                return false;
+            }
+            return isTransparent(test);
+        }
 
         return value->type == pft_transparent;
     }
@@ -396,6 +418,10 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
         unsigned inx = 0;
         for ( ; inx < 32 ; ++inx) {
             bits[inx] |= src[inx];
+        }
+
+        if (!set_Contains(result->first, from->first)) {
+            CU_DEBUG(1, "meta_Recheck merge error\n");
         }
     }
 
@@ -530,10 +556,15 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
         if (!meta_Recheck(input, node->arg.pair->right, &right, changed)) return false;
 
         merge(left);
+        merge(right);
 
+#if 0
         if (isTransparent(node->arg.pair->left)) {
             merge(right);
+        } else {
+            CU_DEBUG(1, "meta_Recheck %s(%s) not transparent\n", node_label(node->arg.pair->left), oper2name(node->arg.pair->left->oper));
         }
+#endif
 
         result->done = match();
 
@@ -570,59 +601,6 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
     case prs_Void:
         break;
     }
-    return false;
-}
-
-static bool meta_MarkDone(PrsInput input, PrsNode node)
-{
-    PrsMetaFirst result;
-
-    inline bool do_MarkDone() {
-        result->done = true;
-        return true;
-    }
-
-    inline bool do_Child() {
-        if (!meta_MarkDone(input, node->arg.node)) return false;
-        result->done = true;
-        return true;
-    }
-
-    inline bool do_Childern() {
-        if (!meta_MarkDone(input, node->arg.pair->left))  return false;
-        if (!meta_MarkDone(input, node->arg.pair->right)) return false;
-        result->done = true;
-        return true;
-    }
-
-    if (!node)           return true;
-    if (!node->metadata) return true;
-
-    result = node->metadata;
-
-    switch (node->oper) {
-    case prs_Apply:       return do_MarkDone();
-    case prs_AssertFalse: return do_Child();
-    case prs_AssertTrue:  return do_Child();
-    case prs_Begin:       return do_MarkDone();
-    case prs_Choice:      return do_Childern();
-    case prs_End:         return do_MarkDone();
-    case prs_MatchChar:   return do_MarkDone();
-    case prs_MatchDot:    return do_MarkDone();
-    case prs_MatchName:   return do_MarkDone();
-    case prs_MatchRange:  return do_MarkDone();
-    case prs_MatchSet:    return do_MarkDone();
-    case prs_MatchText:   return do_MarkDone();
-    case prs_OneOrMore:   return do_Child();
-    case prs_Predicate:   return do_MarkDone();
-    case prs_Sequence:    return do_Childern();
-    case prs_Thunk:       return do_MarkDone();
-    case prs_ZeroOrMore:  return do_Child();
-    case prs_ZeroOrOne:   return do_Child();
-    case prs_Void:
-        break;
-    }
-
     return false;
 }
 
@@ -749,22 +727,6 @@ static bool tree_MergeFirstSets(PrsInput input, PrsTree tree, bool *changed) {
 }
 
 
-static bool tree_MarkDone(PrsInput input, PrsTree tree) {
-    if (!input)      return false;
-    if (!tree)       return true;
-    if (!tree->node) return false;
-
-    PrsNode node = tree->node;
-
-    if (!node->metadata) return false;
-
-    if (!meta_MarkDone(input, node)) return false;
-
-    if (!tree_MarkDone(input, tree->left)) return false;
-
-    return tree_MarkDone(input, tree->right);
-}
-
 extern bool cu_FillMetadata(PrsInput input) {
     if (!input) return false;
     if (!input->map) return false;
@@ -777,12 +739,10 @@ extern bool cu_FillMetadata(PrsInput input) {
 
     for ( ; changed ; ) {
         changed = false;
-        CU_DEBUG(1, "tree_MergeFirstSets begin\n");
         if (!tree_MergeFirstSets(input, root, &changed)) {
             CU_DEBUG(1, "tree_MergeFirstSets error\n");
             return false;
         }
-        CU_DEBUG(1, "tree_MergeFirstSets end\n");
     }
 
     return true;

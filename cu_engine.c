@@ -993,7 +993,7 @@ static bool copper_vm(const char* rulename,
         return result;
     }
 
-#if 0
+#if 1
     if (checkMetadata(start, &result)) {
         return result;
     }
@@ -1051,7 +1051,7 @@ extern bool cu_Parse(const char* name, PrsInput input) {
     if (!queue_Clear(input->queue)) return false;
 
     assert(0 != input->cache);
-    CU_DEBUG(3, "clearing queue %x\n", (unsigned) input->cache);
+    CU_DEBUG(3, "clearing cache %x\n", (unsigned) input->cache);
     if (!cache_Clear(input->cache)) return false;
 
     CU_DEBUG(3, "starting parce\n");
