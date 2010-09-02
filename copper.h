@@ -83,6 +83,7 @@ typedef struct prs_input* PrsInput;
 typedef struct prs_firstset  *PrsFirstSet;
 typedef struct prs_firstlist *PrsFirstList;
 typedef struct prs_metafirst *PrsMetaFirst;
+typedef struct meta_set      *PrsMetaSet;
 
 /* parse node arguments */
 typedef unsigned char      PrsChar;
@@ -207,18 +208,19 @@ struct prs_cache {
 
 struct prs_tree {
     const char* name;
+    PrsNode     node;
     unsigned    index;  // name[index] <=> test[index]
     PrsTree     left;   // <=
     PrsTree     right;  // >
 };
 
 struct prs_metafirst {
-    PrsMetaFirst next;
-    bool         done;
-    PrsNode      node;
-    PrsFirstSet  first;
-    PrsMetaFirst left;
-    PrsMetaFirst right;
+    PrsMetaFirst   next;
+    bool           done;
+    PrsNode        node;
+    PrsMetaSet     first;
+    PrsMetaFirst   left;
+    PrsMetaFirst   right;
 };
 
 struct prs_node {
