@@ -537,7 +537,7 @@ static bool copper_vm(const char* rulename,
         hold();
 
         if (!first) {
-            indent(4); CU_DEBUG(4, "checkFirst(%s) at (%u,%u) (bypass no first)\n",
+            indent(4); CU_DEBUG(4, "check (%s) at (%u,%u) first (bypass no first)\n",
                                 node_label(),
                                 at.line_number + 1,
                                 at.char_offset);
@@ -547,7 +547,7 @@ static bool copper_vm(const char* rulename,
 
         if (list) {
             if (0 < list->count) {
-                indent(4); CU_DEBUG(4, "checkFirst(%s) at (%u,%u) (bypass call nodes)\n",
+                indent(2); CU_DEBUG(2, "check (%s) at (%u,%u) first (bypass call nodes)\n",
                                     node_label(),
                                     at.line_number + 1,
                                     at.char_offset);
@@ -557,14 +557,14 @@ static bool copper_vm(const char* rulename,
 
         switch (node->type) {
         case pft_opaque:
-            indent(4); CU_DEBUG(4, "checkFirst(%s) at (%u,%u) (bypass opaque)\n",
+            indent(2); CU_DEBUG(2, "check (%s) at (%u,%u) first (bypass opaque)\n",
                                 node_label(),
                                 at.line_number + 1,
                                 at.char_offset);
             return false;
 
         case pft_variable:
-            indent(4); CU_DEBUG(4, "checkFirst(%s) at (%u,%u) (bypass variable)\n",
+            indent(2); CU_DEBUG(2, "check (%s) at (%u,%u) first (bypass variable)\n",
                                 node_label(),
                                 at.line_number + 1,
                                 at.char_offset);
@@ -575,7 +575,7 @@ static bool copper_vm(const char* rulename,
 
         PrsChar chr = 0;
         if (!current(&chr)) {
-            indent(4); CU_DEBUG(4, "checkFirst(%s) at (%u,%u) (bypass eof)\n",
+            indent(4); CU_DEBUG(4, "check (%s) at (%u,%u) first (bypass eof)\n",
                                 node_label(),
                                 at.line_number + 1,
                                 at.char_offset);
@@ -586,7 +586,7 @@ static bool copper_vm(const char* rulename,
         const unsigned char *bits   = first->bitfield;
 
         if (bits[binx >> 3] & (1 << (binx & 7))) {
-            indent(4); CU_DEBUG(4, "checkFirst(%s) to cursor(\'%s\') at (%u,%u) %s\n",
+            indent(4); CU_DEBUG(4, "check (%s) to cursor(\'%s\') at (%u,%u) first %s\n",
                                 node_label(),
                                 char2string(chr),
                                 at.line_number + 1,
@@ -603,7 +603,7 @@ static bool copper_vm(const char* rulename,
             *target = result = false;
         }
 
-        indent(2); CU_DEBUG(1, "checkFirst(%s) to cursor(\'%s\') at (%u,%u) %s result %s\n",
+        indent(2); CU_DEBUG(1, "check (%s) to cursor(\'%s\') at (%u,%u) first %s result %s\n",
                             node_label(),
                             char2string(chr),
                             at.line_number + 1,
@@ -619,17 +619,22 @@ static bool copper_vm(const char* rulename,
         PrsMetaFirst meta  = node->metadata;
 
         if (!meta) {
-            indent(4); CU_DEBUG(4, "checkMeta(%s) at (%u,%u) (bypass no meta)\n",
+            indent(4); CU_DEBUG(4, "check (%s) at (%u,%u) meta (bypass no meta)\n",
                                 node_label(),
                                 at.line_number + 1,
                                 at.char_offset);
             return false;
         }
 
+        if (!meta->done) {
+            indent(2); CU_DEBUG(1, "check (%s) using unfinish meta data\n",
+                                node_label());
+        }
+
         PrsMetaSet first = meta->first;
 
         if (!first) {
-            indent(4); CU_DEBUG(4, "checkMeta(%s) at (%u,%u) (bypass no first)\n",
+            indent(4); CU_DEBUG(4, "check (%s) at (%u,%u) meta (bypass no first)\n",
                                 node_label(),
                                 at.line_number + 1,
                                 at.char_offset);
@@ -639,7 +644,7 @@ static bool copper_vm(const char* rulename,
 
         PrsChar chr = 0;
         if (!current(&chr)) {
-            indent(4); CU_DEBUG(4, "checkMeta(%s) at (%u,%u) (bypass eof)\n",
+            indent(4); CU_DEBUG(4, "check (%s) at (%u,%u) meta (bypass eof)\n",
                                 node_label(),
                                 at.line_number + 1,
                                 at.char_offset);
@@ -650,7 +655,7 @@ static bool copper_vm(const char* rulename,
         const unsigned char *bits = first->bitfield;
 
         if (bits[binx >> 3] & (1 << (binx & 7))) {
-            indent(4); CU_DEBUG(4, "checkMeta(%s) to cursor(\'%s\') at (%u,%u) %s\n",
+            indent(4); CU_DEBUG(4, "check (%s) to cursor(\'%s\') at (%u,%u) meta %s\n",
                                 node_label(),
                                 char2string(chr),
                                 at.line_number + 1,
@@ -667,7 +672,7 @@ static bool copper_vm(const char* rulename,
             *target = result = false;
         }
 
-        indent(2); CU_DEBUG(1, "checkMeta(%s) to cursor(\'%s\') at (%u,%u) %s result %s\n",
+        indent(2); CU_DEBUG(1, "check (%s) to cursor(\'%s\') at (%u,%u) meta %s result %s\n",
                             node_label(),
                             char2string(chr),
                             at.line_number + 1,
@@ -952,6 +957,8 @@ static bool copper_vm(const char* rulename,
         return true;
     }
 
+    indent(4); CU_DEBUG(4, "check (%s) %s\n", node_label(), oper2name(start->oper));
+
     inline bool run_node() {
         hold();
         switch (start->oper) {
@@ -983,6 +990,12 @@ static bool copper_vm(const char* rulename,
     if (checkFirstSet(start, &result)) {
         return result;
     }
+
+#if 0
+    if (checkMetadata(start, &result)) {
+        return result;
+    }
+#endif
 
     if (cache_Find(input->cache, start, at.text_inx)) return false;
 

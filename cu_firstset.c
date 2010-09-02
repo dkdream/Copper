@@ -479,8 +479,6 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target)
 
     if (result->done) return true;
 
-    CU_DEBUG(1, "meta_Recheck checking %s\n", oper2name(node->oper));
-
     switch (node->oper) {
     case prs_Apply:       return do_Nothing();
     case prs_AssertFalse: return do_AssertFalse();
@@ -621,7 +619,6 @@ static bool tree_MergeFirstSets(PrsInput input, PrsTree tree, bool *done) {
         unsigned inx = 0;
         for ( ; inx < 32 ; ++inx) {
             if (bits[inx] != src[inx]) {
-                CU_DEBUG(1, "node_%x metadata changed\n", (unsigned) tree->node);
                 return false;
             }
         }
@@ -655,7 +652,9 @@ static bool tree_MergeFirstSets(PrsInput input, PrsTree tree, bool *done) {
 
     if (!meta_Recheck(input, node, 0)) return false;
 
-    if (match()) *done = false;
+    if (!match()) {
+        *done = false;
+    }
 
     if (!tree_MergeFirstSets(input, tree->left, done)) return false;
 
@@ -687,24 +686,21 @@ extern bool cu_FillMetadata(PrsInput input) {
 
     PrsTree root = input->map;
 
-    CU_DEBUG(1, "starting meta first sets\n");
     if (!tree_StartFirstSets(input, root)) return false;
 
     bool done = false;
 
     for ( ; !done ; ) {
         done = true;
-        CU_DEBUG(1, "merging meta first sets\n");
         if (!tree_MergeFirstSets(input, root, &done)) return false;
     }
 
-    CU_DEBUG(1, "marking meta first sets\n");
     if (!tree_MarkDone(input, root)) return false;
 
-    CU_DEBUG(1, "finalising meta first sets\n");
+    done = true;
     if (!tree_MergeFirstSets(input, root, &done)) return false;
 
-    return done;
+    return true;
 
     (void) tree_Fill;
     (void) tree_StartFirstSets;
