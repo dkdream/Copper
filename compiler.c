@@ -1533,7 +1533,7 @@ extern bool file_WriteTree(PrsInput input, FILE* output, const char* function) {
 
     fprintf(output, "extern bool %s(PrsInput input) {\n", function);
     fprintf(output, "\n");
-    fprintf(output, "    inline bool attach(PrsName name, PrsNode value) { return input->attach(input, name, value); }\n");
+    fprintf(output, "    inline bool attach(PrsName name, PrsNode value) { return cu_AddName(input, name, value); }\n");
     fprintf(output, "\n");
 
     rule = file->rules;

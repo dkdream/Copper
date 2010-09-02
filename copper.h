@@ -82,6 +82,7 @@ typedef struct prs_input* PrsInput;
 /* */
 typedef struct prs_firstset  *PrsFirstSet;
 typedef struct prs_firstlist *PrsFirstList;
+typedef struct prs_metafirst *PrsMetaFirst;
 
 /* parse node arguments */
 typedef unsigned char      PrsChar;
@@ -98,7 +99,7 @@ typedef struct prs_queue  *PrsQueue;
 /* parsing cache node */
 typedef struct prs_point *PrsPoint;
 typedef struct prs_cache *PrsCache;
-typedef void*             PrsMetaData;
+typedef struct prs_tree  *PrsTree;
 
 struct prs_firstset {
     const unsigned char bitfield[32];
@@ -204,11 +205,27 @@ struct prs_cache {
     PrsPoint table[];
 };
 
+struct prs_tree {
+    const char* name;
+    unsigned    index;  // name[index] <=> test[index]
+    PrsTree     left;   // <=
+    PrsTree     right;  // >
+};
+
+struct prs_metafirst {
+    PrsMetaFirst next;
+    bool         done;
+    PrsNode      node;
+    PrsFirstSet  first;
+    PrsMetaFirst left;
+    PrsMetaFirst right;
+};
+
 struct prs_node {
     PrsFirstType type;
     PrsFirstSet  first;    // the static first set of node (if known)
     PrsFirstList start;    // the static list of name that start this note (if any)
-    PrsMetaData  metadata; // dynamically allocated state use by the engine.
+    PrsMetaFirst metadata; // dynamically allocated state use by the engine.
     PrsName      label;    // the compiler assigned label (for debugging)
     PrsOperator  oper;
     union prs_arg {
@@ -255,11 +272,13 @@ struct prs_input {
     PrsCursor reach;
 
     PrsCache cache;
+    PrsTree  map;
     PrsQueue queue;
     PrsState context;
 };
 
 extern bool cu_InputInit(PrsInput input, unsigned cacheSize);
+extern bool cu_AddName(PrsInput input, PrsName, PrsNode);
 extern bool cu_Parse(const char* name, PrsInput input);
 extern bool cu_AppendData(PrsInput input, const unsigned count, const char *src);
 extern bool cu_RunQueue(PrsInput input);

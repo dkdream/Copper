@@ -362,7 +362,7 @@ static bool cache_Find(PrsCache cache, PrsNode node, unsigned offset) {
     return false;
 }
 
-static bool cache_Rmove(PrsCache cache, PrsNode node, unsigned offset) {
+static bool cache_Remove(PrsCache cache, PrsNode node, unsigned offset) {
     if (!cache) return false;
 
     unsigned code  = offset;
@@ -948,6 +948,13 @@ extern bool cu_InputInit(PrsInput input, unsigned cacheSize) {
     CU_DEBUG(3, "InputInit done (queue %x) (cache %x)\n", (unsigned) queue, (unsigned) cache);
 
     return true;
+}
+
+extern bool cu_AddName(PrsInput input, PrsName name, PrsNode node) {
+    assert(0 != input);
+    assert(0 != name);
+    assert(0 != node);
+    return input->attach(input, name, node);
 }
 
 extern bool cu_Parse(const char* name, PrsInput input) {
