@@ -20,7 +20,8 @@ CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
 OFLAGS = -Wall
 ARFLAGS = rcu
 
-OBJS    = cu_engine.o compiler.o
+LIB_OBJS = cu_engine.o cu_firstset.o
+CU_OBJS  = compiler.o
 DEPENDS = 
 
 default : copper.vm
@@ -52,14 +53,16 @@ err_test: copper.vm .FORCE
 
 # -- -------------------------------------------------
 DEPENDS += .depends/cu_engine.d
+DEPENDS += .depends/cu_firstset.d
 DEPENDS += .depends/compiler.d
 
-cu_engine.o : cu_engine.c
+cu_engine.o   : cu_engine.c
+cu_firstset.o : cu_firstset.c
 
 libCopper.a : copper.h
-libCopper.a : cu_engine.o
+libCopper.a : $(LIB_OBJS)
 	-$(RM) $@
-	$(AR) $(ARFLAGS) $@ cu_engine.o
+	$(AR) $(ARFLAGS) $@ $(LIB_OBJS)
 	$(RANLIB) $@
 
 compiler.o  : compiler.c
@@ -70,8 +73,8 @@ DEPENDS += .depends/copper_o.d
 copper_o.c : copper_o.c.bootstrap ; cp $< $@
 copper_o.o : copper_o.c
 
-copper.ovm : main.o copper_o.o compiler.o libCopper.a
-	$(CC) $(CFLAGS) -o $@ main.o copper_o.o compiler.o -L. -lCopper
+copper.ovm : main.o copper_o.o $(CU_OBJS) libCopper.a
+	$(CC) $(CFLAGS) -o $@ main.o copper_o.o $(CU_OBJS) -L. -lCopper
 
 # -- -------------------------------------------------
 DEPENDS += .depends/main.d
@@ -80,8 +83,8 @@ copper.c : copper.cu ./copper.ovm ; ./copper.ovm --name copper_graph --output $@
 copper.o : copper.c
 main.o   : main.c
 
-copper.vm : main.o copper.o compiler.o libCopper.a
-	$(CC) $(CFLAGS) -o $@ main.o copper.o compiler.o -L. -lCopper
+copper.vm : main.o copper.o $(CU_OBJS) libCopper.a
+	$(CC) $(CFLAGS) -o $@ main.o copper.o $(CU_OBJS) -L. -lCopper
 
 # -- -------------------------------------------------
 
@@ -97,8 +100,8 @@ stage.$(STAGE).c : copper.cu $(COPPER.test)
 
 stage.$(STAGE).o : stage.$(STAGE).c
 
-stage.$(STAGE) : main.o stage.$(STAGE).o compiler.o libCopper.a
-	$(CC) $(CFLAGS) -o $@ main.o stage.$(STAGE).o compiler.o -L. -lCopper
+stage.$(STAGE) : main.o stage.$(STAGE).o $(CU_OBJS) libCopper.a
+	$(CC) $(CFLAGS) -o $@ main.o stage.$(STAGE).o $(CU_OBJS) -L. -lCopper
 
 compare : $(COPPER.test) stage.$(STAGE) .FORCE
 	@./compare_graphs.sh $(COPPER.test) stage.$(STAGE)
@@ -134,8 +137,8 @@ scrub spotless : clean .FORCE
 
 copper.x : ; $(MAKE) bootstrap
 
-bootstrap : copper.bootstrap.o $(OBJS)
-	$(CC) $(CFLAGS) -DCOPPER_BOOTSTRAP -o copper.x $+
+bootstrap : copper.bootstrap.o $(CU_OBJS) libCopper.a
+	$(CC) $(CFLAGS) -DCOPPER_BOOTSTRAP -o copper.x $+ -L. -lCopper
 
 copper.bootstrap.o : copper.bootstrap.c
 	$(CC) $(CFLAGS) -DCOPPER_BOOTSTRAP -c -o $@ $<
