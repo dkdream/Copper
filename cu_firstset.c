@@ -430,7 +430,9 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target)
 
         merge(child);
 
-        result->done = child->done;
+        if (child->done) {
+            result->done = child->done;
+        }
 
         return true;
     }
@@ -501,6 +503,59 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target)
     case prs_Void:
         break;
     }
+    return false;
+}
+
+static bool meta_MarkDone(PrsInput input, PrsNode node)
+{
+    PrsMetaFirst result;
+
+    inline bool do_MarkDone() {
+        result->done = true;
+        return true;
+    }
+
+    inline bool do_Child() {
+        if (!meta_MarkDone(input, node->arg.node)) return false;
+        result->done = true;
+        return true;
+    }
+
+    inline bool do_Childern() {
+        if (!meta_MarkDone(input, node->arg.pair->left))  return false;
+        if (!meta_MarkDone(input, node->arg.pair->right)) return false;
+        result->done = true;
+        return true;
+    }
+
+    if (!node)           return true;
+    if (!node->metadata) return true;
+
+    result = node->metadata;
+
+    switch (node->oper) {
+    case prs_Apply:       return do_MarkDone();
+    case prs_AssertFalse: return do_Child();
+    case prs_AssertTrue:  return do_Child();
+    case prs_Begin:       return do_MarkDone();
+    case prs_Choice:      return do_Childern();
+    case prs_End:         return do_MarkDone();
+    case prs_MatchChar:   return do_MarkDone();
+    case prs_MatchDot:    return do_MarkDone();
+    case prs_MatchName:   return do_MarkDone();
+    case prs_MatchRange:  return do_MarkDone();
+    case prs_MatchSet:    return do_MarkDone();
+    case prs_MatchText:   return do_MarkDone();
+    case prs_OneOrMore:   return do_Child();
+    case prs_Predicate:   return do_MarkDone();
+    case prs_Sequence:    return do_Childern();
+    case prs_Thunk:       return do_MarkDone();
+    case prs_ZeroOrMore:  return do_Child();
+    case prs_ZeroOrOne:   return do_Child();
+    case prs_Void:
+        break;
+    }
+
     return false;
 }
 
@@ -638,21 +693,28 @@ static bool tree_MergeFirstSets(PrsInput input, PrsTree tree, bool *done) {
 
     if (!metadata->first) {
         switch (node->oper) {
-        case prs_Apply:       return true;
-        case prs_Begin:       return true;
-        case prs_End:         return true;
-        case prs_Predicate:   return true;
-        case prs_Thunk:       return true;
+        case prs_Apply:     break;
+        case prs_Begin:     break;
+        case prs_End:       break;
+        case prs_Predicate: break;
+        case prs_Thunk:     break;
         default:
             return false;
         }
+        return true;
     }
+
+    bool state = metadata->done;
 
     copy();
 
     if (!meta_Recheck(input, node, 0)) return false;
 
     if (!match()) {
+        *done = false;
+    }
+
+    if (state != metadata->done) {
         *done = false;
     }
 
@@ -671,9 +733,7 @@ static bool tree_MarkDone(PrsInput input, PrsTree tree) {
 
     if (!node->metadata) return false;
 
-    PrsMetaFirst metadata = node->metadata;
-
-    metadata->done = true;
+    if (!meta_MarkDone(input, node)) return false;
 
     if (!tree_MarkDone(input, tree->left)) return false;
 
@@ -696,9 +756,6 @@ extern bool cu_FillMetadata(PrsInput input) {
     }
 
     if (!tree_MarkDone(input, root)) return false;
-
-    done = true;
-    if (!tree_MergeFirstSets(input, root, &done)) return false;
 
     return true;
 
