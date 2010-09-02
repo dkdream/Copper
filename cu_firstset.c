@@ -136,7 +136,7 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     // %predicate
     // {...} - an unnamed event
     inline bool do_Transparent() {
-        if (allocate(false)) return false;
+        if (!allocate(false)) return false;
         result->done = true;
         return true;
     }
@@ -173,8 +173,14 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
         PrsMetaFirst left;
         PrsMetaFirst right;
 
-        if (!meta_StartFirstSets(input, node->arg.pair->left,  &left))  return false;
-        if (!meta_StartFirstSets(input, node->arg.pair->right, &right)) return false;
+        if (!meta_StartFirstSets(input, node->arg.pair->left,  &left)) {
+            CU_DEBUG(1, "meta_StartFirstSets checking left failed\n");
+            return false;
+        }
+        if (!meta_StartFirstSets(input, node->arg.pair->right, &right)) {
+            CU_DEBUG(1, "meta_StartFirstSets checking right failed\n");
+            return false;
+        }
 
         merge(left);
         merge(right);
@@ -230,7 +236,10 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
 
         PrsMetaFirst child;
 
-        if (!meta_StartFirstSets(input, node->arg.node, &child)) return false;
+        if (!meta_StartFirstSets(input, node->arg.node, &child)) {
+            CU_DEBUG(1, "meta_StartFirstSets checking child failed\n");
+            return false;
+        }
 
         merge(child);
 
@@ -246,8 +255,14 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
         PrsMetaFirst left;
         PrsMetaFirst right;
 
-        if (!meta_StartFirstSets(input, node->arg.pair->left,  &left))  return false;
-        if (!meta_StartFirstSets(input, node->arg.pair->right, &right)) return false;
+        if (!meta_StartFirstSets(input, node->arg.pair->left,  &left)) {
+            CU_DEBUG(1, "meta_StartFirstSets checking left failed\n");
+            return false;
+        }
+        if (!meta_StartFirstSets(input, node->arg.pair->right, &right)) {
+            CU_DEBUG(1, "meta_StartFirstSets checking right failed\n");
+            return false;
+        }
 
         if (!isTransparent(node->arg.pair->left)) {
             merge(left);
@@ -464,6 +479,8 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target)
 
     if (result->done) return true;
 
+    CU_DEBUG(1, "meta_Recheck checking %s\n", oper2name(node->oper));
+
     switch (node->oper) {
     case prs_Apply:       return do_Nothing();
     case prs_AssertFalse: return do_AssertFalse();
@@ -569,11 +586,20 @@ static bool tree_StartFirstSets(PrsInput input, PrsTree tree) {
 
     if (node->metadata) return true;
 
-    if (!meta_StartFirstSets(input, node, 0)) return false;
+    if (!meta_StartFirstSets(input, node, 0)) {
+        CU_DEBUG(1, "meta_StartFirstSets checking %s failed\n", oper2name(node->oper));
+        return false;
+    }
 
-    if (!tree_StartFirstSets(input, tree->left)) return false;
-
-    return tree_StartFirstSets(input, tree->right);
+    if (!tree_StartFirstSets(input, tree->left)) {
+        CU_DEBUG(1, "tree_StartFirstSets checking left failed\n");
+        return false;
+    }
+    if (!tree_StartFirstSets(input, tree->right)) {
+        CU_DEBUG(1, "tree_StartFirstSets checking right failed\n");
+        return false;
+    }
+    return true;
 }
 
 static bool tree_MergeFirstSets(PrsInput input, PrsTree tree, bool *done) {
@@ -594,7 +620,10 @@ static bool tree_MergeFirstSets(PrsInput input, PrsTree tree, bool *done) {
         unsigned char *bits   = holding.bitfield;
         unsigned inx = 0;
         for ( ; inx < 32 ; ++inx) {
-            if (bits[inx] != src[inx]) return false;
+            if (bits[inx] != src[inx]) {
+                CU_DEBUG(1, "node_%x metadata changed\n", (unsigned) tree->node);
+                return false;
+            }
         }
         return true;
     }
@@ -654,21 +683,25 @@ static bool tree_MarkDone(PrsInput input, PrsTree tree) {
 
 extern bool cu_FillMetadata(PrsInput input) {
     if (!input) return false;
-    if (!input->map);
+    if (!input->map) return false;
 
     PrsTree root = input->map;
 
+    CU_DEBUG(1, "starting meta first sets\n");
     if (!tree_StartFirstSets(input, root)) return false;
 
     bool done = false;
 
-    for ( ; done ; ) {
+    for ( ; !done ; ) {
         done = true;
+        CU_DEBUG(1, "merging meta first sets\n");
         if (!tree_MergeFirstSets(input, root, &done)) return false;
     }
 
+    CU_DEBUG(1, "marking meta first sets\n");
     if (!tree_MarkDone(input, root)) return false;
 
+    CU_DEBUG(1, "finalising meta first sets\n");
     if (!tree_MergeFirstSets(input, root, &done)) return false;
 
     return done;
