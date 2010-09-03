@@ -589,13 +589,7 @@ static bool copper_vm(const char* rulename,
 
         PrsMetaFirst meta  = node->metadata;
 
-        if (!meta) {
-            indent(4); CU_DEBUG(4, "check (%s) at (%u,%u) meta (bypass no meta)\n",
-                                node_label(),
-                                at.line_number + 1,
-                                at.char_offset);
-            return false;
-        }
+        if (!meta) return false;
 
         if (!meta->done) {
             indent(2); CU_DEBUG(1, "check (%s) using unfinish meta data\n",
@@ -604,23 +598,10 @@ static bool copper_vm(const char* rulename,
 
         PrsMetaSet first = meta->first;
 
-        if (!first) {
-            indent(4); CU_DEBUG(4, "check (%s) at (%u,%u) meta (bypass no first)\n",
-                                node_label(),
-                                at.line_number + 1,
-                                at.char_offset);
-            return false;
-        }
-
+        if (!first) return false;
 
         PrsChar chr = 0;
-        if (!current(&chr)) {
-            indent(4); CU_DEBUG(4, "check (%s) at (%u,%u) meta (bypass eof)\n",
-                                node_label(),
-                                at.line_number + 1,
-                                at.char_offset);
-            return false;
-        }
+        if (!current(&chr)) return false;
 
         unsigned             binx = chr;
         const unsigned char *bits = first->bitfield;
