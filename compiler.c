@@ -814,7 +814,7 @@ static bool node_ComputeSets(SynNode node)
     //----
 
     inline bool do_call() {
-        if (!allocate(pft_variable, false, 1)) return false;
+        if (!allocate(pft_opaque, false, 1)) return false;
         first->name[0] = node.text->value;
         return true;
     }
@@ -840,7 +840,7 @@ static bool node_ComputeSets(SynNode node)
 
         unsigned     total = before->count + after->count;
         bool         bits  = (0 != before->bitfield) || (0 != after->bitfield);
-        PrsFirstType type  = (0 < total ? pft_variable :  pft_fixed);
+        PrsFirstType type  = pft_fixed;
 
         if (pft_opaque == before->type) type = pft_opaque;
         if (pft_opaque == after->type)  type = pft_opaque;
@@ -904,21 +904,11 @@ static bool node_ComputeSets(SynNode node)
             return true;
         }
 
-        if (pft_variable == before->type) {
-            node.any->first = before;
-            return true;
-        }
-
-        if (pft_opaque == before->type) {
-            node.any->first = before;
-            return true;
-        }
-
         SynFirst after = node.tree->after.any->first;
 
         unsigned     total = before->count + after->count;
         bool         bits  = (0 != before->bitfield) || (0 != after->bitfield);
-        PrsFirstType type  = (0 < total ? pft_variable :  pft_fixed);
+        PrsFirstType type  = pft_fixed;
 
         switch (after->type) {
         case pft_opaque:
@@ -928,12 +918,12 @@ static bool node_ComputeSets(SynNode node)
         case pft_fixed:
             break;
 
-        case pft_variable:
-            type = pft_variable;
-            break;
-
         case pft_transparent:
-            type = pft_transparent;
+            if (pft_opaque == before->type) {
+                type = pft_opaque;
+            } else {
+                type = pft_transparent;
+            }
             break;
         }
 
@@ -960,17 +950,17 @@ static bool node_ComputeSets(SynNode node)
     }
 
     switch (node.any->type) {
-    case syn_apply:     return allocate(pft_transparent, false, 0);
-    case syn_begin:     return allocate(pft_transparent, false, 0);
+    case syn_apply:     return allocate(pft_opaque, false, 0);
+    case syn_begin:     return allocate(pft_opaque, false, 0);
     case syn_call:      return do_call();
     case syn_char:      return do_char();
     case syn_check:     return do_check();
     case syn_choice:    return do_choice();
     case syn_dot:       return do_dot();
-    case syn_end:       return allocate(pft_transparent, false, 0);
-    case syn_footer:    return allocate(pft_transparent, false, 0);
-    case syn_header:    return allocate(pft_transparent, false, 0);
-    case syn_include:   return allocate(pft_transparent, false, 0);
+    case syn_end:       return allocate(pft_opaque, false, 0);
+    case syn_footer:    return allocate(pft_opaque, false, 0);
+    case syn_header:    return allocate(pft_opaque, false, 0);
+    case syn_include:   return allocate(pft_opaque, false, 0);
     case syn_not:       return do_not();
     case syn_plus:      return do_check();
     case syn_predicate: return allocate(pft_opaque, false, 0);
@@ -980,7 +970,7 @@ static bool node_ComputeSets(SynNode node)
     case syn_set:       return do_set();
     case syn_star:      return do_question();
     case syn_string:    return do_string();
-    case syn_thunk:     return allocate(pft_transparent, false, 0);
+    case syn_thunk:     return allocate(pft_opaque, false, 0);
         /* */
     case syn_void:
         break;

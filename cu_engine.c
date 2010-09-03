@@ -563,13 +563,6 @@ static bool copper_vm(const char* rulename,
                                 at.char_offset);
             return false;
 
-        case pft_variable:
-            indent(2); CU_DEBUG(2, "check (%s) at (%u,%u) first (bypass variable)\n",
-                                node_label(),
-                                at.line_number + 1,
-                                at.char_offset);
-            return false;
-
         default: break;
         }
 
@@ -616,7 +609,7 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool checkMetadata(PrsNode node, bool *target) {
-        if (prs_MatchName == node->oper) return false;
+        if (pft_opaque == node->type) return false;
 
         PrsMetaFirst meta  = node->metadata;
 
@@ -657,7 +650,7 @@ static bool copper_vm(const char* rulename,
         const unsigned char *bits = first->bitfield;
 
         if (bits[binx >> 3] & (1 << (binx & 7))) {
-            indent(2); CU_DEBUG(1, "check (%s) to cursor(\'%s\') at (%u,%u) meta %s\n",
+            indent(4); CU_DEBUG(4, "check (%s) to cursor(\'%s\') at (%u,%u) meta %s\n",
                                 node_label(),
                                 char2string(chr),
                                 at.line_number + 1,

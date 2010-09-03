@@ -84,7 +84,6 @@ static inline bool meta_isTransparent(PrsInput input, PrsNode node) {
 
     if (pft_transparent == node->type) return true;
     if (pft_opaque      == node->type) return true;
-    if (pft_variable    == node->type) return true;
 
     switch (node->oper) {
     case prs_Apply:       return true;             // @name - an named event
@@ -165,14 +164,6 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
             return true;
         }
 
-        if (node->oper == prs_AssertFalse) {
-            unsigned char *bits = set->bitfield;
-            unsigned inx = 0;
-            for ( ; inx < 32 ; ++inx) {
-                bits[inx] = 255;
-            }
-        }
-
         return true;
     }
 
@@ -191,21 +182,6 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
         }
     }
 
-    inline void remove(PrsMetaFirst from) {
-        assert(from);
-        assert(result);
-        assert(result->first);
-
-        if (!from->first) return;
-
-        unsigned char *src  = from->first->bitfield;
-        unsigned char *bits = result->first->bitfield;
-        unsigned inx = 0;
-        for ( ; inx < 32 ; ++inx) {
-            bits[inx] |= (src[inx] ^ 255);
-        }
-    }
-
     //-----------------------------------------
 
     // @name - an named event
@@ -220,26 +196,13 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     }
 
     // e !
-    inline bool do_AssertFalse() {
-        if (!allocate(true)) return false;
+    // e &
+    inline bool do_Assert() {
+        if (!allocate(false)) return false;
 
-        PrsMetaFirst child;
+        if (!meta_StartFirstSets(input, node->arg.node, 0)) return false;
 
-        if (!meta_StartFirstSets(input, node->arg.node, &child)) return false;
-
-        remove(child);
-
-        return true;
-    }
-
-    inline bool do_AssertTrue() {
-        if (!allocate(true)) return false;
-
-        PrsMetaFirst child;
-
-        if (!meta_StartFirstSets(input, node->arg.node, &child)) return false;
-
-        merge(child);
+        result->done = true;
 
         return true;
     }
@@ -349,8 +312,8 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
 
     switch (node->oper) {
     case prs_Apply:       return do_Transparent();
-    case prs_AssertFalse: return do_AssertFalse();
-    case prs_AssertTrue:  return do_AssertTrue();
+    case prs_AssertFalse: return do_Assert();
+    case prs_AssertTrue:  return do_Assert();
     case prs_Begin:       return do_Transparent();
     case prs_Choice:      return do_Choice();
     case prs_End:         return do_Transparent();
@@ -451,32 +414,9 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
     }
 
     // e !
-    inline bool do_AssertFalse() {
-        copy();
-
-        PrsMetaFirst child;
-
-        if (!meta_Recheck(input, node->arg.node, &child, changed)) return false;
-
-        remove(child);
-
-        result->done = match();
-
-        return true;
-    }
-
     // e &
-    inline bool do_AssertTrue() {
-        copy();
-
-        PrsMetaFirst child;
-
-        if (!meta_Recheck(input, node->arg.node, &child, changed)) return false;
-
-        merge(child);
-
-        result->done = match();
-
+    inline bool do_Assert() {
+        if (!meta_Recheck(input, node->arg.node, 0, changed)) return false;
         return true;
     }
 
@@ -565,8 +505,8 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
 
     switch (node->oper) {
     case prs_Apply:       return do_Nothing();
-    case prs_AssertFalse: return do_AssertFalse();
-    case prs_AssertTrue:  return do_AssertTrue();
+    case prs_AssertFalse: return do_Assert();
+    case prs_AssertTrue:  return do_Assert();
     case prs_Begin:       return do_Nothing();
     case prs_Choice:      return do_Choice();
     case prs_End:         return do_Nothing();
@@ -712,12 +652,21 @@ static bool tree_MergeFirstSets(PrsInput input, PrsTree tree, bool *changed) {
 
 
 extern bool cu_FillMetadata(PrsInput input) {
-    if (!input) return false;
-    if (!input->map) return false;
+    if (!input) {
+        CU_DEBUG(1, "cu_FillMetadata error: no input\n");
+        return false;
+    }
+    if (!input->map) {
+        CU_DEBUG(1, "cu_FillMetadata error: no map\n");
+        return false;
+    }
 
     PrsTree root = input->map;
 
-    if (!tree_StartFirstSets(input, root)) return false;
+    if (!tree_StartFirstSets(input, root)) {
+        CU_DEBUG(1, "tree_StartFirstSets error\n");
+        return false;
+    }
 
     bool changed = true;
 
