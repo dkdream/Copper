@@ -531,19 +531,12 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool checkFirstSet(PrsNode node, bool *target) {
+        if (pft_opaque == node->type) return false;
+
         PrsFirstSet  first = node->first;
         PrsFirstList list  = node->start;
 
-        hold();
-
-        if (!first) {
-            indent(4); CU_DEBUG(4, "check (%s) at (%u,%u) first (bypass no first)\n",
-                                node_label(),
-                                at.line_number + 1,
-                                at.char_offset);
-
-            return false;
-        }
+        if (!first) return false;
 
         if (list) {
             if (0 < list->count) {
@@ -555,25 +548,8 @@ static bool copper_vm(const char* rulename,
             }
         }
 
-        switch (node->type) {
-        case pft_opaque:
-            indent(2); CU_DEBUG(2, "check (%s) at (%u,%u) first (bypass opaque)\n",
-                                node_label(),
-                                at.line_number + 1,
-                                at.char_offset);
-            return false;
-
-        default: break;
-        }
-
         PrsChar chr = 0;
-        if (!current(&chr)) {
-            indent(4); CU_DEBUG(4, "check (%s) at (%u,%u) first (bypass eof)\n",
-                                node_label(),
-                                at.line_number + 1,
-                                at.char_offset);
-            return false;
-        }
+        if (!current(&chr)) return false;
 
         unsigned             binx   = chr;
         const unsigned char *bits   = first->bitfield;
@@ -977,6 +953,8 @@ static bool copper_vm(const char* rulename,
     }
 
     bool result;
+
+    hold();
 
     if (checkFirstSet(start, &result)) {
         return result;
