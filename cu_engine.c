@@ -905,8 +905,6 @@ static bool copper_vm(const char* rulename,
         return true;
     }
 
-    indent(4); CU_DEBUG(4, "check (%s) %s\n", node_label(), oper2name(start->oper));
-
     inline bool run_node() {
         hold();
         switch (start->oper) {
@@ -936,6 +934,8 @@ static bool copper_vm(const char* rulename,
     bool result;
 
     hold();
+
+    indent(4); CU_DEBUG(4, "check (%s) %s\n", node_label(), oper2name(start->oper));
 
     if (checkFirstSet(start, &result)) {
         return result;
