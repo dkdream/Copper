@@ -616,6 +616,8 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool checkMetadata(PrsNode node, bool *target) {
+        if (prs_MatchName == node->oper) return false;
+
         PrsMetaFirst meta  = node->metadata;
 
         if (!meta) {
@@ -626,12 +628,10 @@ static bool copper_vm(const char* rulename,
             return false;
         }
 
-#if 1
         if (!meta->done) {
             indent(2); CU_DEBUG(1, "check (%s) using unfinish meta data\n",
                                 node_label());
         }
-#endif
 
         PrsMetaSet first = meta->first;
 
@@ -657,7 +657,7 @@ static bool copper_vm(const char* rulename,
         const unsigned char *bits = first->bitfield;
 
         if (bits[binx >> 3] & (1 << (binx & 7))) {
-            indent(4); CU_DEBUG(4, "check (%s) to cursor(\'%s\') at (%u,%u) meta %s\n",
+            indent(2); CU_DEBUG(1, "check (%s) to cursor(\'%s\') at (%u,%u) meta %s\n",
                                 node_label(),
                                 char2string(chr),
                                 at.line_number + 1,
@@ -845,10 +845,6 @@ static bool copper_vm(const char* rulename,
             return result;
         }
 
-        if (checkMetadata(value, &result)) {
-            return result;
-        }
-
         if (cache_Find(input->cache, value, at.text_inx)) {
             indent(2); CU_DEBUG(1, "rule \"%s\" at (%u,%u) (cached result failed\n",
                                 name,
@@ -993,11 +989,9 @@ static bool copper_vm(const char* rulename,
         return result;
     }
 
-#if 1
     if (checkMetadata(start, &result)) {
         return result;
     }
-#endif
 
     if (cache_Find(input->cache, start, at.text_inx)) return false;
 

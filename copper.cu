@@ -1,10 +1,6 @@
 # Copper Grammar for copper (vm)
 # Parser syntax
 
-%header {
-#include "compiler.h"
-}
-
 grammar = ( - heading )?
           ( - define-rule )+
           end-of-file @writeTree

@@ -25,21 +25,6 @@ struct meta_blob {
     struct prs_metaset   first;
 };
 
-static inline bool set_Equals(PrsMetaSet left, PrsMetaSet right) {
-
-    unsigned char *lbits = left->bitfield;
-    unsigned char *rbits = right->bitfield;
-
-    unsigned inx = 0;
-    for ( ; inx < 32 ; ++inx) {
-        if (lbits[inx] != rbits[inx]) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 static inline bool set_Contains(PrsMetaSet contains, PrsMetaSet group) {
 
     unsigned char *cbits = contains->bitfield;
@@ -59,38 +44,75 @@ static inline bool set_Contains(PrsMetaSet contains, PrsMetaSet group) {
 }
 
 static inline const char* node_label(PrsNode node) {
-    char buffer[10];
+    static char buffer[10];
     if (node->label) return node->label;
     sprintf(buffer, "%x__", (unsigned) node);
     return buffer;
+}
+
+static inline bool meta_isTransparent(PrsInput input, PrsNode node) {
+    assert(input);
+    assert(node);
+
+    inline bool checkChild() {
+        return meta_isTransparent(input, node->arg.node);
+    }
+
+    inline bool checkChoice() {
+        if (meta_isTransparent(input, node->arg.pair->left))  return true;
+        if (meta_isTransparent(input, node->arg.pair->right)) return true;
+        return false;
+    }
+
+    inline bool checkName() {
+        const char *name = node->arg.name;
+        PrsNode     test;
+
+        if (!input->node(input, name, &test)) {
+            CU_ERROR("node %s not found\n", name);
+            return false;
+        }
+
+        return meta_isTransparent(input, test);
+    }
+
+    inline bool checkSequence() {
+        if (!meta_isTransparent(input, node->arg.pair->left))  return false;
+        if (!meta_isTransparent(input, node->arg.pair->right)) return false;
+        return true;
+    }
+
+    if (pft_transparent == node->type) return true;
+    if (pft_opaque      == node->type) return true;
+    if (pft_variable    == node->type) return true;
+
+    switch (node->oper) {
+    case prs_Apply:       return true;             // @name - an named event
+    case prs_AssertFalse: return checkChild();    // e !
+    case prs_AssertTrue:  return checkChild();    // e &
+    case prs_Begin:       return true;            // set state.begin
+    case prs_Choice:      return checkChoice();   // e1 e2 /
+    case prs_End:         return true;            // set state.end
+    case prs_MatchChar:   return false;           // 'chr
+    case prs_MatchDot:    return false;           // .
+    case prs_MatchName:   return checkName();     // name
+    case prs_MatchRange:  return false;           // begin-end
+    case prs_MatchSet:    return false;           // [...]
+    case prs_MatchText:   return false;           // "..."
+    case prs_OneOrMore:   return checkChild();    // e +
+    case prs_Predicate:   return true;            // %predicate
+    case prs_Sequence:    return checkSequence(); // e1 e2 ;
+    case prs_Thunk:       return true;            // { } - an unnamed event
+    case prs_ZeroOrMore:  return true;            // e *
+    case prs_ZeroOrOne:   return true;            // e ?
+    case prs_Void:        return true;            // -nothing-
+    }
 }
 
 
 static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *target)
 {
     PrsMetaFirst result = 0;
-
-    inline bool isTransparent(PrsNode value) {
-        assert(value);
-
-        if (value->oper == prs_Begin)      return true;
-        if (value->oper == prs_End)        return true;
-        if (value->oper == prs_Predicate)  return true;
-        if (value->oper == prs_Thunk)      return true;
-        if (value->oper == prs_ZeroOrMore) return true;
-        if (value->oper == prs_ZeroOrOne)  return true;
-        if (value->oper == prs_MatchName) {
-            const char *name = value->arg.name;
-            PrsNode     test;
-            if (!input->node(input, name, &test)) {
-                CU_ERROR("node %s not found\n", name);
-                return false;
-            }
-            return isTransparent(test);
-        }
-
-        return value->type == pft_transparent;
-    }
 
     inline bool allocate(bool bits) {
         if (!bits) {
@@ -310,16 +332,9 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
             return false;
         }
 
+        // alwary treat the left node as if it where transparent
         merge(left);
         merge(right);
-
-#if 0
-        if (isTransparent(node->arg.pair->left)) {
-            merge(right);
-        } else {
-            CU_DEBUG(1, "meta_StartFirstSets %s(%s) not transparent\n", node_label(node->arg.pair->left), oper2name(node->arg.pair->left->oper));
-        }
-#endif
 
         return true;
     }
@@ -384,34 +399,12 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
         return true;
     }
 
-    inline bool isTransparent(PrsNode value) {
-        assert(value);
-
-        if (value->oper == prs_Begin)      return true;
-        if (value->oper == prs_End)        return true;
-        if (value->oper == prs_Predicate)  return true;
-        if (value->oper == prs_Thunk)      return true;
-        if (value->oper == prs_ZeroOrMore) return true;
-        if (value->oper == prs_ZeroOrOne)  return true;
-        if (value->oper == prs_MatchName) {
-            const char *name = value->arg.name;
-            PrsNode     test;
-            if (!input->node(input, name, &test)) {
-                CU_ERROR("node %s not found\n", name);
-                return false;
-            }
-            return isTransparent(test);
-        }
-
-        return value->type == pft_transparent;
-    }
-
-    inline void merge(PrsMetaFirst from) {
+    inline bool merge(PrsMetaFirst from) {
         assert(from);
         assert(result);
         assert(result->first);
 
-        if (!from->first) return;
+        if (!from->first) return false;
 
         unsigned char *src  = from->first->bitfield;
         unsigned char *bits = result->first->bitfield;
@@ -420,9 +413,7 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
             bits[inx] |= src[inx];
         }
 
-        if (!set_Contains(result->first, from->first)) {
-            CU_DEBUG(1, "meta_Recheck merge error\n");
-        }
+        return match();
     }
 
     inline void remove(PrsMetaFirst from) {
@@ -555,16 +546,9 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
         if (!meta_Recheck(input, node->arg.pair->left,  &left,  changed)) return false;
         if (!meta_Recheck(input, node->arg.pair->right, &right, changed)) return false;
 
+        // alwary treat the left node as if it where transparent
         merge(left);
         merge(right);
-
-#if 0
-        if (isTransparent(node->arg.pair->left)) {
-            merge(right);
-        } else {
-            CU_DEBUG(1, "meta_Recheck %s(%s) not transparent\n", node_label(node->arg.pair->left), oper2name(node->arg.pair->left->oper));
-        }
-#endif
 
         result->done = match();
 
