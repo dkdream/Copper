@@ -949,34 +949,38 @@ static bool node_ComputeSets(SynNode node)
         return true;
     }
 
+    inline bool opaque() {
+        return allocate(pft_opaque, false, 0);
+    }
+
     switch (node.any->type) {
-    case syn_apply:     return allocate(pft_opaque, false, 0);
-    case syn_begin:     return allocate(pft_opaque, false, 0);
+    case syn_apply:     return opaque();
+    case syn_begin:     return opaque();
     case syn_call:      return do_call();
     case syn_char:      return do_char();
     case syn_check:     return do_check();
     case syn_choice:    return do_choice();
     case syn_dot:       return do_dot();
-    case syn_end:       return allocate(pft_opaque, false, 0);
-    case syn_footer:    return allocate(pft_opaque, false, 0);
-    case syn_header:    return allocate(pft_opaque, false, 0);
-    case syn_include:   return allocate(pft_opaque, false, 0);
+    case syn_end:       return opaque();
+    case syn_footer:    return opaque();
+    case syn_header:    return opaque();
+    case syn_include:   return opaque();
     case syn_not:       return do_not();
     case syn_plus:      return do_check();
-    case syn_predicate: return allocate(pft_opaque, false, 0);
+    case syn_predicate: return opaque();
     case syn_question:  return do_question();
     case syn_rule:      return do_rule();
     case syn_sequence:  return do_sequence();
     case syn_set:       return do_set();
     case syn_star:      return do_question();
     case syn_string:    return do_string();
-    case syn_thunk:     return allocate(pft_opaque, false, 0);
+    case syn_thunk:     return opaque();
         /* */
     case syn_void:
         break;
     }
 
-    return allocate(pft_opaque, false, 0);
+    return opaque();
 }
 
 static void data_cooked_Write(PrsData data, FILE* output)
