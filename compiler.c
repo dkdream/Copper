@@ -846,6 +846,12 @@ static bool node_ComputeSets(SynNode node)
         bool         bits  = (0 != before->bitfield) || (0 != after->bitfield);
         PrsFirstType type  = pft_fixed;
 
+        // F(*|transparent) -> F(transparent)
+        // F(transparent|*) -> F(transparent)
+        // F(fixed|opaque)  -> F(opaque)
+        // F(opaque|fixed)  -> F(opaque)
+        // F(fixed|fixed)   -> F(fixed)
+
         if (pft_opaque == before->type)      type = pft_opaque;
         if (pft_opaque == after->type)       type = pft_opaque;
         if (pft_transparent == before->type) type = pft_transparent;
@@ -861,7 +867,7 @@ static bool node_ComputeSets(SynNode node)
         return true;
     }
 
-    // - .
+    // - dot
     inline bool do_dot() {
         if (!allocate(pft_fixed, true, 0)) return false;
         invert();
@@ -931,7 +937,12 @@ static bool node_ComputeSets(SynNode node)
         if (!allocate(type, bits, total)) return false;
 
         if (before->bitfield) merge(before->bitfield);
-        if (after->bitfield)  merge(after->bitfield);
+
+        if (after->bitfield) {
+            if (pft_fixed != before->type) {
+                merge(after->bitfield);
+            }
+        }
 
         concat(before, after);
 

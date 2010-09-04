@@ -50,65 +50,6 @@ static inline const char* node_label(PrsNode node) {
     return buffer;
 }
 
-static inline bool meta_isTransparent(PrsInput input, PrsNode node) {
-    assert(input);
-    assert(node);
-
-    inline bool checkChild() {
-        return meta_isTransparent(input, node->arg.node);
-    }
-
-    inline bool checkChoice() {
-        if (meta_isTransparent(input, node->arg.pair->left))  return true;
-        if (meta_isTransparent(input, node->arg.pair->right)) return true;
-        return false;
-    }
-
-    inline bool checkName() {
-        const char *name = node->arg.name;
-        PrsNode     test;
-
-        if (!input->node(input, name, &test)) {
-            CU_ERROR("node %s not found\n", name);
-            return false;
-        }
-
-        return meta_isTransparent(input, test);
-    }
-
-    inline bool checkSequence() {
-        if (!meta_isTransparent(input, node->arg.pair->left))  return false;
-        if (!meta_isTransparent(input, node->arg.pair->right)) return false;
-        return true;
-    }
-
-    if (pft_transparent == node->type) return true;
-    if (pft_opaque      == node->type) return true;
-
-    switch (node->oper) {
-    case prs_Apply:       return true;             // @name - an named event
-    case prs_AssertFalse: return checkChild();    // e !
-    case prs_AssertTrue:  return checkChild();    // e &
-    case prs_Begin:       return true;            // set state.begin
-    case prs_Choice:      return checkChoice();   // e1 e2 /
-    case prs_End:         return true;            // set state.end
-    case prs_MatchChar:   return false;           // 'chr
-    case prs_MatchDot:    return false;           // .
-    case prs_MatchName:   return checkName();     // name
-    case prs_MatchRange:  return false;           // begin-end
-    case prs_MatchSet:    return false;           // [...]
-    case prs_MatchText:   return false;           // "..."
-    case prs_OneOrMore:   return checkChild();    // e +
-    case prs_Predicate:   return true;            // %predicate
-    case prs_Sequence:    return checkSequence(); // e1 e2 ;
-    case prs_Thunk:       return true;            // { } - an unnamed event
-    case prs_ZeroOrMore:  return true;            // e *
-    case prs_ZeroOrOne:   return true;            // e ?
-    case prs_Void:        return true;            // -nothing-
-    }
-}
-
-
 static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *target)
 {
     PrsMetaFirst result = 0;
@@ -189,14 +130,13 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     // set state.begin
     // %predicate
     // {...} - an unnamed event
-    inline bool do_Transparent() {
+    inline bool do_Opaque() {
         if (!allocate(false)) return false;
         result->done = true;
         return true;
     }
 
     // e !
-    // e &
     inline bool do_Assert() {
         if (!allocate(false)) return false;
 
@@ -264,6 +204,7 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     // e +
     // e *
     // e ?
+    // e &
     inline bool do_CopyChild() {
         if (!allocate(true)) return false;
 
@@ -295,7 +236,7 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
             return false;
         }
 
-        // alwary treat the left node as if it where transparent
+        // always treat the left node as if it where transparent
         merge(left);
         merge(right);
 
@@ -311,12 +252,12 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     }
 
     switch (node->oper) {
-    case prs_Apply:       return do_Transparent();
+    case prs_Apply:       return do_Opaque();
     case prs_AssertFalse: return do_Assert();
     case prs_AssertTrue:  return do_CopyChild();
-    case prs_Begin:       return do_Transparent();
+    case prs_Begin:       return do_Opaque();
     case prs_Choice:      return do_Choice();
-    case prs_End:         return do_Transparent();
+    case prs_End:         return do_Opaque();
     case prs_MatchChar:   return do_CopyNode();
     case prs_MatchDot:    return do_CopyNode();
     case prs_MatchName:   return do_MatchName();
@@ -324,9 +265,9 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     case prs_MatchSet:    return do_CopyNode();
     case prs_MatchText:   return do_CopyNode();
     case prs_OneOrMore:   return do_CopyChild();
-    case prs_Predicate:   return do_Transparent();
+    case prs_Predicate:   return do_Opaque();
     case prs_Sequence:    return do_Sequence();
-    case prs_Thunk:       return do_Transparent();
+    case prs_Thunk:       return do_Opaque();
     case prs_ZeroOrMore:  return do_CopyChild();
     case prs_ZeroOrOne:   return do_CopyChild();
     case prs_Void:
@@ -402,7 +343,7 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
     // %predicate
     // {...} - an unnamed event
     // 'chr
-    // .
+    // dot
     // begin-end
     // [...]
     // "..."
@@ -414,7 +355,6 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
     }
 
     // e !
-    // e &
     inline bool do_Assert() {
         if (!meta_Recheck(input, node->arg.node, 0, changed)) return false;
         return true;
@@ -462,6 +402,7 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
     // e +
     // e *
     // e ?
+    // e &
     inline bool do_CopyChild() {
         copy();
 
