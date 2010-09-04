@@ -313,7 +313,7 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     switch (node->oper) {
     case prs_Apply:       return do_Transparent();
     case prs_AssertFalse: return do_Assert();
-    case prs_AssertTrue:  return do_Assert();
+    case prs_AssertTrue:  return do_CopyChild();
     case prs_Begin:       return do_Transparent();
     case prs_Choice:      return do_Choice();
     case prs_End:         return do_Transparent();
@@ -506,7 +506,7 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
     switch (node->oper) {
     case prs_Apply:       return do_Nothing();
     case prs_AssertFalse: return do_Assert();
-    case prs_AssertTrue:  return do_Assert();
+    case prs_AssertTrue:  return do_CopyChild();
     case prs_Begin:       return do_Nothing();
     case prs_Choice:      return do_Choice();
     case prs_End:         return do_Nothing();

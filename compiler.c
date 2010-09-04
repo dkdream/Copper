@@ -813,24 +813,28 @@ static bool node_ComputeSets(SynNode node)
 
     //----
 
+    // - name
     inline bool do_call() {
         if (!allocate(pft_opaque, false, 1)) return false;
         first->name[0] = node.text->value;
         return true;
     }
 
+    // - 'chr
     inline bool do_char() {
         if (!allocate(pft_fixed, true, 0)) return false;
         set(node.character->value);
         return true;
     }
 
+    // - e &
     inline bool do_check() {
         if (!node_ComputeSets(node.operator->value)) return false;
         node.any->first = node.operator->value.any->first;
         return true;
     }
 
+    // - e1 e2 |
     inline bool do_choice() {
         if (!node_ComputeSets(node.tree->before))  return false;
         if (!node_ComputeSets(node.tree->after))   return false;
@@ -842,8 +846,8 @@ static bool node_ComputeSets(SynNode node)
         bool         bits  = (0 != before->bitfield) || (0 != after->bitfield);
         PrsFirstType type  = pft_fixed;
 
-        if (pft_opaque == before->type) type = pft_opaque;
-        if (pft_opaque == after->type)  type = pft_opaque;
+        if (pft_opaque == before->type)      type = pft_opaque;
+        if (pft_opaque == after->type)       type = pft_opaque;
         if (pft_transparent == before->type) type = pft_transparent;
         if (pft_transparent == after->type)  type = pft_transparent;
 
@@ -857,20 +861,21 @@ static bool node_ComputeSets(SynNode node)
         return true;
     }
 
+    // - .
     inline bool do_dot() {
         if (!allocate(pft_fixed, true, 0)) return false;
         invert();
         return true;
     }
 
+    // - e !
     inline bool do_not() {
          if (!node_ComputeSets(node.operator->value)) return false;
-
          if (!allocate(pft_opaque, false, 0)) return false;
-
          return true;
     }
 
+    // - e +
     inline bool do_question() {
         if (!node_ComputeSets(node.operator->value))  return false;
         if (!copy(node.operator->value.any->first)) return false;
@@ -878,12 +883,14 @@ static bool node_ComputeSets(SynNode node)
         return true;
     }
 
+    // - identifier = ....
     inline bool do_rule() {
         if (!node_ComputeSets(node.define->value))  return false;
         node.any->first = node.operator->value.any->first;
         return true;
     }
 
+    // - e1 e2 ;
     inline bool do_sequence() {
         if (!node_ComputeSets(node.tree->before))  return false;
         if (!node_ComputeSets(node.tree->after))   return false;
@@ -901,20 +908,23 @@ static bool node_ComputeSets(SynNode node)
         bool         bits  = (0 != before->bitfield) || (0 != after->bitfield);
         PrsFirstType type  = pft_fixed;
 
+        // F(*,opaque)                -> F(opaque)
+        // F(*,fixed)                 -> F(fixed)
+        // F(opaque,transparent)      -> F(opaque)
+        // F(fixed,transparent)       -> F(fixed)
+        // F(transparent,transparent) -> F(transparent)
+
         switch (after->type) {
         case pft_opaque:
             type = pft_opaque;
             break;
 
         case pft_fixed:
+            type = pft_fixed;
             break;
 
         case pft_transparent:
-            if (pft_opaque == before->type) {
-                type = pft_opaque;
-            } else {
-                type = pft_transparent;
-            }
+            type = before->type;
             break;
         }
 
@@ -928,18 +938,28 @@ static bool node_ComputeSets(SynNode node)
         return true;
     }
 
+    // - [...]
     inline bool do_set() {
         if (!allocate(pft_fixed, true, 0)) return false;
         merge(makeBitfield(node.text->value));
         return true;
     }
 
+    // - "..."
     inline bool do_string() {
         if (!allocate(pft_fixed, true, 0)) return false;
         set(data_FirstChar(node.text->value));
         return true;
     }
 
+    // - @name
+    // - set state.begin
+    // - set state.end
+    // - %footer ...
+    // - %header {...}
+    // - %include "..." or  %include <...>
+    // - %predicate
+    // - {...}
     inline bool opaque() {
         return allocate(pft_opaque, false , 0);
     }

@@ -40,7 +40,7 @@ static inline const char* oper2name(enum prs_operator oper) {
     case prs_Choice:      return "prs_Choice";      // e1 e2 /
     case prs_End:         return "prs_End";         // set state.end
     case prs_MatchChar:   return "prs_MatchChar";   // 'chr
-    case prs_MatchDot:    return "prs_MatchDot";    // .
+    case prs_MatchDot:    return "prs_MatchDot";    // dot
     case prs_MatchName:   return "prs_MatchName";   // name
     case prs_MatchRange:  return "prs_MatchRange";  // begin-end
     case prs_MatchSet:    return "prs_MatchSet";    // [...]
@@ -57,9 +57,9 @@ static inline const char* oper2name(enum prs_operator oper) {
 }
 
 enum prs_first_type {
-    pft_opaque,      // %predicate @name, set state.begin, set state.end {...}
+    pft_opaque,      // %predicate, @name, set state.begin, set state.end {...}
     pft_transparent, // e *, e ?
-    pft_fixed,       // "...", 'chr, [...], begin-end
+    pft_fixed,       // "...", 'chr, [...], begin-end, dot
 };
 
 static inline const char* first2name(enum prs_first_type first) {
