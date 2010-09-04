@@ -866,16 +866,7 @@ static bool node_ComputeSets(SynNode node)
     inline bool do_not() {
          if (!node_ComputeSets(node.operator->value)) return false;
 
-         SynFirst child = node.operator->value.any->first;
-
-         bool         bits = (0 != child->bitfield);
-         PrsFirstType type = (pft_fixed == child->type ? pft_fixed : pft_opaque);
-
-         if (!allocate(type, bits, 0)) return false;
-         if (!bits) return true;
-
-         merge(child->bitfield);
-         invert();
+         if (!allocate(pft_opaque, false, 0)) return false;
 
          return true;
     }
@@ -950,31 +941,31 @@ static bool node_ComputeSets(SynNode node)
     }
 
     inline bool opaque() {
-        return allocate(pft_opaque, false, 0);
+        return allocate(pft_opaque, false , 0);
     }
 
     switch (node.any->type) {
-    case syn_apply:     return opaque();
-    case syn_begin:     return opaque();
-    case syn_call:      return do_call();
-    case syn_char:      return do_char();
-    case syn_check:     return do_check();
-    case syn_choice:    return do_choice();
-    case syn_dot:       return do_dot();
-    case syn_end:       return opaque();
-    case syn_footer:    return opaque();
-    case syn_header:    return opaque();
-    case syn_include:   return opaque();
-    case syn_not:       return do_not();
-    case syn_plus:      return do_check();
-    case syn_predicate: return opaque();
-    case syn_question:  return do_question();
-    case syn_rule:      return do_rule();
-    case syn_sequence:  return do_sequence();
-    case syn_set:       return do_set();
-    case syn_star:      return do_question();
-    case syn_string:    return do_string();
-    case syn_thunk:     return opaque();
+    case syn_apply:     return opaque();      // - @name
+    case syn_begin:     return opaque();      // - set state.begin
+    case syn_call:      return do_call();     // - name
+    case syn_char:      return do_char();     // - 'chr
+    case syn_check:     return do_check();    // - e &
+    case syn_choice:    return do_choice();   // - e1 e2 |
+    case syn_dot:       return do_dot();      // - .
+    case syn_end:       return opaque();      // - set state.end
+    case syn_footer:    return opaque();      // - %footer ...
+    case syn_header:    return opaque();      // - %header {...}
+    case syn_include:   return opaque();      // - %include "..." or  %include <...>
+    case syn_not:       return do_not();      // - e !
+    case syn_plus:      return do_check();    // - e +
+    case syn_predicate: return opaque();      // - %predicate
+    case syn_question:  return do_question(); // - e ?
+    case syn_rule:      return do_rule();     // - identifier = ....
+    case syn_sequence:  return do_sequence(); // - e1 e2 ;
+    case syn_set:       return do_set();      // - [...]
+    case syn_star:      return do_question(); // - e *
+    case syn_string:    return do_string();   // - "..."
+    case syn_thunk:     return opaque();      // - {...}
         /* */
     case syn_void:
         break;
@@ -1130,7 +1121,7 @@ static bool node_FirstSet(SynNode node, FILE* output, const char **target)
     if (5 < index) index = 0;
 
     if (!node.any->first) {
-        sprintf(ptr, "pft_opaque,0,0,\"%x\",0,", (unsigned) node.any);
+        sprintf(ptr, "pft_opaque,0/*missing*/,0,\"%x\",0,", (unsigned) node.any);
         *target = start;
         return true;
     }
