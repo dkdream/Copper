@@ -236,9 +236,10 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
             return false;
         }
 
-        // always treat the left node as if it where transparent
         merge(left);
-        merge(right);
+        if (pft_fixed != node->arg.pair->left->type) {
+            merge(right);
+        }
 
         return true;
     }
