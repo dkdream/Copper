@@ -39,16 +39,14 @@ install : $(COPPER) copper.h libCopper.a
 	cp -p copper.h    $(INCDIR)/copper.h
 	cp -p libCopper.a $(LIBDIR)/libCopper.a
 
-uninstall : .FORCE
-	rm -f $(BINDIR)/copper
-
-push : .FORCE #-- put the new graph under version control
+push : #-- put the new graph under version control
 	cp copper.c copper_o.c.bootstrap
 
-test examples : $(COPPER.test) .FORCE
-        $(MAKE) --directory=examples
+examples : $(COPPER.test) ; $(MAKE) --directory=examples
 
-err_test: copper.vm .FORCE
+test : $(COPPER.test) ; $(MAKE) --directory=tests
+
+err_test: copper.vm
 	./copper.ovm --name test --file test_error.cu
 
 # -- -------------------------------------------------
@@ -104,7 +102,7 @@ stage.$(STAGE).o : stage.$(STAGE).c
 stage.$(STAGE) : main.o stage.$(STAGE).o $(CU_OBJS) libCopper.a
 	$(CC) $(CFLAGS) -o $@ main.o stage.$(STAGE).o $(CU_OBJS) -L. -lCopper
 
-compare : $(COPPER.test) stage.$(STAGE) .FORCE
+compare : $(COPPER.test) stage.$(STAGE)
 	@./compare_graphs.sh $(COPPER.test) stage.$(STAGE)
 	@rm -f test.temp
 
@@ -116,22 +114,37 @@ do.stage.two  : do.stage.one  ; @$(MAKE) --no-print-directory STAGE=two  COPPER.
 
 # --
 
-clear : .FORCE
+clear :
 	rm -f *~ *.o *.tmp
 	rm -f stage.*
 	$(MAKE) --directory=examples --no-print-directory $@
 
-clean : clear .FORCE
+clean : clear
 	rm -rf .depends
 	rm -f copper.c copper.vm libCopper.a
 	echo $(MAKE) --directory=examples --no-print-directory $@
 
-scrub spotless : clean .FORCE
+scrub spotless : clean
 	rm -rf copper.ovm copper_o.c
 	$(MAKE) --directory=examples --no-print-directory $@
 
 
-.FORCE :
+# --
+
+.PHONY :: scrub
+.PHONY :: spotless
+.PHONY :: clean
+.PHONY :: clear
+.PHONY :: err_test
+.PHONY :: test
+.PHONY :: examples
+.PHONY :: push
+.PHONY :: install
+.PHONY :: full
+.PHONY :: all
+.PHONY :: default
+.PHONY :: compare
+.PHONY :: current.stage
 
 ##
 ## rules

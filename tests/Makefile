@@ -6,13 +6,18 @@ Test_files := $(wildcard *.cu)
 
 TFLAGS := -f 'Time %E KTime %S UTime %U PFaults %F Swapped %W CSwitch %w Signals %k Memory %M Exit %x :: %C'
 
-all test : $(Test_files:%.cu=%.tmp)
-	@ls -l $(Test_files:%.cu=%.tmp)
+all test :
 	@echo >> Times.list
+	@date >> Times.list
+	@make clear collect
+	@ls -l $(Test_files:%.cu=%.tmp)
 	@cat Times.list
 
-clean :       ; rm -f $(Test_files:%.cu=%.tmp)
+clear :       ; rm -f $(Test_files:%.cu=%.tmp)
+clean : clear 
 scrub : clean ; rm -f Times.list
+
+collect : $(Test_files:%.cu=%.tmp)
 
 ##
 ## Suffix Rules ------------------------------------------------------------------------
