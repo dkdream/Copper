@@ -67,7 +67,8 @@ libCopper.a : $(LIB_OBJS)
 
 compiler.o  : compiler.c
 
-# -- -------------------------------------------------
+# -- --------------------------------------- bootstrap
+
 DEPENDS += .depends/copper_o.d
 
 copper_o.c : copper_o.c.bootstrap ; cp $< $@
@@ -129,19 +130,6 @@ scrub spotless : clean .FORCE
 	rm -rf copper.ovm copper_o.c
 	$(MAKE) --directory=examples --no-print-directory $@
 
-##
-##
-## bootstrap
-##
-##
-
-copper.x : ; $(MAKE) bootstrap
-
-bootstrap : copper.bootstrap.o $(CU_OBJS) libCopper.a
-	$(CC) $(CFLAGS) -DCOPPER_BOOTSTRAP -o copper.x $+ -L. -lCopper
-
-copper.bootstrap.o : copper.bootstrap.c
-	$(CC) $(CFLAGS) -DCOPPER_BOOTSTRAP -c -o $@ $<
 
 .FORCE :
 
