@@ -42,6 +42,8 @@ install : $(COPPER) copper.h libCopper.a
 push : #-- put the new graph under version control
 	cp copper.c copper_o.c.bootstrap
 
+checkpoint : ; git checkpoint
+
 examples : $(COPPER.test) ; $(MAKE) --directory=examples
 
 test : $(COPPER.test) ; $(MAKE) --directory=tests
@@ -141,6 +143,7 @@ scrub spotless : clean
 .PHONY :: test
 .PHONY :: examples
 .PHONY :: push
+.PHONY :: checkpoint
 .PHONY :: install
 .PHONY :: full
 .PHONY :: all

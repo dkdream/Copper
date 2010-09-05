@@ -540,6 +540,19 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool checkFirstSet(PrsNode cnode, bool *target) {
+        if (!target) return false;
+
+        if (prs_MatchName == cnode->oper) {
+            const char *name = cnode->arg.name;
+            PrsNode value;
+            if (!node(name, &value)) return false;
+            if (!checkFirstSet(value, target)) return false;
+            if (!*target) {
+                cache_Point(input->cache, value, at.text_inx);
+            }
+            return true;
+        }
+
         if (pft_opaque == cnode->type) return false;
 
         PrsFirstSet  first = cnode->first;
@@ -582,6 +595,7 @@ static bool copper_vm(const char* rulename,
             *target = result = true;
         } else {
             *target = result = false;
+            cache_Point(input->cache, cnode, at.text_inx);
         }
 
         indent(2); CU_DEBUG(1, "check (%s) to cursor(\'%s\') at (%u,%u) first %s result %s",
@@ -599,6 +613,19 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool checkMetadata(PrsNode cnode, bool *target) {
+        if (!target) return false;
+
+        if (prs_MatchName == cnode->oper) {
+            const char *name = cnode->arg.name;
+            PrsNode value;
+            if (!node(name, &value)) return false;
+            if (!checkMetadata(value, target)) return false;
+            if (!*target) {
+                cache_Point(input->cache, value, at.text_inx);
+            }
+            return true;
+        }
+
         if (pft_opaque == cnode->type) return false;
 
         PrsMetaFirst meta  = cnode->metadata;
@@ -639,6 +666,7 @@ static bool copper_vm(const char* rulename,
             *target = result = true;
         } else {
             *target = result = false;
+            cache_Point(input->cache, cnode, at.text_inx);
         }
 
         indent(2); CU_DEBUG(1, "check (%s) to cursor(\'%s\') at (%u,%u) %s meta %s result %s",
@@ -811,6 +839,14 @@ static bool copper_vm(const char* rulename,
 
         if (!node(name, &value)) return false;
 
+        if (cache_Find(input->cache, value, at.text_inx)) {
+            indent(2); CU_DEBUG(1, "rule \"%s\" at (%u,%u) (cached result failed\n",
+                                name,
+                                at.line_number + 1,
+                                at.char_offset);
+            return false;
+        }
+
         bool result;
 
         if (checkFirstSet(value, &result)) {
@@ -820,15 +856,6 @@ static bool copper_vm(const char* rulename,
         if (checkMetadata(value, &result)) {
             return result;
         }
-
-        if (cache_Find(input->cache, value, at.text_inx)) {
-            indent(2); CU_DEBUG(1, "rule \"%s\" at (%u,%u) (cached result failed\n",
-                                name,
-                                at.line_number + 1,
-                                at.char_offset);
-            return false;
-        }
-
 
         indent(2); CU_DEBUG(2, "rule \"%s\" at (%u,%u)\n",
                            name,
@@ -933,6 +960,24 @@ static bool copper_vm(const char* rulename,
 
     inline bool run_node() {
         hold();
+
+        indent(3); CU_DEBUG(3, "check (%s) %s", node_label(start), oper2name(start->oper));
+        if (prs_MatchName == start->oper) {
+            const char *name = start->arg.name;
+            CU_DEBUG(3, " %s", name);
+        }
+        CU_DEBUG(3, "\n");
+
+        bool result;
+
+        if (checkFirstSet(start, &result)) {
+            return result;
+        }
+
+        if (checkMetadata(start, &result)) {
+            return result;
+        }
+
         switch (start->oper) {
         case prs_Apply:       return prs_apply();
         case prs_AssertFalse: return prs_assert_false();
@@ -957,28 +1002,11 @@ static bool copper_vm(const char* rulename,
         return false;
     }
 
-    bool result;
-
     hold();
-
-    indent(3); CU_DEBUG(3, "check (%s) %s", node_label(start), oper2name(start->oper));
-    if (prs_MatchName == start->oper) {
-        const char *name = start->arg.name;
-        CU_DEBUG(3, " %s", name);
-    }
-    CU_DEBUG(3, "\n");
-
-    if (checkFirstSet(start, &result)) {
-        return result;
-    }
-
-    if (checkMetadata(start, &result)) {
-        return result;
-    }
 
     if (cache_Find(input->cache, start, at.text_inx)) return false;
 
-    result = run_node();
+    bool result = run_node();
 
     if (!result) {
         cache_Point(input->cache, start, at.text_inx);
