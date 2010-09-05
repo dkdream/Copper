@@ -635,11 +635,17 @@ static bool copper_vm(const char* rulename,
             return true;
         }
 
-        if (pft_opaque == cnode->type) return false;
-
         PrsMetaFirst meta  = cnode->metadata;
 
         if (!meta) return false;
+
+        if (pft_opaque == meta->type) {
+            indent(4); CU_DEBUG(4, "check (%s) at (%u,%u) meta (bypass opaque)\n",
+                                node_label(cnode),
+                                at.line_number + 1,
+                                at.char_offset);
+            return false;
+        }
 
         if (!meta->done) {
             indent(2); CU_DEBUG(1, "check (%s) using unfinish meta data\n",
@@ -648,7 +654,13 @@ static bool copper_vm(const char* rulename,
 
         PrsMetaSet first = meta->first;
 
-        if (!first) return false;
+        if (!first) {
+            indent(4); CU_DEBUG(4, "check (%s) at (%u,%u) meta (bypass no first)\n",
+                                node_label(cnode),
+                                at.line_number + 1,
+                                at.char_offset);
+            return false;
+        }
 
         PrsChar chr = 0;
         if (!current(&chr)) return false;
@@ -671,7 +683,7 @@ static bool copper_vm(const char* rulename,
 
         bool result;
 
-        if (pft_transparent == cnode->type) {
+        if (pft_transparent == meta->type) {
             *target = result = true;
         } else {
             *target = result = false;
