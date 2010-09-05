@@ -433,9 +433,9 @@ static bool copper_vm(const char* rulename,
 
     char buffer[10];
 
-    inline const char* node_label() {
-        if (start->label) return start->label;
-        sprintf(buffer, "%x__", (unsigned) start);
+    inline const char* node_label(PrsNode node) {
+        if (node->label) return node->label;
+        sprintf(buffer, "%x__", (unsigned) node);
         return buffer;
     }
 
@@ -517,6 +517,15 @@ static bool copper_vm(const char* rulename,
                     });
     }
 
+    inline void debug_charclass(unsigned debug, const unsigned char *bits) {
+        CU_ON_DEBUG(debug,
+                    { unsigned inx = 0;
+                        for ( ; inx < 32;  ++inx) {
+                            CU_DEBUG(debug, "\\%03o", bits[inx]);
+                        }
+                    });
+    }
+
     inline bool add_event(PrsLabel label) {
         indent(2); CU_DEBUG(2, "event %s(%x) at (%u,%u)\n",
                            label.name,
@@ -530,18 +539,18 @@ static bool copper_vm(const char* rulename,
                            label);
     }
 
-    inline bool checkFirstSet(PrsNode node, bool *target) {
-        if (pft_opaque == node->type) return false;
+    inline bool checkFirstSet(PrsNode cnode, bool *target) {
+        if (pft_opaque == cnode->type) return false;
 
-        PrsFirstSet  first = node->first;
-        PrsFirstList list  = node->start;
+        PrsFirstSet  first = cnode->first;
+        PrsFirstList list  = cnode->start;
 
         if (!first) return false;
 
         if (list) {
             if (0 < list->count) {
                 indent(2); CU_DEBUG(2, "check (%s) at (%u,%u) first (bypass call nodes)\n",
-                                    node_label(),
+                                    node_label(cnode),
                                     at.line_number + 1,
                                     at.char_offset);
                 return false;
@@ -556,7 +565,7 @@ static bool copper_vm(const char* rulename,
 
         if (bits[binx >> 3] & (1 << (binx & 7))) {
             indent(4); CU_DEBUG(4, "check (%s) to cursor(\'%s\') at (%u,%u) first %s\n",
-                                node_label(),
+                                node_label(cnode),
                                 char2string(chr),
                                 at.line_number + 1,
                                 at.char_offset,
@@ -566,14 +575,14 @@ static bool copper_vm(const char* rulename,
 
         bool result;
 
-        if (pft_transparent == node->type) {
+        if (pft_transparent == cnode->type) {
             *target = result = true;
         } else {
             *target = result = false;
         }
 
         indent(2); CU_DEBUG(1, "check (%s) to cursor(\'%s\') at (%u,%u) first %s result %s\n",
-                            node_label(),
+                            node_label(cnode),
                             char2string(chr),
                             at.line_number + 1,
                             at.char_offset,
@@ -584,16 +593,16 @@ static bool copper_vm(const char* rulename,
         return true;
     }
 
-    inline bool checkMetadata(PrsNode node, bool *target) {
-        if (pft_opaque == node->type) return false;
+    inline bool checkMetadata(PrsNode cnode, bool *target) {
+        if (pft_opaque == cnode->type) return false;
 
-        PrsMetaFirst meta  = node->metadata;
+        PrsMetaFirst meta  = cnode->metadata;
 
         if (!meta) return false;
 
         if (!meta->done) {
             indent(2); CU_DEBUG(1, "check (%s) using unfinish meta data\n",
-                                node_label());
+                                node_label(cnode));
         }
 
         PrsMetaSet first = meta->first;
@@ -607,30 +616,36 @@ static bool copper_vm(const char* rulename,
         const unsigned char *bits = first->bitfield;
 
         if (bits[binx >> 3] & (1 << (binx & 7))) {
-            indent(4); CU_DEBUG(4, "check (%s) to cursor(\'%s\') at (%u,%u) meta %s\n",
-                                node_label(),
+            indent(4); CU_DEBUG(4, "check (%s) to cursor(\'%s\') at (%u,%u) meta %s (",
+                                node_label(cnode),
                                 char2string(chr),
                                 at.line_number + 1,
                                 at.char_offset,
                                 "continue");
+            debug_charclass(4, bits);
+            CU_DEBUG(4, ")\n");
             return false;
         }
 
+
         bool result;
 
-        if (pft_transparent == node->type) {
+        if (pft_transparent == cnode->type) {
             *target = result = true;
         } else {
             *target = result = false;
         }
 
-        indent(2); CU_DEBUG(1, "check (%s) to cursor(\'%s\') at (%u,%u) meta %s result %s\n",
-                            node_label(),
+        indent(2); CU_DEBUG(1, "check (%s) to cursor(\'%s\') at (%u,%u) %s meta %s result %s (",
+                            node_label(cnode),
                             char2string(chr),
                             at.line_number + 1,
                             at.char_offset,
+                            oper2name(cnode->oper),
                             "skip",
                             (result ? "passed" : "failed"));
+        debug_charclass(1, bits);
+        CU_DEBUG(1, ")\n");
 
         return true;
     }
@@ -795,6 +810,10 @@ static bool copper_vm(const char* rulename,
             return result;
         }
 
+        if (checkMetadata(value, &result)) {
+            return result;
+        }
+
         if (cache_Find(input->cache, value, at.text_inx)) {
             indent(2); CU_DEBUG(1, "rule \"%s\" at (%u,%u) (cached result failed\n",
                                 name,
@@ -935,7 +954,7 @@ static bool copper_vm(const char* rulename,
 
     hold();
 
-    indent(4); CU_DEBUG(4, "check (%s) %s\n", node_label(), oper2name(start->oper));
+    indent(4); CU_DEBUG(4, "check (%s) %s\n", node_label(start), oper2name(start->oper));
 
     if (checkFirstSet(start, &result)) {
         return result;
@@ -1001,7 +1020,15 @@ extern bool cu_Parse(const char* name, PrsInput input) {
     if (!cache_Clear(input->cache)) return false;
 
     CU_DEBUG(3, "starting parce\n");
-    return copper_vm(name, start, 0, input);
+
+    CU_DEBUG(2, "rule \"%s\" begin\n", name);
+
+    bool result = copper_vm(name, start, 1, input);
+
+    CU_DEBUG(2, "rule \"%s\" result %s\n",
+             name, (result ? "passed" : "failed"));
+
+    return result;
 }
 
 extern bool cu_AppendData(PrsInput input,

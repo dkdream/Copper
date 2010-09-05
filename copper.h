@@ -219,6 +219,7 @@ struct prs_metafirst {
     PrsMetaFirst   next;
     bool           done;
     PrsNode        node;
+    PrsFirstType   type;
     PrsMetaSet     first;
     PrsMetaFirst   left;
     PrsMetaFirst   right;

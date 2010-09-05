@@ -135,8 +135,10 @@ int main(int argc, char **argv)
     CU_DEBUG(1, "adding parser graph\n");
     copper_graph(parser);
 
+#ifndef SKIP_META
     CU_DEBUG(1, "filling parser metadata\n");
     cu_FillMetadata(parser);
+#endif
 
     CU_DEBUG(1, "parsing infile %s\n", infile);
 
@@ -156,6 +158,10 @@ int main(int argc, char **argv)
             int start    = reached;
             int chr;
             int inx;
+
+            if ('\n' == buffer[start]) {
+                --start;
+            }
 
             for ( ; pos <= start ; --start) {
                 chr = buffer[start];

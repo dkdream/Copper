@@ -662,10 +662,6 @@ static unsigned char *makeBitfield(PrsData data)
         set(prev = curr);
     }
 
-    //    printf("make ->");
-    //    charclass_Write(bits, stdout);
-    //    printf("\n");
-
     return bits;
 }
 
@@ -731,18 +727,16 @@ static bool node_ComputeSets(SynNode node)
     }
 
     inline void merge(unsigned char *src) {
-        assert(src);
         assert(first);
-        assert(first->bitfield);
+
+        if (!src) return;
+        if (!first->bitfield) return;
 
         unsigned char *bits = first->bitfield;
         unsigned inx = 0;
         for ( ; inx < 32 ; ++inx) {
             bits[inx] |= src[inx];
         }
-        //        printf("merge ->");
-        //        charclass_Write(bits, stdout);
-        //        printf("\n");
     }
 
     inline void concat(SynFirst before, SynFirst after) {
@@ -762,10 +756,6 @@ static bool node_ComputeSets(SynNode node)
 
         unsigned char *bits = first->bitfield;
         bits[value >> 3] |=  (1 << (value & 7));
-
-        //        printf("set(%u) ->", value);
-        //        charclass_Write(bits, stdout);
-        //        printf("\n");
     }
 
     inline void clear(int value) {
@@ -774,24 +764,17 @@ static bool node_ComputeSets(SynNode node)
 
         unsigned char *bits = first->bitfield;
         bits[value >> 3] &= ~(1 << (value & 7));
-
-        //        printf("clear(%u) ->", value);
-        //        charclass_Write(bits, stdout);
-        //        printf("\n");
     }
 
-    inline void invert() {
+    inline void set_all() {
         assert(first);
         assert(first->bitfield);
 
         unsigned char *bits = first->bitfield;
         unsigned inx = 0;
         for ( ; inx < 32 ; ++inx) {
-            bits[inx] ^= 255;
+            bits[inx] = 255;
         }
-        //        printf("invert ->");
-        //        charclass_Write(bits, stdout);
-        //        printf("\n");
     }
 
     inline bool copy(SynFirst child) {
@@ -811,141 +794,28 @@ static bool node_ComputeSets(SynNode node)
         return true;
     }
 
-    //----
+    //-----------------------------------------------------------
 
-    // - name
-    inline bool do_call() {
-        if (!allocate(pft_opaque, false, 1)) return false;
-        first->name[0] = node.text->value;
-        return true;
+    inline bool opaque() {
+        return allocate(pft_opaque, false , 0);
+    }
+
+    // - @name
+    // - set state.begin
+    // - set state.end
+    // - %footer ...
+    // - %header {...}
+    // - %include "..." or  %include <...>
+    // - %predicate
+    // - {...}
+    inline bool transparent() {
+        return allocate(pft_transparent, false , 0);
     }
 
     // - 'chr
     inline bool do_char() {
         if (!allocate(pft_fixed, true, 0)) return false;
         set(node.character->value);
-        return true;
-    }
-
-    // - e &
-    inline bool do_check() {
-        if (!node_ComputeSets(node.operator->value)) return false;
-        node.any->first = node.operator->value.any->first;
-        return true;
-    }
-
-    // - e1 e2 |
-    inline bool do_choice() {
-        if (!node_ComputeSets(node.tree->before))  return false;
-        if (!node_ComputeSets(node.tree->after))   return false;
-
-        SynFirst before = node.tree->before.any->first;
-        SynFirst after  = node.tree->after.any->first;
-
-        unsigned     total = before->count + after->count;
-        bool         bits  = (0 != before->bitfield) || (0 != after->bitfield);
-        PrsFirstType type  = pft_fixed;
-
-        // F(*|transparent) -> F(transparent)
-        // F(transparent|*) -> F(transparent)
-        // F(fixed|opaque)  -> F(opaque)
-        // F(opaque|fixed)  -> F(opaque)
-        // F(fixed|fixed)   -> F(fixed)
-
-        if (pft_opaque == before->type)      type = pft_opaque;
-        if (pft_opaque == after->type)       type = pft_opaque;
-        if (pft_transparent == before->type) type = pft_transparent;
-        if (pft_transparent == after->type)  type = pft_transparent;
-
-        if (!allocate(type, bits, total)) return false;
-
-        if (before->bitfield) merge(before->bitfield);
-        if (after->bitfield)  merge(after->bitfield);
-
-        concat(before, after);
-
-        return true;
-    }
-
-    // - dot
-    inline bool do_dot() {
-        if (!allocate(pft_fixed, true, 0)) return false;
-        invert();
-        return true;
-    }
-
-    // - e !
-    inline bool do_not() {
-         if (!node_ComputeSets(node.operator->value)) return false;
-         if (!allocate(pft_opaque, false, 0)) return false;
-         return true;
-    }
-
-    // - e +
-    inline bool do_question() {
-        if (!node_ComputeSets(node.operator->value))  return false;
-        if (!copy(node.operator->value.any->first)) return false;
-        first->type = pft_transparent;
-        return true;
-    }
-
-    // - identifier = ....
-    inline bool do_rule() {
-        if (!node_ComputeSets(node.define->value))  return false;
-        node.any->first = node.operator->value.any->first;
-        return true;
-    }
-
-    // - e1 e2 ;
-    inline bool do_sequence() {
-        if (!node_ComputeSets(node.tree->before))  return false;
-        if (!node_ComputeSets(node.tree->after))   return false;
-
-        SynFirst before = node.tree->before.any->first;
-
-        if (pft_fixed == before->type) {
-            node.any->first = before;
-            return true;
-        }
-
-        SynFirst after = node.tree->after.any->first;
-
-        unsigned     total = before->count + after->count;
-        bool         bits  = (0 != before->bitfield) || (0 != after->bitfield);
-        PrsFirstType type  = pft_fixed;
-
-        // F(*,opaque)                -> F(opaque)
-        // F(*,fixed)                 -> F(fixed)
-        // F(opaque,transparent)      -> F(opaque)
-        // F(fixed,transparent)       -> F(fixed)
-        // F(transparent,transparent) -> F(transparent)
-
-        switch (after->type) {
-        case pft_opaque:
-            type = pft_opaque;
-            break;
-
-        case pft_fixed:
-            type = pft_fixed;
-            break;
-
-        case pft_transparent:
-            type = before->type;
-            break;
-        }
-
-        if (!allocate(type, bits, total)) return false;
-
-        if (before->bitfield) merge(before->bitfield);
-
-        if (after->bitfield) {
-            if (pft_fixed != before->type) {
-                merge(after->bitfield);
-            }
-        }
-
-        concat(before, after);
-
         return true;
     }
 
@@ -963,16 +833,130 @@ static bool node_ComputeSets(SynNode node)
         return true;
     }
 
-    // - @name
-    // - set state.begin
-    // - set state.end
-    // - %footer ...
-    // - %header {...}
-    // - %include "..." or  %include <...>
-    // - %predicate
-    // - {...}
-    inline bool opaque() {
-        return allocate(pft_opaque, false , 0);
+    // - dot
+    inline bool do_dot() {
+        if (!allocate(pft_fixed, true, 0)) return false;
+        set_all();
+        return true;
+    }
+
+    // - name
+    inline bool do_call() {
+        if (!allocate(pft_opaque, false, 1)) return false;
+        first->name[0] = node.text->value;
+        return true;
+    }
+
+    // - e !
+    inline bool do_not() {
+         if (!node_ComputeSets(node.operator->value)) return false;
+         if (!allocate(pft_opaque, false, 0)) return false;
+         return true;
+    }
+
+
+    // - e &
+    // - e +
+    inline bool do_check() {
+        if (!node_ComputeSets(node.operator->value)) return false;
+        node.any->first = node.operator->value.any->first;
+
+        // T(f&) = f, T(o&) = o, T(t&) = t
+        // T(f+) = f, T(o+) = o, T(t+) = t
+
+        return true;
+    }
+
+    // - e ?
+    // - e *
+    inline bool do_question() {
+        if (!node_ComputeSets(node.operator->value))  return false;
+
+        SynFirst child = node.operator->value.any->first;
+
+        if (!copy(child)) return false;
+
+        // T(f?) = t, T(o?) = o, T(t?) = t
+        // T(f*) = t, T(o*) = o, T(t*) = t
+
+        if (pft_fixed == child->type) {
+            first->type = pft_transparent;
+        }
+
+        return true;
+    }
+
+    // - e1 e2 |
+    inline bool do_choice() {
+        if (!node_ComputeSets(node.tree->before))  return false;
+        if (!node_ComputeSets(node.tree->after))   return false;
+
+        SynFirst before = node.tree->before.any->first;
+        SynFirst after  = node.tree->after.any->first;
+
+        unsigned     total = before->count + after->count;
+        bool         bits  = (0 != before->bitfield) || (0 != after->bitfield);
+
+        // T(ff;) = f, T(fo;) = o, T(ft;) = t
+        // T(of;) = o, T(oo;) = o, T(ot;) = t
+        // T(tf;) = t, T(to;) = t, T(tt;) = t
+
+        PrsFirstType type  = pft_fixed;
+
+        if (pft_opaque == before->type)      type = pft_opaque;
+        if (pft_opaque == after->type)       type = pft_opaque;
+        if (pft_transparent == before->type) type = pft_transparent;
+        if (pft_transparent == after->type)  type = pft_transparent;
+
+        if (!allocate(type, bits, total)) return false;
+
+        merge(before->bitfield);
+        merge(after->bitfield);
+
+        concat(before, after);
+
+        return true;
+    }
+
+    // - e1 e2 ;
+    inline bool do_sequence() {
+        if (!node_ComputeSets(node.tree->before))  return false;
+        if (!node_ComputeSets(node.tree->after))   return false;
+
+        SynFirst before = node.tree->before.any->first;
+        SynFirst after  = node.tree->after.any->first;
+
+        unsigned     total = before->count + after->count;
+        bool         bits  = (0 != before->bitfield) || (0 != after->bitfield);
+
+        // T(ff;) = f, T(fo;) = f, T(ft;) = f
+        // T(of;) = o, T(oo;) = o, T(ot;) = o
+        // T(tf;) = f, T(to;) = o, T(tt;) = t
+
+        PrsFirstType type  = before->type;
+
+        if (pft_transparent == before->type) {
+            type = after->type;
+        }
+
+        if (!allocate(type, bits, total)) return false;
+
+        merge(before->bitfield);
+
+        if (pft_fixed != before->type) {
+            merge(after->bitfield);
+        }
+
+        concat(before, after);
+
+        return true;
+    }
+
+    // - identifier = ....
+    inline bool do_rule() {
+        if (!node_ComputeSets(node.define->value))  return false;
+        node.any->first = node.operator->value.any->first;
+        return true;
     }
 
     switch (node.any->type) {
@@ -982,7 +966,7 @@ static bool node_ComputeSets(SynNode node)
     case syn_char:      return do_char();     // - 'chr
     case syn_check:     return do_check();    // - e &
     case syn_choice:    return do_choice();   // - e1 e2 |
-    case syn_dot:       return do_dot();      // - .
+    case syn_dot:       return opaque();      //do_dot();      // - dot
     case syn_end:       return opaque();      // - set state.end
     case syn_footer:    return opaque();      // - %footer ...
     case syn_header:    return opaque();      // - %header {...}
@@ -1002,7 +986,7 @@ static bool node_ComputeSets(SynNode node)
         break;
     }
 
-    return opaque();
+    return transparent();
 }
 
 static void data_cooked_Write(PrsData data, FILE* output)

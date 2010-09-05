@@ -72,8 +72,10 @@ DEPENDS += .depends/copper_o.d
 copper_o.c : copper_o.c.bootstrap ; cp $< $@
 copper_o.o : copper_o.c
 
-copper.ovm : main.o copper_o.o $(CU_OBJS) libCopper.a
-	$(CC) $(CFLAGS) -o $@ main.o copper_o.o $(CU_OBJS) -L. -lCopper
+copper.ovm : main_o.o copper_o.o $(CU_OBJS) libCopper.a
+	$(CC) $(CFLAGS) -o $@ main_o.o copper_o.o $(CU_OBJS) -L. -lCopper
+
+main_o.o : main.c ; $(CC) $(CFLAGS) -DSKIP_META -I. -c -o $@ $<
 
 # -- -------------------------------------------------
 DEPENDS += .depends/main.d
@@ -108,7 +110,7 @@ compare : $(COPPER.test) stage.$(STAGE)
 
 # --
 
-do.stage.zero : copper.vm     ; @$(MAKE) --no-print-directory STAGE=zero COPPER.test=copper.vm current.stage
+do.stage.zero : copper.vm     ; @$(MAKE) --no-print-directory STAGE=zero COPPER.test=copper.vm  current.stage
 do.stage.one  : do.stage.zero ; @$(MAKE) --no-print-directory STAGE=one  COPPER.test=stage.zero current.stage
 do.stage.two  : do.stage.one  ; @$(MAKE) --no-print-directory STAGE=two  COPPER.test=stage.one  current.stage
 
