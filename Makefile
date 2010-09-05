@@ -20,9 +20,10 @@ CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
 OFLAGS = -Wall
 ARFLAGS = rcu
 
-LIB_OBJS = cu_engine.o cu_firstset.o
+LIB_SRCS = $(wildcard cu_*.c)
+LIB_OBJS = $(LIB_SRCS:%.c=%.o)
 CU_OBJS  = compiler.o
-DEPENDS = 
+DEPENDS  = $(LIB_SRCS:%.c=.depends/%.d)
 
 default : copper.vm
 
@@ -52,12 +53,7 @@ err_test: copper.vm
 	./copper.ovm --name test --file test_error.cu
 
 # -- -------------------------------------------------
-DEPENDS += .depends/cu_engine.d
-DEPENDS += .depends/cu_firstset.d
 DEPENDS += .depends/compiler.d
-
-cu_engine.o   : cu_engine.c
-cu_firstset.o : cu_firstset.c
 
 libCopper.a : copper.h
 libCopper.a : $(LIB_OBJS)
