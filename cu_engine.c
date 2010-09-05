@@ -564,12 +564,15 @@ static bool copper_vm(const char* rulename,
         const unsigned char *bits   = first->bitfield;
 
         if (bits[binx >> 3] & (1 << (binx & 7))) {
-            indent(4); CU_DEBUG(4, "check (%s) to cursor(\'%s\') at (%u,%u) first %s\n",
+            indent(4); CU_DEBUG(4, "check (%s) to cursor(\'%s\') at (%u,%u) first %s",
                                 node_label(cnode),
                                 char2string(chr),
                                 at.line_number + 1,
                                 at.char_offset,
                                 "continue");
+            CU_DEBUG(4, " (");
+            debug_charclass(4, bits);
+            CU_DEBUG(4, ")\n");
             return false;
         }
 
@@ -581,15 +584,17 @@ static bool copper_vm(const char* rulename,
             *target = result = false;
         }
 
-        indent(2); CU_DEBUG(1, "check (%s) to cursor(\'%s\') at (%u,%u) first %s result %s\n",
+        indent(2); CU_DEBUG(1, "check (%s) to cursor(\'%s\') at (%u,%u) first %s result %s",
                             node_label(cnode),
                             char2string(chr),
                             at.line_number + 1,
                             at.char_offset,
                             "skip",
                             (result ? "passed" : "failed"));
-
-
+        CU_DEBUG(4, " (");
+        debug_charclass(4, bits);
+        CU_DEBUG(4, ")");
+        CU_DEBUG(1, "\n");
         return true;
     }
 
@@ -636,7 +641,7 @@ static bool copper_vm(const char* rulename,
             *target = result = false;
         }
 
-        indent(2); CU_DEBUG(1, "check (%s) to cursor(\'%s\') at (%u,%u) %s meta %s result %s (",
+        indent(2); CU_DEBUG(1, "check (%s) to cursor(\'%s\') at (%u,%u) %s meta %s result %s",
                             node_label(cnode),
                             char2string(chr),
                             at.line_number + 1,
@@ -644,8 +649,10 @@ static bool copper_vm(const char* rulename,
                             oper2name(cnode->oper),
                             "skip",
                             (result ? "passed" : "failed"));
-        debug_charclass(1, bits);
-        CU_DEBUG(1, ")\n");
+        CU_DEBUG(4, " (");
+        debug_charclass(4, bits);
+        CU_DEBUG(4, ")");
+        CU_DEBUG(1, "\n");
 
         return true;
     }
