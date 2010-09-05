@@ -473,8 +473,6 @@ static bool copper_vm(const char* rulename,
 
         input->cursor.text_inx += 1;
 
-        //unsigned limit = input->data.limit;
-
         return true;
     }
 
