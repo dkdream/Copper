@@ -1006,17 +1006,19 @@ static bool copper_vm(const char* rulename,
 
     hold();
 
-    indent(3); CU_DEBUG(3, "check (%s) %s",
-                        node_label(start),
-                        oper2name(start->oper));
-    if (prs_MatchName == start->oper) {
-        const char *name = start->arg.name;
-        CU_DEBUG(3, " %s", name);
-    }
+    CU_ON_DEBUG(3, {
+            indent(3); CU_DEBUG(3, "check (%s) %s",
+                                node_label(start),
+                                oper2name(start->oper));
 
-    CU_DEBUG(3, " at (%u,%u)\n",
-             at.line_number + 1,
-             at.char_offset);
+            if (prs_MatchName == start->oper) {
+                const char *name = start->arg.name;
+                CU_DEBUG(3, " %s", name);
+            }
+            CU_DEBUG(3, " at (%u,%u)\n",
+                     at.line_number + 1,
+                     at.char_offset);
+        });
 
     if (check_cache(start)) return false;
 
