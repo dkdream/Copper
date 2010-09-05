@@ -143,7 +143,7 @@ int main(int argc, char **argv)
     CU_DEBUG(1, "parsing infile %s\n", infile);
 
     if (!cu_Parse("grammar", parser)) {
-        cu_SyntaxError(stderr, parser, infile, "syntax error");
+        cu_SyntaxError(stderr, parser, infile);
     }
 
     CU_DEBUG(1, "running events\n");

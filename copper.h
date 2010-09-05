@@ -289,7 +289,7 @@ extern bool cu_Parse(const char* name, PrsInput input);
 extern bool cu_AppendData(PrsInput input, const unsigned count, const char *src);
 extern bool cu_RunQueue(PrsInput input);
 extern bool cu_MarkedText(PrsInput input, PrsData *target);
-extern void cu_SyntaxError(FILE* error, PrsInput cu_input, const char* filename, char *message);
+extern void cu_SyntaxError(FILE* error, PrsInput cu_input, const char* filename);
 
 extern unsigned cu_global_debug;
 extern void     cu_debug(const char *filename, unsigned int linenum, const char *format, ...);
