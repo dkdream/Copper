@@ -813,7 +813,7 @@ extern bool cu_FillMetadata(PrsInput input) {
 
     for ( ; changed ; ) {
         changed = false;
-        tree_DebugSets(4, input, root);
+        tree_DebugSets(6, input, root);
         CU_DEBUG(4, "merging metadata  %x\n", (unsigned) root);
         if (!tree_MergeFirstSets(input, root, &changed)) {
             CU_DEBUG(1, "tree_MergeFirstSets error\n");
