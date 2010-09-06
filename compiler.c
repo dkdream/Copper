@@ -834,14 +834,6 @@ static bool node_ComputeSets(SynNode node)
         return true;
     }
 
-#if 0
-    inline bool do_dot() {
-        if (!allocate(pft_fixed, true, 0)) return false;
-        set_all();
-        return true;
-    }
-#endif
-
     // - name
     inline bool do_call() {
         if (!allocate(pft_opaque, false, 1)) return false;

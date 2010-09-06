@@ -135,7 +135,7 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     // set state.begin
     // %predicate
     // {...} - an unnamed event
-    inline bool do_Opaque() {
+    inline bool do_Event() {
         if (!allocate(false)) return false;
         result->done = true;
         result->type = pft_opaque;
@@ -344,12 +344,12 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     }
 
     switch (node->oper) {
-    case prs_Apply:       return do_Opaque();
+    case prs_Apply:       return do_Event();
     case prs_AssertFalse: return do_AssertFalse();
     case prs_AssertTrue:  return do_AssertChild();
-    case prs_Begin:       return do_Opaque();
+    case prs_Begin:       return do_Event();
     case prs_Choice:      return do_Choice();
-    case prs_End:         return do_Opaque();
+    case prs_End:         return do_Event();
     case prs_MatchChar:   return do_CopyNode();
     case prs_MatchDot:    return do_CopyNode();
     case prs_MatchName:   return do_MatchName();
@@ -357,9 +357,9 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     case prs_MatchSet:    return do_CopyNode();
     case prs_MatchText:   return do_CopyNode();
     case prs_OneOrMore:   return do_AssertChild();
-    case prs_Predicate:   return do_Opaque();
+    case prs_Predicate:   return do_Event();
     case prs_Sequence:    return do_Sequence();
-    case prs_Thunk:       return do_Opaque();
+    case prs_Thunk:       return do_Event();
     case prs_ZeroOrMore:  return do_TestChild();
     case prs_ZeroOrOne:   return do_TestChild();
     case prs_Void:
@@ -628,6 +628,128 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
     return false;
 }
 
+static bool meta_DebugSets(FILE *output, unsigned level, PrsNode node)
+{
+    inline void char_Write(unsigned char value)
+    {
+        switch (value) {
+        case '\a': fprintf(output, "\'%s\'", "\\a");  return; /* bel */
+        case '\b': fprintf(output, "\'%s\'", "\\b");  return; /* bs */
+        case '\e': fprintf(output, "\'%s\'", "\\e");  return; /* esc */
+        case '\f': fprintf(output, "\'%s\'", "\\f");  return; /* ff */
+        case '\n': fprintf(output, "\'%s\'", "\\n");  return; /* nl */
+        case '\r': fprintf(output, "\'%s\'", "\\r");  return; /* cr */
+        case '\t': fprintf(output, "\'%s\'", "\\t");  return; /* ht */
+        case '\v': fprintf(output, "\'%s\'", "\\v");  return; /* vt */
+        case '\'': fprintf(output, "\'%s\'", "\\'");  return; /* ' */
+        case '\"': fprintf(output, "\'%s\'", "\\\""); return; /* " */
+        case '\\': fprintf(output, "\'%s\'", "\\\\"); return; /* \ */
+        default:   fprintf(output, "\'%c\'", value);  return;
+        }
+    }
+
+    inline void debug_charclass() {
+        if (!node) return;
+
+        PrsMetaFirst meta = node->metadata;
+
+        if (!meta) return;
+        if (!meta->first) return;
+
+        unsigned char *bits = meta->first->bitfield;
+
+        if (!bits) return;
+
+         unsigned inx = 0;
+         for ( ; inx < 32;  ++inx) {
+             fprintf(output, "\\%03o", bits[inx]);
+         }
+    }
+
+    inline void debug_type() {
+        if (!node) return;
+
+        PrsMetaFirst meta = node->metadata;
+
+        if (!meta) return;
+
+        fprintf(output, "%17s ", first2name(meta->type));
+    }
+
+    inline void debug_label() {
+        if (!node) return;
+
+        if (node->label) {
+            fprintf(output, "%s ", node->label);
+        } else {
+            fprintf(output,"%x_ ", (unsigned) node);
+        }
+    }
+
+    inline void debug_oper() {
+        unsigned inx = 0;
+        for ( ; inx < level;  ++inx) {
+            fprintf(output, " ");
+        }
+        fprintf(output, "%s ", oper2name(node->oper));
+        if (prs_MatchName == node->oper) {
+            fprintf(output, "%s ", node->arg.name);
+        }
+        if (prs_MatchSet == node->oper) {
+            fprintf(output, "[%s] ", node->arg.set->label);
+        }
+    }
+
+    inline bool do_Nothing() {
+        return true;
+    }
+
+    inline bool do_Child() {
+        return (!meta_DebugSets(output, level + 1, node->arg.node));
+    }
+
+    inline bool do_Childern() {
+        if (!meta_DebugSets(output, level + 1, node->arg.pair->left))  return false;
+        if (!meta_DebugSets(output, level + 1, node->arg.pair->right)) return false;
+        return true;
+    }
+
+    if (!node) return true;
+
+    fprintf(output, "{ ");
+    debug_charclass(node);
+    fprintf(output, " } ");
+    debug_type();
+    debug_label();
+    debug_oper();
+    fprintf(output, "\n");
+
+    switch (node->oper) {
+    case prs_Apply:       return do_Nothing();
+    case prs_AssertFalse: return do_Child();
+    case prs_AssertTrue:  return do_Child();
+    case prs_Begin:       return do_Nothing();
+    case prs_Choice:      return do_Childern();
+    case prs_End:         return do_Nothing();
+    case prs_MatchChar:   return do_Nothing();
+    case prs_MatchDot:    return do_Nothing();
+    case prs_MatchName:   return do_Nothing();
+    case prs_MatchRange:  return do_Nothing();
+    case prs_MatchSet:    return do_Nothing();
+    case prs_MatchText:   return do_Nothing();
+    case prs_OneOrMore:   return do_Child();
+    case prs_Predicate:   return do_Nothing();
+    case prs_Sequence:    return do_Childern();
+    case prs_Thunk:       return do_Nothing();
+    case prs_ZeroOrMore:  return do_Child();
+    case prs_ZeroOrOne:   return do_Child();
+    case prs_Void:
+        break;
+    }
+
+    return true;
+}
+
 static bool meta_Clear(PrsInput input, PrsNode node)
 {
     inline bool do_Nothing() {
@@ -750,64 +872,18 @@ static bool tree_MergeFirstSets(PrsInput input, PrsTree tree, bool *changed) {
     return tree_MergeFirstSets(input, tree->right, changed);
 }
 
-static bool tree_DebugSets(unsigned debug, PrsInput input, PrsTree tree) {
-    PrsNode node = 0;
-
-    inline void debug_label() {
-        if (!node) return;
-
-        if (node->label) {
-            CU_DEBUG(debug, "%s", node->label);
-        } else {
-            CU_DEBUG(debug, "%x__", (unsigned) node);
-        }
-    }
-
-    inline void debug_charclass() {
-        if (!node) return;
-
-        PrsMetaFirst meta = node->metadata;
-
-        if (!meta) return;
-        if (!meta->first) return;
-
-        unsigned char *bits = meta->first->bitfield;
-
-        if (!bits) return;
-
-        CU_ON_DEBUG(debug,
-                    { unsigned inx = 0;
-                        for ( ; inx < 32;  ++inx) {
-                            CU_DEBUG(debug, "\\%03o", bits[inx]);
-                        }
-                    });
-    }
-
-    inline const char* type() {
-        if (!node) return "";
-
-        PrsMetaFirst meta = node->metadata;
-
-        if (!meta) return "";
-
-        return first2name(meta->type);
-    }
-
+static bool tree_DebugSets(PrsInput input, PrsTree tree) {
     if (!input)      return false;
     if (!tree)       return true;
     if (!tree->node) return false;
 
-    node = tree->node;
+    if (!tree_DebugSets(input, tree->left)) return false;
 
-    if (!tree_DebugSets(debug, input, tree->left)) return false;
+    fprintf(stdout, "--- %s ---\n", tree->name);
 
-    CU_DEBUG(debug, "meta_");
-    debug_label(node);
-    CU_DEBUG(debug, "_set = { ", node_label(node));
-    debug_charclass(node);
-    CU_DEBUG(debug, " } %s %s \n", tree->name, type());
+    meta_DebugSets(stdout, 0, tree->node);
 
-    return tree_DebugSets(debug, input, tree->right);
+    return tree_DebugSets(input, tree->right);
 }
 
 
@@ -835,7 +911,7 @@ extern bool cu_FillMetadata(PrsInput input) {
 
     for ( ; changed ; ) {
         changed = false;
-        tree_DebugSets(6, input, root);
+        CU_ON_DEBUG(6, { tree_DebugSets(input, root); });
         CU_DEBUG(4, "merging metadata  %x\n", (unsigned) root);
         if (!tree_MergeFirstSets(input, root, &changed)) {
             CU_DEBUG(1, "tree_MergeFirstSets error\n");
@@ -843,7 +919,7 @@ extern bool cu_FillMetadata(PrsInput input) {
         }
     }
 
-    tree_DebugSets(1, input, root);
+    CU_ON_DEBUG(1, { tree_DebugSets(input, root); });
 
     CU_DEBUG(1, "filling metadata %x done\n", (unsigned) root);
 

@@ -88,7 +88,7 @@ int main(int argc, char **argv)
     FILE* output;
 
     if (!funcname) {
-        CU_ERROR("a function name MUST be defined");
+        CU_ERROR("a function name MUST be defined\n");
     }
 
     if (!infile) {
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
     } else {
         input = fopen(infile, "r");
         if (!input) {
-            CU_ERROR("unable to open input file %s", infile);
+            CU_ERROR("unable to open input file %s\n", infile);
         }
     }
 
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 
     CU_DEBUG(1, "creating file parser object\n");
     if (!make_PrsFile(input, infile, &parser)) {
-        CU_ERROR("unable create parser object for %s", infile);
+        CU_ERROR("unable create parser object for %s\n", infile);
     }
 
     file_SetEvent((struct prs_file *)parser, "writeTree", writeTree);
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 
     CU_DEBUG(1, "running events\n");
     if (!cu_RunQueue(parser)) {
-        CU_ERROR("event error");
+        CU_ERROR("event error\n");
     }
 
     if (!outfile) {
@@ -156,13 +156,13 @@ int main(int argc, char **argv)
     } else {
         output = fopen(outfile, "w");
         if (!output) {
-            CU_ERROR("unable to open output file %s", outfile);
+            CU_ERROR("unable to open output file %s\n", outfile);
         }
     }
 
     CU_DEBUG(1, "writing tree\n");
     if (!file_WriteTree(parser, output, funcname)) {
-        CU_ERROR("write tree error");
+        CU_ERROR("write tree error\n");
     }
 
     return 0;
