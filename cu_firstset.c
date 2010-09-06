@@ -130,10 +130,19 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     }
 
     //-----------------------------------------
+
+    // - %predicate
+    // - dot
+    inline bool do_Opaque() {
+        if (!allocate(false)) return false;
+        result->done = true;
+        result->type = pft_opaque;
+        return true;
+    }
+
     // @name - an named event
     // set state.begin
     // set state.begin
-    // %predicate
     // {...} - an unnamed event
     inline bool do_Event() {
         if (!allocate(false)) return false;
@@ -145,7 +154,6 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     // 'chr
     // [...]
     // "..."
-    // dot
     // begin-end
     inline bool do_CopyNode() {
         if (!allocate(true)) return false;
@@ -351,13 +359,13 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     case prs_Choice:      return do_Choice();
     case prs_End:         return do_Event();
     case prs_MatchChar:   return do_CopyNode();
-    case prs_MatchDot:    return do_CopyNode();
+    case prs_MatchDot:    return do_Opaque();
     case prs_MatchName:   return do_MatchName();
     case prs_MatchRange:  return do_CopyNode();
     case prs_MatchSet:    return do_CopyNode();
     case prs_MatchText:   return do_CopyNode();
     case prs_OneOrMore:   return do_AssertChild();
-    case prs_Predicate:   return do_Event();
+    case prs_Predicate:   return do_Opaque();
     case prs_Sequence:    return do_Sequence();
     case prs_Thunk:       return do_Event();
     case prs_ZeroOrMore:  return do_TestChild();
@@ -414,15 +422,15 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
 
     //------------------------------
 
+    // %predicate
+    // dot
     // @name - an named event
     // set state.begin
     // set state.begin
-    // %predicate
     // {...} - an unnamed event
     // 'chr
     // [...]
     // "..."
-    // dot
     // begin-end
     inline bool do_Nothing() {
         if (!result->done) {
@@ -628,7 +636,7 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
     return false;
 }
 
-static bool meta_DebugSets(FILE *output, unsigned level, PrsNode node)
+static void meta_DebugSets(FILE *output, unsigned level, PrsNode node)
 {
     inline void char_Write(unsigned char value)
     {
@@ -654,15 +662,31 @@ static bool meta_DebugSets(FILE *output, unsigned level, PrsNode node)
         PrsMetaFirst meta = node->metadata;
 
         if (!meta) return;
-        if (!meta->first) return;
+        if (!meta->first) {
+            unsigned inx = 0;
+            for ( ; inx < 32;  ++inx) {
+                fprintf(output, "----");
+            }
+            return;
+        }
 
         unsigned char *bits = meta->first->bitfield;
 
-        if (!bits) return;
+        if (!bits) {
+            unsigned inx = 0;
+            for ( ; inx < 32;  ++inx) {
+                fprintf(output, "----");
+            }
+            return;
+        }
 
          unsigned inx = 0;
          for ( ; inx < 32;  ++inx) {
-             fprintf(output, "\\%03o", bits[inx]);
+             if (0 ==  bits[inx]) {
+                fprintf(output, "\\---");
+             } else {
+                 fprintf(output, "\\%03o", bits[inx]);
+             }
          }
     }
 
@@ -676,20 +700,24 @@ static bool meta_DebugSets(FILE *output, unsigned level, PrsNode node)
         fprintf(output, "%17s ", first2name(meta->type));
     }
 
-    inline void debug_label() {
-        if (!node) return;
+    inline void debug_label(PrsNode cnode) {
+        if (!cnode) {
+            fprintf(output,"%x_ ", (unsigned) cnode);
+            return;
+        }
 
         if (node->label) {
-            fprintf(output, "%s ", node->label);
-        } else {
-            fprintf(output,"%x_ ", (unsigned) node);
+            fprintf(output, "%s ", cnode->label);
+            return;
         }
+
+        fprintf(output,"%x_ ", (unsigned) cnode);
     }
 
     inline void debug_oper() {
         unsigned inx = 0;
         for ( ; inx < level;  ++inx) {
-            fprintf(output, " ");
+            fprintf(output, " |");
         }
         fprintf(output, "%s ", oper2name(node->oper));
         if (prs_MatchName == node->oper) {
@@ -698,56 +726,61 @@ static bool meta_DebugSets(FILE *output, unsigned level, PrsNode node)
         if (prs_MatchSet == node->oper) {
             fprintf(output, "[%s] ", node->arg.set->label);
         }
+        if (prs_Sequence == node->oper) {
+           debug_label(node->arg.pair->left);
+           debug_label(node->arg.pair->right);
+        }
+        if (prs_Choice == node->oper) {
+            fprintf(output, "( ");
+            debug_label(node->arg.pair->left);
+            debug_label(node->arg.pair->right);
+            fprintf(output, ") ");
+        }
     }
 
-    inline bool do_Nothing() {
-        return true;
+    inline void do_Child() {
+        meta_DebugSets(output, level + 1, node->arg.node);
     }
 
-    inline bool do_Child() {
-        return (!meta_DebugSets(output, level + 1, node->arg.node));
+    inline void do_Childern() {
+        meta_DebugSets(output, level + 1, node->arg.pair->left);
+        meta_DebugSets(output, level + 1, node->arg.pair->right);
     }
 
-    inline bool do_Childern() {
-        if (!meta_DebugSets(output, level + 1, node->arg.pair->left))  return false;
-        if (!meta_DebugSets(output, level + 1, node->arg.pair->right)) return false;
-        return true;
-    }
-
-    if (!node) return true;
+    if (!node) return;
 
     fprintf(output, "{ ");
-    debug_charclass(node);
+    debug_charclass();
     fprintf(output, " } ");
     debug_type();
-    debug_label();
+    debug_label(node);
     debug_oper();
     fprintf(output, "\n");
 
     switch (node->oper) {
-    case prs_Apply:       return do_Nothing();
-    case prs_AssertFalse: return do_Child();
-    case prs_AssertTrue:  return do_Child();
-    case prs_Begin:       return do_Nothing();
-    case prs_Choice:      return do_Childern();
-    case prs_End:         return do_Nothing();
-    case prs_MatchChar:   return do_Nothing();
-    case prs_MatchDot:    return do_Nothing();
-    case prs_MatchName:   return do_Nothing();
-    case prs_MatchRange:  return do_Nothing();
-    case prs_MatchSet:    return do_Nothing();
-    case prs_MatchText:   return do_Nothing();
-    case prs_OneOrMore:   return do_Child();
-    case prs_Predicate:   return do_Nothing();
-    case prs_Sequence:    return do_Childern();
-    case prs_Thunk:       return do_Nothing();
-    case prs_ZeroOrMore:  return do_Child();
-    case prs_ZeroOrOne:   return do_Child();
+    case prs_Apply:       return;
+    case prs_AssertFalse: do_Child(); return;
+    case prs_AssertTrue:  do_Child(); return;
+    case prs_Begin:       return;
+    case prs_Choice:      do_Childern(); return;
+    case prs_End:         return;
+    case prs_MatchChar:   return;
+    case prs_MatchDot:    return;
+    case prs_MatchName:   return;
+    case prs_MatchRange:  return;
+    case prs_MatchSet:    return;
+    case prs_MatchText:   return;
+    case prs_OneOrMore:   do_Child(); return;
+    case prs_Predicate:   return;
+    case prs_Sequence:    do_Childern(); return;
+    case prs_Thunk:       return;
+    case prs_ZeroOrMore:  do_Child(); return;
+    case prs_ZeroOrOne:   do_Child(); return;
     case prs_Void:
         break;
     }
 
-    return true;
+    return;
 }
 
 static bool meta_Clear(PrsInput input, PrsNode node)

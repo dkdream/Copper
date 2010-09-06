@@ -627,15 +627,6 @@ static bool copper_vm(const char* rulename,
     inline bool checkMetadata(PrsNode cnode, bool *target) {
         if (!target) return false;
 
-        if (prs_MatchName == cnode->oper) {
-            const char *name = cnode->arg.name;
-            PrsNode value;
-            if (!node(name, &value)) return false;
-            if (!checkMetadata(value, target)) return false;
-            if (!*target) set_cache(value);
-            return true;
-        }
-
         PrsMetaFirst meta  = cnode->metadata;
 
         if (!meta) return false;
@@ -654,6 +645,15 @@ static bool copper_vm(const char* rulename,
                                 at.line_number + 1,
                                 at.char_offset);
             return false;
+        }
+
+        if (prs_MatchName == cnode->oper) {
+            const char *name = cnode->arg.name;
+            PrsNode value;
+            if (!node(name, &value)) return false;
+            if (!checkMetadata(value, target)) return false;
+            if (!*target) set_cache(value);
+            return true;
         }
 
         if (!meta->done) {
