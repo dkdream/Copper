@@ -565,6 +565,7 @@ static bool copper_vm(const char* rulename,
         }
 
         if (pft_opaque == cnode->type) return false;
+        if (pft_event  == cnode->type) return false;
 
         PrsFirstSet  first = cnode->first;
         PrsFirstList list  = cnode->start;
@@ -641,6 +642,14 @@ static bool copper_vm(const char* rulename,
 
         if (pft_opaque == meta->type) {
             indent(4); CU_DEBUG(4, "check (%s) at (%u,%u) meta (bypass opaque)\n",
+                                node_label(cnode),
+                                at.line_number + 1,
+                                at.char_offset);
+            return false;
+        }
+
+        if (pft_event == meta->type) {
+            indent(4); CU_DEBUG(4, "check (%s) at (%u,%u) meta (bypass event)\n",
                                 node_label(cnode),
                                 at.line_number + 1,
                                 at.char_offset);

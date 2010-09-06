@@ -58,18 +58,20 @@ static inline const char* oper2name(enum prs_operator oper) {
 }
 
 enum prs_first_type {
-    pft_opaque,      // %predicate, @name, set state.begin, set state.end {...}
+    pft_opaque,      // %predicate, e !, dot
+    pft_fixed,       // "...", 'chr, [...], begin-end
     pft_transparent, // e *, e ?
-    pft_fixed,       // "...", 'chr, [...], begin-end, dot
+    pft_event        // @name, set state.begin, set state.end {...}
 };
 
 static inline const char* first2name(enum prs_first_type first) {
     switch (first) {
+    case pft_event:       return "pft_event";
+    case pft_opaque:      return "pft_opaque";
     case pft_transparent: return "pft_transparent";
     case pft_fixed:       return "pft_fixed";
-    default:
-        return "pft_opaque";
     }
+    return "pft_opaque";
 }
 
 typedef enum prs_operator   PrsOperator;

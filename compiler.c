@@ -796,7 +796,9 @@ static bool node_ComputeSets(SynNode node)
 
     //-----------------------------------------------------------
 
-    inline bool opaque() {
+    // - %predicate
+    // - dot
+    inline bool do_opaque() {
         return allocate(pft_opaque, false , 0);
     }
 
@@ -806,10 +808,9 @@ static bool node_ComputeSets(SynNode node)
     // - %footer ...
     // - %header {...}
     // - %include "..." or  %include <...>
-    // - %predicate
     // - {...}
-    inline bool transparent() {
-        return allocate(pft_transparent, false , 0);
+    inline bool do_event() {
+        return allocate(pft_event, false , 0);
     }
 
     // - 'chr
@@ -833,12 +834,13 @@ static bool node_ComputeSets(SynNode node)
         return true;
     }
 
-    // - dot
+#if 0
     inline bool do_dot() {
         if (!allocate(pft_fixed, true, 0)) return false;
         set_all();
         return true;
     }
+#endif
 
     // - name
     inline bool do_call() {
@@ -861,8 +863,8 @@ static bool node_ComputeSets(SynNode node)
         if (!node_ComputeSets(node.operator->value)) return false;
         node.any->first = node.operator->value.any->first;
 
-        // T(f&) = f, T(o&) = o, T(t&) = t
-        // T(f+) = f, T(o+) = o, T(t+) = t
+        // T(f&) = f, T(o&) = o, T(t&) = t, T(e&) = e
+        // T(f+) = f, T(o+) = o, T(t+) = t, T(e+) = ERROR
 
         return true;
     }
@@ -876,8 +878,8 @@ static bool node_ComputeSets(SynNode node)
 
         if (!copy(child)) return false;
 
-        // T(f?) = t, T(o?) = o, T(t?) = t
-        // T(f*) = t, T(o*) = o, T(t*) = t
+        // T(f?) = t, T(o?) = o, T(t?) = t, T(e?) = e
+        // T(f*) = t, T(o*) = o, T(t*) = t, T(e+) = ERROR
 
         if (pft_fixed == child->type) {
             first->type = pft_transparent;
@@ -886,7 +888,7 @@ static bool node_ComputeSets(SynNode node)
         return true;
     }
 
-    // - e1 e2 |
+    // - e1 e2 /
     inline bool do_choice() {
         if (!node_ComputeSets(node.tree->before))  return false;
         if (!node_ComputeSets(node.tree->after))   return false;
@@ -897,12 +899,15 @@ static bool node_ComputeSets(SynNode node)
         unsigned     total = before->count + after->count;
         bool         bits  = (0 != before->bitfield) || (0 != after->bitfield);
 
-        // T(ff;) = f, T(fo;) = o, T(ft;) = t
-        // T(of;) = o, T(oo;) = o, T(ot;) = t
-        // T(tf;) = t, T(to;) = t, T(tt;) = t
+        // T(ff/) = f, T(fo/) = o, T(ft/) = t, T(fe/) = e
+        // T(of/) = o, T(oo/) = o, T(ot/) = t, T(oe/) = o
+        // T(tf/) = t, T(to/) = t, T(tt/) = t, T(te/) = t
+        // T(ef/) = e, T(eo/) = o, T(et/) = t, T(ee/) = e
 
         PrsFirstType type  = pft_fixed;
 
+        if (pft_event == before->type)       type = pft_event;
+        if (pft_event == after->type)        type = pft_event;
         if (pft_opaque == before->type)      type = pft_opaque;
         if (pft_opaque == after->type)       type = pft_opaque;
         if (pft_transparent == before->type) type = pft_transparent;
@@ -929,14 +934,18 @@ static bool node_ComputeSets(SynNode node)
         unsigned     total = before->count + after->count;
         bool         bits  = (0 != before->bitfield) || (0 != after->bitfield);
 
-        // T(ff;) = f, T(fo;) = f, T(ft;) = f
-        // T(of;) = o, T(oo;) = o, T(ot;) = o
-        // T(tf;) = f, T(to;) = o, T(tt;) = t
+        // T(ff;) = f, T(fo;) = f, T(ft;) = f, T(fe;) = f
+        // T(of;) = o, T(oo;) = o, T(ot;) = o, T(oe;) = o
+        // T(tf;) = f, T(to;) = o, T(tt;) = t, T(te;) = e
+        // T(ef;) = f, T(eo;) = o, T(et;) = t, T(ee;) = e
 
         PrsFirstType type  = before->type;
 
         if (pft_transparent == before->type) {
             type = after->type;
+        }
+        if  (pft_event == before->type) {
+             type = after->type;
         }
 
         if (!allocate(type, bits, total)) return false;
@@ -960,33 +969,33 @@ static bool node_ComputeSets(SynNode node)
     }
 
     switch (node.any->type) {
-    case syn_apply:     return opaque();      // - @name
-    case syn_begin:     return opaque();      // - set state.begin
+    case syn_apply:     return do_event();    // - @name
+    case syn_begin:     return do_event();    // - set state.begin
     case syn_call:      return do_call();     // - name
     case syn_char:      return do_char();     // - 'chr
     case syn_check:     return do_check();    // - e &
     case syn_choice:    return do_choice();   // - e1 e2 |
-    case syn_dot:       return opaque();      //do_dot();      // - dot
-    case syn_end:       return opaque();      // - set state.end
-    case syn_footer:    return opaque();      // - %footer ...
-    case syn_header:    return opaque();      // - %header {...}
-    case syn_include:   return opaque();      // - %include "..." or  %include <...>
+    case syn_dot:       return do_opaque();   // - dot
+    case syn_end:       return do_event();    // - set state.end
+    case syn_footer:    return do_event();    // - %footer ...
+    case syn_header:    return do_event();    // - %header {...}
+    case syn_include:   return do_event();    // - %include "..." or  %include <...>
     case syn_not:       return do_not();      // - e !
     case syn_plus:      return do_check();    // - e +
-    case syn_predicate: return opaque();      // - %predicate
+    case syn_predicate: return do_opaque();   // - %predicate
     case syn_question:  return do_question(); // - e ?
     case syn_rule:      return do_rule();     // - identifier = ....
     case syn_sequence:  return do_sequence(); // - e1 e2 ;
     case syn_set:       return do_set();      // - [...]
     case syn_star:      return do_question(); // - e *
     case syn_string:    return do_string();   // - "..."
-    case syn_thunk:     return opaque();      // - {...}
+    case syn_thunk:     return do_event();    // - {...}
         /* */
     case syn_void:
         break;
     }
 
-    return transparent();
+    return do_opaque();
 }
 
 static void data_cooked_Write(PrsData data, FILE* output)
