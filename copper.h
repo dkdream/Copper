@@ -78,6 +78,12 @@ static inline const char* first2name(const PrsFirstType first) {
     return "pft_opaque";
 }
 
+static inline PrsFirstType inWithout(const PrsFirstType child)
+{
+    // T(f!) = e, T(o&) = e, T(t!) = E, T(e!) = e
+    return pft_event;
+}
+
 static inline PrsFirstType inRequired(const PrsFirstType child)
 {
     // T(f&) = f, T(o&) = o, T(t&) = t, T(e&) = e

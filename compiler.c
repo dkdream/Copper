@@ -845,6 +845,11 @@ static bool node_ComputeSets(SynNode node)
     inline bool do_not() {
          if (!node_ComputeSets(node.operator->value)) return false;
          if (!allocate(pft_opaque, false, 0)) return false;
+
+         SynFirst child = node.operator->value.any->first;
+
+         first->type = inWithout(child->type);
+
          return true;
     }
 

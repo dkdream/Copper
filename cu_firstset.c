@@ -190,10 +190,12 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     inline bool do_AssertFalse() {
         if (!allocate(false)) return false;
 
-        if (!meta_StartFirstSets(input, node->arg.node, 0)) return false;
+        PrsMetaFirst child;
+
+        if (!meta_StartFirstSets(input, node->arg.node, &child)) return false;
 
         result->done = true;
-        result->type = pft_opaque;
+        result->type = inWithout(child->type);
 
         return true;
     }
@@ -418,7 +420,12 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
 
     // e !
     inline bool do_AssertFalse() {
-        if (!meta_Recheck(input, node->arg.node, 0, changed)) return false;
+         PrsMetaFirst child;
+
+        if (!meta_Recheck(input, node->arg.node, &child, changed)) return false;
+
+        result->type = inWithout(child->type);
+
         return true;
     }
 
