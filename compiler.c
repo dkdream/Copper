@@ -853,10 +853,13 @@ static bool node_ComputeSets(SynNode node)
     // - e +
     inline bool do_check() {
         if (!node_ComputeSets(node.operator->value)) return false;
-        node.any->first = node.operator->value.any->first;
+
+        SynFirst child = node.operator->value.any->first;
 
         // T(f&) = f, T(o&) = o, T(t&) = t, T(e&) = e
         // T(f+) = f, T(o+) = o, T(t+) = t, T(e+) = ERROR
+
+        node.any->first = child;
 
         return true;
     }
@@ -873,9 +876,7 @@ static bool node_ComputeSets(SynNode node)
         // T(f?) = t, T(o?) = o, T(t?) = t, T(e?) = e
         // T(f*) = t, T(o*) = o, T(t*) = t, T(e+) = ERROR
 
-        if (pft_fixed == child->type) {
-            first->type = pft_transparent;
-        }
+        first->type = inOptional(child->type);
 
         return true;
     }
@@ -891,19 +892,7 @@ static bool node_ComputeSets(SynNode node)
         unsigned     total = before->count + after->count;
         bool         bits  = (0 != before->bitfield) || (0 != after->bitfield);
 
-        // T(ff/) = f, T(fo/) = o, T(ft/) = t, T(fe/) = e
-        // T(of/) = o, T(oo/) = o, T(ot/) = t, T(oe/) = o
-        // T(tf/) = t, T(to/) = t, T(tt/) = t, T(te/) = t
-        // T(ef/) = e, T(eo/) = o, T(et/) = t, T(ee/) = e
-
-        PrsFirstType type  = pft_fixed;
-
-        if (pft_event == before->type)       type = pft_event;
-        if (pft_event == after->type)        type = pft_event;
-        if (pft_opaque == before->type)      type = pft_opaque;
-        if (pft_opaque == after->type)       type = pft_opaque;
-        if (pft_transparent == before->type) type = pft_transparent;
-        if (pft_transparent == after->type)  type = pft_transparent;
+        PrsFirstType type = inChoice(before->type, after->type);
 
         if (!allocate(type, bits, total)) return false;
 
@@ -929,16 +918,9 @@ static bool node_ComputeSets(SynNode node)
         // T(ff;) = f, T(fo;) = f, T(ft;) = f, T(fe;) = f
         // T(of;) = o, T(oo;) = o, T(ot;) = o, T(oe;) = o
         // T(tf;) = f, T(to;) = o, T(tt;) = t, T(te;) = e
-        // T(ef;) = f, T(eo;) = o, T(et;) = t, T(ee;) = e
+        // T(ef;) = f, T(eo;) = o, T(et;) = e, T(ee;) = e
 
-        PrsFirstType type  = before->type;
-
-        if (pft_transparent == before->type) {
-            type = after->type;
-        }
-        if  (pft_event == before->type) {
-             type = after->type;
-        }
+        PrsFirstType type = inSequence(before->type, after->type);
 
         if (!allocate(type, bits, total)) return false;
 

@@ -147,7 +147,7 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     inline bool do_Event() {
         if (!allocate(false)) return false;
         result->done = true;
-        result->type = pft_opaque;
+        result->type = pft_event;
         return true;
     }
 
@@ -213,7 +213,7 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
         // T(f&) = f, T(o&) = o, T(t&) = t, T(e&) = e
         // T(f+) = f, T(o+) = o, T(t+) = t, T(e+) = ERROR
 
-        result->type = child->type;
+        result->type = inRequired(child->type);
 
         merge(child);
 
@@ -235,25 +235,7 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
         // T(f?) = t, T(o?) = o, T(t?) = t, T(e?) = e
         // T(f*) = t, T(o*) = o, T(t*) = t, T(e+) = ERROR
 
-        PrsFirstType type = pft_transparent;
-
-        switch (child->type) {
-        case pft_fixed:
-            break;
-
-        case pft_transparent:
-            break;
-
-        case pft_opaque:
-            type = pft_opaque;
-            break;
-
-        case pft_event:
-            type = pft_event;
-            break;
-        }
-
-        result->type = type;
+        result->type = inOptional(child->type);
 
         merge(child);
 
@@ -276,21 +258,7 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
             return false;
         }
 
-        // T(ff/) = f, T(fo/) = o, T(ft/) = t, T(fe/) = e
-        // T(of/) = o, T(oo/) = o, T(ot/) = t, T(oe/) = o
-        // T(tf/) = t, T(to/) = t, T(tt/) = t, T(te/) = t
-        // T(ef/) = e, T(eo/) = o, T(et/) = t, T(ee/) = e
-
-        PrsFirstType type  = pft_fixed;
-
-        if (pft_event == left->type)        type = pft_event;
-        if (pft_event == right->type)       type = pft_event;
-        if (pft_opaque == left->type)       type = pft_opaque;
-        if (pft_opaque == right->type)      type = pft_opaque;
-        if (pft_transparent == left->type)  type = pft_transparent;
-        if (pft_transparent == right->type) type = pft_transparent;
-
-        result->type = type;
+        result->type = inChoice(left->type, right->type);
 
         merge(left);
         merge(right);
@@ -314,21 +282,7 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
             return false;
         }
 
-        // T(ff;) = f, T(fo;) = f, T(ft;) = f, T(fe;) = f
-        // T(of;) = o, T(oo;) = o, T(ot;) = o, T(oe;) = o
-        // T(tf;) = f, T(to;) = o, T(tt;) = t, T(te;) = e
-        // T(ef;) = f, T(eo;) = o, T(et;) = t, T(ee;) = e
-
-        PrsFirstType type = left->type;
-
-        if (pft_transparent == type) {
-            type = right->type;
-        }
-        if (pft_event == type) {
-            type = right->type;
-        }
-
-        result->type = type;
+        result->type = inSequence(left->type, right->type);
 
         merge(left);
 
@@ -480,7 +434,7 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
         // T(f&) = f, T(o&) = o, T(t&) = t, T(e&) = e
         // T(f+) = f, T(o+) = o, T(t+) = t, T(e+) = ERROR
 
-        result->type = child->type;
+        result->type = inRequired(child->type);
 
         merge(child);
 
@@ -501,25 +455,7 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
         // T(f?) = t, T(o?) = o, T(t?) = t, T(e?) = e
         // T(f*) = t, T(o*) = o, T(t*) = t, T(e+) = ERROR
 
-        PrsFirstType type  = pft_transparent;
-
-        switch (child->type) {
-        case pft_fixed:
-            break;
-
-        case pft_transparent:
-            break;
-
-        case pft_opaque:
-            type = pft_opaque;
-            break;
-
-        case pft_event:
-            type = pft_event;
-            break;
-        }
-
-        result->type = type;
+        result->type = inOptional(child->type);
 
         merge(child);
 
@@ -538,21 +474,7 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
         if (!meta_Recheck(input, node->arg.pair->left,  &left,  changed)) return false;
         if (!meta_Recheck(input, node->arg.pair->right, &right, changed)) return false;
 
-        // T(ff/) = f, T(fo/) = o, T(ft/) = t, T(fe/) = e
-        // T(of/) = o, T(oo/) = o, T(ot/) = t, T(oe/) = o
-        // T(tf/) = t, T(to/) = t, T(tt/) = t, T(te/) = t
-        // T(ef/) = e, T(eo/) = o, T(et/) = t, T(ee/) = e
-
-        PrsFirstType type  = pft_fixed;
-
-        if (pft_event == left->type)        type = pft_event;
-        if (pft_event == right->type)       type = pft_event;
-        if (pft_opaque == left->type)       type = pft_opaque;
-        if (pft_opaque == right->type)      type = pft_opaque;
-        if (pft_transparent == left->type)  type = pft_transparent;
-        if (pft_transparent == right->type) type = pft_transparent;
-
-        result->type = type;
+        result->type = inChoice(left->type, right->type);
 
         merge(left);
         merge(right);
@@ -572,21 +494,7 @@ static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, boo
         if (!meta_Recheck(input, node->arg.pair->left,  &left,  changed)) return false;
         if (!meta_Recheck(input, node->arg.pair->right, &right, changed)) return false;
 
-        // T(ff;) = f, T(fo;) = f, T(ft;) = f, T(fe;) = f
-        // T(of;) = o, T(oo;) = o, T(ot;) = o, T(oe;) = o
-        // T(tf;) = f, T(to;) = o, T(tt;) = t, T(te;) = e
-        // T(ef;) = f, T(eo;) = o, T(et;) = t, T(ee;) = e
-
-        PrsFirstType type = left->type;
-
-        if (pft_transparent == type) {
-            type = right->type;
-        }
-        if (pft_event == type) {
-            type = right->type;
-        }
-
-        result->type = type;
+        result->type = inSequence(left->type, right->type);
 
         merge(left);
 

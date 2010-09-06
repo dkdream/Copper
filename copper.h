@@ -32,7 +32,9 @@ enum prs_operator {
     prs_Void        // -nothing-
 };
 
-static inline const char* oper2name(enum prs_operator oper) {
+typedef enum prs_operator PrsOperator;
+
+static inline const char* oper2name(const PrsOperator oper) {
     switch (oper) {
     case prs_Apply:       return "prs_Apply";       // @name - an named event
     case prs_AssertFalse: return "prs_AssertFalse"; // e !
@@ -64,7 +66,9 @@ enum prs_first_type {
     pft_event        // @name, set state.begin, set state.end {...}
 };
 
-static inline const char* first2name(enum prs_first_type first) {
+typedef enum prs_first_type PrsFirstType;
+
+static inline const char* first2name(const PrsFirstType first) {
     switch (first) {
     case pft_event:       return "pft_event";
     case pft_opaque:      return "pft_opaque";
@@ -74,8 +78,68 @@ static inline const char* first2name(enum prs_first_type first) {
     return "pft_opaque";
 }
 
-typedef enum prs_operator   PrsOperator;
-typedef enum prs_first_type PrsFirstType;
+static inline PrsFirstType inRequired(const PrsFirstType child)
+{
+    // T(f&) = f, T(o&) = o, T(t&) = t, T(e&) = e
+    // T(f+) = f, T(o+) = o, T(t+) = t, T(e+) = ERROR
+    return child;
+}
+
+static inline PrsFirstType inOptional(const PrsFirstType child)
+{
+    // T(f?) = t, T(o?) = o, T(t?) = t, T(e?) = e
+    // T(f*) = t, T(o*) = o, T(t*) = t, T(e+) = ERROR
+
+     switch (child) {
+     case pft_fixed:       return pft_transparent;
+     case pft_transparent: return pft_transparent;
+     case pft_opaque:      return pft_opaque;
+     case pft_event:       return pft_event;
+     }
+     return pft_opaque;
+}
+
+static inline PrsFirstType inChoice(const PrsFirstType before,
+                                    const PrsFirstType after)
+{
+    // T(ff/) = f, T(fo/) = o, T(ft/) = t, T(fe/) = e
+    // T(of/) = o, T(oo/) = o, T(ot/) = t, T(oe/) = o
+    // T(tf/) = t, T(to/) = t, T(tt/) = t, T(te/) = t
+    // T(ef/) = e, T(eo/) = o, T(et/) = t, T(ee/) = e
+
+    if (pft_transparent == before) return pft_transparent;
+    if (pft_transparent == after)  return pft_transparent;
+    if (pft_opaque == before)      return pft_opaque;
+    if (pft_opaque == after)       return pft_opaque;
+    if (pft_event == before)       return pft_event;
+    if (pft_event == after)        return pft_event;
+
+    return pft_fixed;
+}
+
+static inline PrsFirstType inSequence(const PrsFirstType before,
+                                      const PrsFirstType after)
+{
+    // T(ff;) = f, T(fo;) = f, T(ft;) = f, T(fe;) = f
+    // T(of;) = o, T(oo;) = o, T(ot;) = o, T(oe;) = o
+    // T(tf;) = f, T(to;) = o, T(tt;) = t, T(te;) = e
+    // T(ef;) = f, T(eo;) = o, T(et;) = t, T(ee;) = e
+
+    switch (before) {
+    case pft_transparent:
+        return after;
+
+    case pft_event:
+        if (pft_transparent == after) return before;
+        return after;
+
+    case pft_opaque:
+    case pft_fixed:
+        return before;
+    }
+
+    return pft_opaque;
+}
 
 /* parsing structure */
 typedef struct prs_input* PrsInput;
