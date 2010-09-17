@@ -37,8 +37,9 @@ install : $(COPPER) copper.h libCopper.a
 	[ -d $(LIBDIR) ] || mkdir -p $(LIBDIR)
 	cp -p $< $(BINDIR)/copper
 	strip $(BINDIR)/copper
-	cp -p copper.h    $(INCDIR)/copper.h
-	cp -p libCopper.a $(LIBDIR)/libCopper.a
+	cp -p copper.h       $(INCDIR)/copper.h
+	cp -p static_table.h $(INCDIR)/static_table.h
+	cp -p libCopper.a    $(LIBDIR)/libCopper.a
 
 push : #-- put the new graph under version control
 	cp copper.c copper_o.c.bootstrap
