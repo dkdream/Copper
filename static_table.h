@@ -36,15 +36,24 @@ struct static_table {
     StaticMap *column;
 };
 
-static inline unsigned long stable_Code(const char* name) {
+static inline unsigned long stable_NCode(const char* name, size_t length) {
     unsigned long result = 5381;
+
+    if (0 >= length) return result;
 
     for ( ; *name ; ++name ) {
         int val = *name;
         result = ((result << 5) + result) + val;
+        --length;
+        if (0 >= length) return result;
     }
 
     return result;
+}
+
+static inline unsigned long stable_Code(const char* name) {
+    size_t length = strlen(name);
+    return stable_NCode(name, length);
 }
 
 static inline bool stable_Init(unsigned count, StaticTable table) {
@@ -64,22 +73,21 @@ static inline bool stable_Init(unsigned count, StaticTable table) {
     return true;
 }
 
-static inline bool stable_Find(StaticTable table, const char* name, StaticValue *target) {
+static inline bool stable_NFind(StaticTable table, const char* name, size_t length, StaticValue *target) {
     if (!table)          return false;
     if (!name)           return false;
     if (!table->count)   return false;
     if (!table->entries) return false;
 
-    unsigned long code   = stable_Code(name);
+    unsigned long code   = stable_NCode(name, length);
     unsigned      index  = code % table->count;
-    size_t        length = strlen(name);
 
     StaticMap at = table->column[index];
 
     for ( ; at ; at = at->next) {
         if (at->code != code) continue;
         if (at->length != length) continue;
-        if (0 != strcmp(at->name, name)) continue;
+        if (0 != strncmp(at->name, name, length)) continue;
         *target = at->value;
         return true;
     }
@@ -87,21 +95,31 @@ static inline bool stable_Find(StaticTable table, const char* name, StaticValue 
     return false;
 }
 
-static inline bool stable_Replace(StaticTable table, const char* name, StaticValue value) {
+static inline bool stable_Find(StaticTable table, const char* name, StaticValue *target) {
+    if (!table)          return false;
+    if (!name)           return false;
+    if (!table->count)   return false;
+    if (!table->entries) return false;
+
+    size_t length = strlen(name);
+
+    return stable_NFind(table, name, length, target);
+}
+
+static inline bool stable_NReplace(StaticTable table, const char* name,  size_t length, StaticValue value) {
     if (!table)          return false;
     if (!name)           return false;
     if (!table->count)   return false;
 
-    unsigned long code   = stable_Code(name);
+    unsigned long code   = stable_NCode(name, length);
     unsigned      index  = code % table->count;
-    size_t        length = strlen(name);
 
     StaticMap at = table->column[index];
 
     for ( ; at ; at = at->next) {
         if (at->code != code) continue;
         if (at->length != length) continue;
-        if (0 != strcmp(at->name, name)) continue;
+        if (0 != strncmp(at->name, name, length)) continue;
         at->value = value;
         return true;
     }
@@ -122,6 +140,16 @@ static inline bool stable_Replace(StaticTable table, const char* name, StaticVal
     table->entries       += 1;
 
     return true;
+}
+
+static inline bool stable_Replace(StaticTable table, const char* name, StaticValue value) {
+    if (!table)          return false;
+    if (!name)           return false;
+    if (!table->count)   return false;
+
+    size_t length = strlen(name);
+
+    return stable_NReplace(table, name, length, value);
 }
 
 static inline void stable_Release(StaticTable table) {
