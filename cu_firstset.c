@@ -21,11 +21,11 @@
 /* */
 
 struct meta_blob {
-    struct prs_metafirst meta;
-    struct prs_metaset   first;
+    struct cu_metafirst meta;
+    struct cu_metaset   first;
 };
 
-static inline bool set_Contains(PrsMetaSet contains, PrsMetaSet group) {
+static inline bool set_Contains(CuMetaSet contains, CuMetaSet group) {
 
     unsigned char *cbits = contains->bitfield;
     unsigned char *gbits = group->bitfield;
@@ -43,20 +43,20 @@ static inline bool set_Contains(PrsMetaSet contains, PrsMetaSet group) {
     return true;
 }
 
-static inline const char* node_label(PrsNode node) {
+static inline const char* node_label(CuNode node) {
     static char buffer[10];
     if (node->label) return node->label;
     sprintf(buffer, "%x__", (unsigned) node);
     return buffer;
 }
 
-static bool meta_StartFirstSets(Copper input, PrsNode node, PrsMetaFirst *target)
+static bool meta_StartFirstSets(Copper input, CuNode node, CuMetaFirst *target)
 {
-    PrsMetaFirst result = 0;
+    CuMetaFirst result = 0;
 
     inline bool allocate(bool bits) {
         if (!bits) {
-            unsigned fullsize = sizeof(struct prs_metafirst);
+            unsigned fullsize = sizeof(struct cu_metafirst);
 
             result = malloc(fullsize);
 
@@ -82,13 +82,13 @@ static bool meta_StartFirstSets(Copper input, PrsNode node, PrsMetaFirst *target
 
         if (!temp) return false;
 
-        result = (PrsMetaFirst) temp;
+        result = (CuMetaFirst) temp;
 
         if (target) *target = result;
 
         memset(temp, 0, fullsize);
 
-        PrsMetaSet set = &temp->first;
+        CuMetaSet set = &temp->first;
 
         result->done   = false;
         result->node   = node;
@@ -114,7 +114,7 @@ static bool meta_StartFirstSets(Copper input, PrsNode node, PrsMetaFirst *target
         return true;
     }
 
-    inline void merge(PrsMetaFirst from) {
+    inline void merge(CuMetaFirst from) {
         assert(from);
         assert(result);
         assert(result->first);
@@ -168,14 +168,14 @@ static bool meta_StartFirstSets(Copper input, PrsNode node, PrsMetaFirst *target
         if (!allocate(true)) return false;
 
         const char *name = node->arg.name;
-        PrsNode     value;
+        CuNode     value;
 
         if (!input->node(input, name, &value)) {
             CU_ERROR("node %s not found\n", name);
             return false;
         }
 
-        PrsMetaFirst child;
+        CuMetaFirst child;
 
         if (!meta_StartFirstSets(input, value, &child)) return false;
 
@@ -190,7 +190,7 @@ static bool meta_StartFirstSets(Copper input, PrsNode node, PrsMetaFirst *target
     inline bool do_AssertFalse() {
         if (!allocate(false)) return false;
 
-        PrsMetaFirst child;
+        CuMetaFirst child;
 
         if (!meta_StartFirstSets(input, node->arg.node, &child)) return false;
 
@@ -205,7 +205,7 @@ static bool meta_StartFirstSets(Copper input, PrsNode node, PrsMetaFirst *target
     inline bool do_AssertChild() {
         if (!allocate(true)) return false;
 
-        PrsMetaFirst child;
+        CuMetaFirst child;
 
         if (!meta_StartFirstSets(input, node->arg.node, &child)) {
             CU_DEBUG(1, "meta_StartFirstSets checking child failed\n");
@@ -227,7 +227,7 @@ static bool meta_StartFirstSets(Copper input, PrsNode node, PrsMetaFirst *target
     inline bool do_TestChild() {
         if (!allocate(true)) return false;
 
-        PrsMetaFirst child;
+        CuMetaFirst child;
 
         if (!meta_StartFirstSets(input, node->arg.node, &child)) {
             CU_DEBUG(1, "meta_StartFirstSets checking child failed\n");
@@ -248,8 +248,8 @@ static bool meta_StartFirstSets(Copper input, PrsNode node, PrsMetaFirst *target
     inline bool do_Choice() {
         if (!allocate(true)) return false;
 
-        PrsMetaFirst left;
-        PrsMetaFirst right;
+        CuMetaFirst left;
+        CuMetaFirst right;
 
         if (!meta_StartFirstSets(input, node->arg.pair->left,  &left)) {
             CU_DEBUG(1, "meta_StartFirstSets checking left failed\n");
@@ -272,8 +272,8 @@ static bool meta_StartFirstSets(Copper input, PrsNode node, PrsMetaFirst *target
     inline bool do_Sequence() {
         if (!allocate(true)) return false;
 
-        PrsMetaFirst left;
-        PrsMetaFirst right;
+        CuMetaFirst left;
+        CuMetaFirst right;
 
         if (!meta_StartFirstSets(input, node->arg.pair->left,  &left)) {
             CU_DEBUG(1, "meta_StartFirstSets checking left failed\n");
@@ -308,34 +308,34 @@ static bool meta_StartFirstSets(Copper input, PrsNode node, PrsMetaFirst *target
     }
 
     switch (node->oper) {
-    case prs_Apply:       return do_Event();
-    case prs_AssertFalse: return do_AssertFalse();
-    case prs_AssertTrue:  return do_AssertChild();
-    case prs_Begin:       return do_Event();
-    case prs_Choice:      return do_Choice();
-    case prs_End:         return do_Event();
-    case prs_MatchChar:   return do_CopyNode();
-    case prs_MatchDot:    return do_Opaque();
-    case prs_MatchName:   return do_MatchName();
-    case prs_MatchRange:  return do_CopyNode();
-    case prs_MatchSet:    return do_CopyNode();
-    case prs_MatchText:   return do_CopyNode();
-    case prs_OneOrMore:   return do_AssertChild();
-    case prs_Predicate:   return do_Opaque();
-    case prs_Sequence:    return do_Sequence();
-    case prs_Thunk:       return do_Event();
-    case prs_ZeroOrMore:  return do_TestChild();
-    case prs_ZeroOrOne:   return do_TestChild();
-    case prs_Void:
+    case cu_Apply:       return do_Event();
+    case cu_AssertFalse: return do_AssertFalse();
+    case cu_AssertTrue:  return do_AssertChild();
+    case cu_Begin:       return do_Event();
+    case cu_Choice:      return do_Choice();
+    case cu_End:         return do_Event();
+    case cu_MatchChar:   return do_CopyNode();
+    case cu_MatchDot:    return do_Opaque();
+    case cu_MatchName:   return do_MatchName();
+    case cu_MatchRange:  return do_CopyNode();
+    case cu_MatchSet:    return do_CopyNode();
+    case cu_MatchText:   return do_CopyNode();
+    case cu_OneOrMore:   return do_AssertChild();
+    case cu_Predicate:   return do_Opaque();
+    case cu_Sequence:    return do_Sequence();
+    case cu_Thunk:       return do_Event();
+    case cu_ZeroOrMore:  return do_TestChild();
+    case cu_ZeroOrOne:   return do_TestChild();
+    case cu_Void:
         break;
     }
     return false;
 }
 
-static bool meta_Recheck(Copper input, PrsNode node, PrsMetaFirst *target, bool *changed)
+static bool meta_Recheck(Copper input, CuNode node, CuMetaFirst *target, bool *changed)
 {
-    struct prs_metaset holding;
-    PrsMetaFirst result = 0;
+    struct cu_metaset holding;
+    CuMetaFirst result = 0;
 
     inline void hold() {
         unsigned char *src    = result->first->bitfield;
@@ -359,7 +359,7 @@ static bool meta_Recheck(Copper input, PrsNode node, PrsMetaFirst *target, bool 
         return true;
     }
 
-    inline bool merge(PrsMetaFirst from) {
+    inline bool merge(CuMetaFirst from) {
         assert(from);
         assert(result);
         assert(result->first);
@@ -400,14 +400,14 @@ static bool meta_Recheck(Copper input, PrsNode node, PrsMetaFirst *target, bool 
         hold();
 
         const char *name = node->arg.name;
-        PrsNode     value;
+        CuNode     value;
 
         if (!input->node(input, name, &value)) {
             CU_ERROR("node %s not found\n", name);
             return false;
         }
 
-        PrsMetaFirst child = value->metadata;
+        CuMetaFirst child = value->metadata;
 
         result->type = child->type;
 
@@ -420,7 +420,7 @@ static bool meta_Recheck(Copper input, PrsNode node, PrsMetaFirst *target, bool 
 
     // e !
     inline bool do_AssertFalse() {
-         PrsMetaFirst child;
+         CuMetaFirst child;
 
         if (!meta_Recheck(input, node->arg.node, &child, changed)) return false;
 
@@ -434,7 +434,7 @@ static bool meta_Recheck(Copper input, PrsNode node, PrsMetaFirst *target, bool 
     inline bool do_AssertChild() {
         hold();
 
-        PrsMetaFirst child;
+        CuMetaFirst child;
 
         if (!meta_Recheck(input, node->arg.node, &child, changed)) return false;
 
@@ -455,7 +455,7 @@ static bool meta_Recheck(Copper input, PrsNode node, PrsMetaFirst *target, bool 
     inline bool do_TestChild() {
         hold();
 
-        PrsMetaFirst child;
+        CuMetaFirst child;
 
         if (!meta_Recheck(input, node->arg.node, &child, changed)) return false;
 
@@ -475,8 +475,8 @@ static bool meta_Recheck(Copper input, PrsNode node, PrsMetaFirst *target, bool 
     inline bool do_Choice() {
         hold();
 
-        PrsMetaFirst left;
-        PrsMetaFirst right;
+        CuMetaFirst left;
+        CuMetaFirst right;
 
         if (!meta_Recheck(input, node->arg.pair->left,  &left,  changed)) return false;
         if (!meta_Recheck(input, node->arg.pair->right, &right, changed)) return false;
@@ -495,8 +495,8 @@ static bool meta_Recheck(Copper input, PrsNode node, PrsMetaFirst *target, bool 
     inline bool do_Sequence() {
         hold();
 
-        PrsMetaFirst left;
-        PrsMetaFirst right;
+        CuMetaFirst left;
+        CuMetaFirst right;
 
         if (!meta_Recheck(input, node->arg.pair->left,  &left,  changed)) return false;
         if (!meta_Recheck(input, node->arg.pair->right, &right, changed)) return false;
@@ -527,31 +527,31 @@ static bool meta_Recheck(Copper input, PrsNode node, PrsMetaFirst *target, bool 
     if (target) *target = result;
 
     switch (node->oper) {
-    case prs_Apply:       return do_Nothing();
-    case prs_AssertFalse: return do_AssertFalse();
-    case prs_AssertTrue:  return do_AssertChild();
-    case prs_Begin:       return do_Nothing();
-    case prs_Choice:      return do_Choice();
-    case prs_End:         return do_Nothing();
-    case prs_MatchChar:   return do_Nothing();
-    case prs_MatchDot:    return do_Nothing();
-    case prs_MatchName:   return do_MatchName();
-    case prs_MatchRange:  return do_Nothing();
-    case prs_MatchSet:    return do_Nothing();
-    case prs_MatchText:   return do_Nothing();
-    case prs_OneOrMore:   return do_AssertChild();
-    case prs_Predicate:   return do_Nothing();
-    case prs_Sequence:    return do_Sequence();
-    case prs_Thunk:       return do_Nothing();
-    case prs_ZeroOrMore:  return do_TestChild();
-    case prs_ZeroOrOne:   return do_TestChild();
-    case prs_Void:
+    case cu_Apply:       return do_Nothing();
+    case cu_AssertFalse: return do_AssertFalse();
+    case cu_AssertTrue:  return do_AssertChild();
+    case cu_Begin:       return do_Nothing();
+    case cu_Choice:      return do_Choice();
+    case cu_End:         return do_Nothing();
+    case cu_MatchChar:   return do_Nothing();
+    case cu_MatchDot:    return do_Nothing();
+    case cu_MatchName:   return do_MatchName();
+    case cu_MatchRange:  return do_Nothing();
+    case cu_MatchSet:    return do_Nothing();
+    case cu_MatchText:   return do_Nothing();
+    case cu_OneOrMore:   return do_AssertChild();
+    case cu_Predicate:   return do_Nothing();
+    case cu_Sequence:    return do_Sequence();
+    case cu_Thunk:       return do_Nothing();
+    case cu_ZeroOrMore:  return do_TestChild();
+    case cu_ZeroOrOne:   return do_TestChild();
+    case cu_Void:
         break;
     }
     return false;
 }
 
-static void meta_DebugSets(FILE *output, unsigned level, PrsNode node)
+static void meta_DebugSets(FILE *output, unsigned level, CuNode node)
 {
     inline void char_Write(unsigned char value)
     {
@@ -574,7 +574,7 @@ static void meta_DebugSets(FILE *output, unsigned level, PrsNode node)
     inline void debug_charclass() {
         if (!node) return;
 
-        PrsMetaFirst meta = node->metadata;
+        CuMetaFirst meta = node->metadata;
 
         if (!meta) return;
         if (!meta->first) {
@@ -608,14 +608,14 @@ static void meta_DebugSets(FILE *output, unsigned level, PrsNode node)
     inline void debug_type() {
         if (!node) return;
 
-        PrsMetaFirst meta = node->metadata;
+        CuMetaFirst meta = node->metadata;
 
         if (!meta) return;
 
         fprintf(output, "%17s ", first2name(meta->type));
     }
 
-    inline void debug_label(PrsNode cnode) {
+    inline void debug_label(CuNode cnode) {
         if (!cnode) {
             fprintf(output,"%x_ ", (unsigned) cnode);
             return;
@@ -635,17 +635,17 @@ static void meta_DebugSets(FILE *output, unsigned level, PrsNode node)
             fprintf(output, " |");
         }
         fprintf(output, "%s ", oper2name(node->oper));
-        if (prs_MatchName == node->oper) {
+        if (cu_MatchName == node->oper) {
             fprintf(output, "%s ", node->arg.name);
         }
-        if (prs_MatchSet == node->oper) {
+        if (cu_MatchSet == node->oper) {
             fprintf(output, "[%s] ", node->arg.set->label);
         }
-        if (prs_Sequence == node->oper) {
+        if (cu_Sequence == node->oper) {
            debug_label(node->arg.pair->left);
            debug_label(node->arg.pair->right);
         }
-        if (prs_Choice == node->oper) {
+        if (cu_Choice == node->oper) {
             fprintf(output, "( ");
             debug_label(node->arg.pair->left);
             debug_label(node->arg.pair->right);
@@ -673,32 +673,32 @@ static void meta_DebugSets(FILE *output, unsigned level, PrsNode node)
     fprintf(output, "\n");
 
     switch (node->oper) {
-    case prs_Apply:       return;
-    case prs_AssertFalse: do_Child(); return;
-    case prs_AssertTrue:  do_Child(); return;
-    case prs_Begin:       return;
-    case prs_Choice:      do_Childern(); return;
-    case prs_End:         return;
-    case prs_MatchChar:   return;
-    case prs_MatchDot:    return;
-    case prs_MatchName:   return;
-    case prs_MatchRange:  return;
-    case prs_MatchSet:    return;
-    case prs_MatchText:   return;
-    case prs_OneOrMore:   do_Child(); return;
-    case prs_Predicate:   return;
-    case prs_Sequence:    do_Childern(); return;
-    case prs_Thunk:       return;
-    case prs_ZeroOrMore:  do_Child(); return;
-    case prs_ZeroOrOne:   do_Child(); return;
-    case prs_Void:
+    case cu_Apply:       return;
+    case cu_AssertFalse: do_Child(); return;
+    case cu_AssertTrue:  do_Child(); return;
+    case cu_Begin:       return;
+    case cu_Choice:      do_Childern(); return;
+    case cu_End:         return;
+    case cu_MatchChar:   return;
+    case cu_MatchDot:    return;
+    case cu_MatchName:   return;
+    case cu_MatchRange:  return;
+    case cu_MatchSet:    return;
+    case cu_MatchText:   return;
+    case cu_OneOrMore:   do_Child(); return;
+    case cu_Predicate:   return;
+    case cu_Sequence:    do_Childern(); return;
+    case cu_Thunk:       return;
+    case cu_ZeroOrMore:  do_Child(); return;
+    case cu_ZeroOrOne:   do_Child(); return;
+    case cu_Void:
         break;
     }
 
     return;
 }
 
-static bool meta_Clear(Copper input, PrsNode node)
+static bool meta_Clear(Copper input, CuNode node)
 {
     inline bool do_Nothing() {
         return true;
@@ -716,46 +716,46 @@ static bool meta_Clear(Copper input, PrsNode node)
 
     if (!node) return true;
 
-    PrsMetaFirst metadata = node->metadata;
+    CuMetaFirst metadata = node->metadata;
 
     if (metadata) free(metadata);
 
     node->metadata = 0;
 
     switch (node->oper) {
-    case prs_Apply:       return do_Nothing();
-    case prs_AssertFalse: return do_Child();
-    case prs_AssertTrue:  return do_Child();
-    case prs_Begin:       return do_Nothing();
-    case prs_Choice:      return do_Childern();
-    case prs_End:         return do_Nothing();
-    case prs_MatchChar:   return do_Nothing();
-    case prs_MatchDot:    return do_Nothing();
-    case prs_MatchName:   return do_Nothing();
-    case prs_MatchRange:  return do_Nothing();
-    case prs_MatchSet:    return do_Nothing();
-    case prs_MatchText:   return do_Nothing();
-    case prs_OneOrMore:   return do_Child();
-    case prs_Predicate:   return do_Nothing();
-    case prs_Sequence:    return do_Childern();
-    case prs_Thunk:       return do_Nothing();
-    case prs_ZeroOrMore:  return do_Child();
-    case prs_ZeroOrOne:   return do_Child();
-    case prs_Void:
+    case cu_Apply:       return do_Nothing();
+    case cu_AssertFalse: return do_Child();
+    case cu_AssertTrue:  return do_Child();
+    case cu_Begin:       return do_Nothing();
+    case cu_Choice:      return do_Childern();
+    case cu_End:         return do_Nothing();
+    case cu_MatchChar:   return do_Nothing();
+    case cu_MatchDot:    return do_Nothing();
+    case cu_MatchName:   return do_Nothing();
+    case cu_MatchRange:  return do_Nothing();
+    case cu_MatchSet:    return do_Nothing();
+    case cu_MatchText:   return do_Nothing();
+    case cu_OneOrMore:   return do_Child();
+    case cu_Predicate:   return do_Nothing();
+    case cu_Sequence:    return do_Childern();
+    case cu_Thunk:       return do_Nothing();
+    case cu_ZeroOrMore:  return do_Child();
+    case cu_ZeroOrOne:   return do_Child();
+    case cu_Void:
         break;
     }
 
     return false;
 }
 
-static bool tree_Clear(Copper input, PrsTree tree) {
+static bool tree_Clear(Copper input, CuTree tree) {
     if (!tree) return true;
     tree->node = 0;
     if (!tree_Clear(input, tree->left)) return false;
     return tree_Clear(input, tree->right);
 }
 
-static bool tree_Fill(Copper input, PrsTree tree) {
+static bool tree_Fill(Copper input, CuTree tree) {
     if (!input) return false;
     if (!tree)  return true;
 
@@ -769,12 +769,12 @@ static bool tree_Fill(Copper input, PrsTree tree) {
     return tree_Clear(input, tree->right);
 }
 
-static bool tree_StartFirstSets(Copper input, PrsTree tree) {
+static bool tree_StartFirstSets(Copper input, CuTree tree) {
     if (!input)      return false;
     if (!tree)       return true;
     if (!tree->node) return false;
 
-    PrsNode node = tree->node;
+    CuNode node = tree->node;
 
     if (!meta_StartFirstSets(input, node, 0)) {
         CU_DEBUG(1, "meta_StartFirstSets checking %s failed\n", oper2name(node->oper));
@@ -797,13 +797,13 @@ static bool tree_StartFirstSets(Copper input, PrsTree tree) {
     return true;
 }
 
-static bool tree_MergeFirstSets(Copper input, PrsTree tree, bool *changed) {
+static bool tree_MergeFirstSets(Copper input, CuTree tree, bool *changed) {
     if (!input)      return false;
     if (!tree)       return true;
     if (!tree->node) return false;
     if (!changed)    return false;
 
-    PrsNode node = tree->node;
+    CuNode node = tree->node;
 
     if (!node->metadata) {
         CU_DEBUG(1, "tree_MergeFirstSets error: not metadata for %s\n", oper2name(node->oper));
@@ -820,7 +820,7 @@ static bool tree_MergeFirstSets(Copper input, PrsTree tree, bool *changed) {
     return tree_MergeFirstSets(input, tree->right, changed);
 }
 
-static bool tree_DebugSets(Copper input, PrsTree tree) {
+static bool tree_DebugSets(Copper input, CuTree tree) {
     if (!input)      return false;
     if (!tree)       return true;
     if (!tree->node) return false;
@@ -846,7 +846,7 @@ extern bool cu_FillMetadata(Copper input) {
         return false;
     }
 
-    PrsTree root = input->map;
+    CuTree root = input->map;
 
     CU_DEBUG(1, "filling metadata %x\n", (unsigned) root);
 
@@ -879,12 +879,12 @@ extern bool cu_FillMetadata(Copper input) {
 }
 
 
-extern bool cu_AddName(Copper input, PrsName name, PrsNode node) {
+extern bool cu_AddName(Copper input, CuName name, CuNode node) {
     assert(0 != input);
     assert(0 != name);
     assert(0 != node);
 
-    inline bool fetch(PrsNode *target) {
+    inline bool fetch(CuNode *target) {
         if (!input->node(input, name, target)) {
             CU_ERROR("node %s not found\n", name);
             return false;
@@ -892,10 +892,10 @@ extern bool cu_AddName(Copper input, PrsName name, PrsNode node) {
         return true;
     }
 
-    inline bool allocate(PrsTree *target) {
-        unsigned fullsize = sizeof(struct prs_tree);
+    inline bool allocate(CuTree *target) {
+        unsigned fullsize = sizeof(struct cu_tree);
 
-        PrsTree result = malloc(fullsize);
+        CuTree result = malloc(fullsize);
 
         if (!result) return false;
 
@@ -910,7 +910,7 @@ extern bool cu_AddName(Copper input, PrsName name, PrsNode node) {
 
     if (!input->attach(input, name, node)) return false;
 
-    PrsTree root = input->map;
+    CuTree root = input->map;
 
     if (!root) {
         return allocate(&input->map);

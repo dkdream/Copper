@@ -151,10 +151,10 @@ static inline const char* type2name(SynType type) {
 }
 
 struct syn_first {
-    PrsFirstType   type;
+    CuFirstType   type;
     unsigned char *bitfield;
     unsigned       count;
-    PrsData        name[];
+    CuData        name[];
 };
 
 // use for
@@ -173,7 +173,7 @@ struct syn_define {
     SynType   type;
     SynFirst  first;
     SynDefine next;
-    PrsData   name;
+    CuData   name;
     SynNode   value;
 };
 
@@ -194,7 +194,7 @@ struct syn_char {
 struct syn_text {
     SynType  type;
     SynFirst first;
-    PrsData  value;
+    CuData  value;
 };
 
 // use for
@@ -206,7 +206,7 @@ struct syn_chunk {
     SynType  type;
     SynFirst first;
     SynChunk next;
-    PrsData  value;
+    CuData  value;
 };
 
 // use for
@@ -233,7 +233,7 @@ struct syn_tree {
 
 /*------------------------------------------------------------*/
 
-struct prs_buffer {
+struct cu_buffer {
     FILE     *file;
     unsigned  cursor;
     ssize_t   read;
@@ -241,82 +241,82 @@ struct prs_buffer {
     char     *line;
 };
 
-struct prs_map {
+struct cu_map {
     unsigned        code;
     const void*     key;
     void*           value;
-    struct prs_map *next;
+    struct cu_map *next;
 };
 
 typedef unsigned long (*Hashcode)(const void*);
 typedef bool     (*Matchkey)(const void*, const void*);
 typedef bool     (*FreeValue)(void*);
 
-struct prs_hash {
+struct cu_hash {
     Hashcode encode;
     Matchkey compare;
     unsigned size;
-    struct prs_map *table[];
+    struct cu_map *table[];
 };
 
 // use for the node stack
-struct prs_cell {
+struct cu_cell {
     SynNode value;
-    struct prs_cell *next;
+    struct cu_cell *next;
 };
 
-struct prs_stack {
-    struct prs_cell *top;
-    struct prs_cell *free_list;
+struct cu_stack {
+    struct cu_cell *top;
+    struct cu_cell *free_list;
 };
 
-struct prs_file {
+struct cu_file {
     struct copper   base;
 
     // parsing context
     const char        *filename;
-    struct prs_buffer  buffer;
-    struct prs_hash   *nodes;
-    struct prs_hash   *predicates;
-    struct prs_hash   *events;
+    struct cu_buffer  buffer;
+    struct cu_hash   *nodes;
+    struct cu_hash   *predicates;
+    struct cu_hash   *events;
 
     // parsing state
-    struct prs_stack stack;
+    struct cu_stack stack;
 
     // parsing results
     SynDefine rules;
     SynChunk  chunks;
 };
 
-extern bool make_PrsFile(FILE* file, const char* filename, Copper *input);
+extern bool make_CuFile(FILE* file, const char* filename, Copper *input);
 extern bool file_WriteTree(Copper input, FILE* output, const char* name);
-extern bool file_SetPredicate(struct prs_file *file, PrsName name, PrsPredicate value);
-extern bool file_SetEvent(struct prs_file *file, PrsName name, PrsEvent value);
+extern bool file_SetPredicate(struct cu_file *file, CuName name, CuPredicate value);
+extern bool file_SetEvent(struct cu_file *file, CuName name, CuEvent value);
 
-extern bool writeTree(Copper input, PrsCursor at);
+extern bool writeTree(Copper input, CuCursor at);
 
-extern bool checkRule(Copper input, PrsCursor at);
-extern bool defineRule(Copper input, PrsCursor at);
+extern bool checkRule(Copper input, CuCursor at);
+extern bool defineRule(Copper input, CuCursor at);
 
-extern bool makeEnd(Copper input, PrsCursor at);
-extern bool makeBegin(Copper input, PrsCursor at);
-extern bool makeThunk(Copper input, PrsCursor at);
-extern bool makeApply(Copper input, PrsCursor at);
-extern bool makePredicate(Copper input, PrsCursor at);
-extern bool makeDot(Copper input, PrsCursor at);
-extern bool makeSet(Copper input, PrsCursor at);
-extern bool makeString(Copper input, PrsCursor at);
-extern bool makeCall(Copper input, PrsCursor at);
-extern bool makePlus(Copper input, PrsCursor at);
-extern bool makeStar(Copper input, PrsCursor at);
-extern bool makeQuestion(Copper input, PrsCursor at);
-extern bool makeNot(Copper input, PrsCursor at);
-extern bool makeCheck(Copper input, PrsCursor at);
-extern bool makeSequence(Copper input, PrsCursor at);
-extern bool makeChoice(Copper input, PrsCursor at);
-extern bool defineRule(Copper input, PrsCursor at);
-extern bool makeHeader(Copper input, PrsCursor at);
-extern bool makeInclude(Copper input, PrsCursor at);
-extern bool makeFooter(Copper input, PrsCursor at);
+extern bool makeEnd(Copper input, CuCursor at);
+extern bool makeBegin(Copper input, CuCursor at);
+extern bool makeThunk(Copper input, CuCursor at);
+extern bool makeApply(Copper input, CuCursor at);
+extern bool makePredicate(Copper input, CuCursor at);
+extern bool makeDot(Copper input, CuCursor at);
+extern bool makeSet(Copper input, CuCursor at);
+extern bool makeString(Copper input, CuCursor at);
+extern bool makeCall(Copper input, CuCursor at);
+extern bool makePlus(Copper input, CuCursor at);
+extern bool makeStar(Copper input, CuCursor at);
+extern bool makeQuestion(Copper input, CuCursor at);
+extern bool makeNot(Copper input, CuCursor at);
+extern bool makeCheck(Copper input, CuCursor at);
+extern bool makeSequence(Copper input, CuCursor at);
+extern bool makeChoice(Copper input, CuCursor at);
+extern bool defineRule(Copper input, CuCursor at);
+extern bool makeHeader(Copper input, CuCursor at);
+extern bool makeInclude(Copper input, CuCursor at);
+extern bool makeFooter(Copper input, CuCursor at);
 
 #endif

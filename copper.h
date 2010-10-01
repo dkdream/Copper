@@ -10,65 +10,65 @@
 #define COPPER_MINOR    1
 #define COPPER_LEVEL    0
 
-enum prs_operator {
-    prs_Apply,       // @name - an named event
-    prs_AssertFalse, // e !
-    prs_AssertTrue,  // e &
-    prs_Begin,       // set state.begin
-    prs_Choice,      // e1 e2 /
-    prs_End,         // set state.end
-    prs_MatchChar,   // 'chr
-    prs_MatchDot,    // .
-    prs_MatchName,   // name
-    prs_MatchRange,  // begin-end
-    prs_MatchSet,    // [...]
-    prs_MatchText,   // "..."
-    prs_OneOrMore,   // e +
-    prs_Predicate,   // %predicate
-    prs_Sequence,    // e1 e2 ;
-    prs_Thunk,       // {...} - an unnamed event
-    prs_ZeroOrMore,  // e *
-    prs_ZeroOrOne,   // e ?
-    prs_Void        // -nothing-
+enum cu_operator {
+    cu_Apply,       // @name - an named event
+    cu_AssertFalse, // e !
+    cu_AssertTrue,  // e &
+    cu_Begin,       // set state.begin
+    cu_Choice,      // e1 e2 /
+    cu_End,         // set state.end
+    cu_MatchChar,   // 'chr
+    cu_MatchDot,    // .
+    cu_MatchName,   // name
+    cu_MatchRange,  // begin-end
+    cu_MatchSet,    // [...]
+    cu_MatchText,   // "..."
+    cu_OneOrMore,   // e +
+    cu_Predicate,   // %predicate
+    cu_Sequence,    // e1 e2 ;
+    cu_Thunk,       // {...} - an unnamed event
+    cu_ZeroOrMore,  // e *
+    cu_ZeroOrOne,   // e ?
+    cu_Void        // -nothing-
 };
 
-typedef enum prs_operator PrsOperator;
+typedef enum cu_operator CuOperator;
 
-static inline const char* oper2name(const PrsOperator oper) {
+static inline const char* oper2name(const CuOperator oper) {
     switch (oper) {
-    case prs_Apply:       return "prs_Apply";       // @name - an named event
-    case prs_AssertFalse: return "prs_AssertFalse"; // e !
-    case prs_AssertTrue:  return "prs_AssertTrue";  // e &
-    case prs_Begin:       return "prs_Begin";       // set state.begin
-    case prs_Choice:      return "prs_Choice";      // e1 e2 /
-    case prs_End:         return "prs_End";         // set state.end
-    case prs_MatchChar:   return "prs_MatchChar";   // 'chr
-    case prs_MatchDot:    return "prs_MatchDot";    // dot
-    case prs_MatchName:   return "prs_MatchName";   // name
-    case prs_MatchRange:  return "prs_MatchRange";  // begin-end
-    case prs_MatchSet:    return "prs_MatchSet";    // [...]
-    case prs_MatchText:   return "prs_MatchText";   // "..."
-    case prs_OneOrMore:   return "prs_OneOrMore";   // e +
-    case prs_Predicate:   return "prs_Predicate";   // %predicate
-    case prs_Sequence:    return "prs_Sequence";    // e1 e2 ;
-    case prs_Thunk:       return "prs_Thunk";       // { } - an unnamed event
-    case prs_ZeroOrMore:  return "prs_ZeroOrMore";  // e *
-    case prs_ZeroOrOne:   return "prs_ZeroOrOne";   // e ?
-    case prs_Void:        break; // -nothing-
+    case cu_Apply:       return "cu_Apply";       // @name - an named event
+    case cu_AssertFalse: return "cu_AssertFalse"; // e !
+    case cu_AssertTrue:  return "cu_AssertTrue";  // e &
+    case cu_Begin:       return "cu_Begin";       // set state.begin
+    case cu_Choice:      return "cu_Choice";      // e1 e2 /
+    case cu_End:         return "cu_End";         // set state.end
+    case cu_MatchChar:   return "cu_MatchChar";   // 'chr
+    case cu_MatchDot:    return "cu_MatchDot";    // dot
+    case cu_MatchName:   return "cu_MatchName";   // name
+    case cu_MatchRange:  return "cu_MatchRange";  // begin-end
+    case cu_MatchSet:    return "cu_MatchSet";    // [...]
+    case cu_MatchText:   return "cu_MatchText";   // "..."
+    case cu_OneOrMore:   return "cu_OneOrMore";   // e +
+    case cu_Predicate:   return "cu_Predicate";   // %predicate
+    case cu_Sequence:    return "cu_Sequence";    // e1 e2 ;
+    case cu_Thunk:       return "cu_Thunk";       // { } - an unnamed event
+    case cu_ZeroOrMore:  return "cu_ZeroOrMore";  // e *
+    case cu_ZeroOrOne:   return "cu_ZeroOrOne";   // e ?
+    case cu_Void:        break; // -nothing-
     }
     return "prs-unknown";
 }
 
-enum prs_first_type {
+enum cu_first_type {
     pft_opaque,      // %predicate, e !, dot
     pft_fixed,       // "...", 'chr, [...], begin-end
     pft_transparent, // e *, e ?
     pft_event        // @name, set state.begin, set state.end {...}
 };
 
-typedef enum prs_first_type PrsFirstType;
+typedef enum cu_first_type CuFirstType;
 
-static inline const char* first2name(const PrsFirstType first) {
+static inline const char* first2name(const CuFirstType first) {
     switch (first) {
     case pft_event:       return "pft_event";
     case pft_opaque:      return "pft_opaque";
@@ -78,20 +78,20 @@ static inline const char* first2name(const PrsFirstType first) {
     return "pft_opaque";
 }
 
-static inline PrsFirstType inWithout(const PrsFirstType child)
+static inline CuFirstType inWithout(const CuFirstType child)
 {
     // T(f!) = e, T(o&) = e, T(t!) = E, T(e!) = e
     return pft_event;
 }
 
-static inline PrsFirstType inRequired(const PrsFirstType child)
+static inline CuFirstType inRequired(const CuFirstType child)
 {
     // T(f&) = f, T(o&) = o, T(t&) = t, T(e&) = e
     // T(f+) = f, T(o+) = o, T(t+) = t, T(e+) = ERROR
     return child;
 }
 
-static inline PrsFirstType inOptional(const PrsFirstType child)
+static inline CuFirstType inOptional(const CuFirstType child)
 {
     // T(f?) = t, T(o?) = o, T(t?) = t, T(e?) = e
     // T(f*) = t, T(o*) = o, T(t*) = t, T(e+) = ERROR
@@ -105,8 +105,8 @@ static inline PrsFirstType inOptional(const PrsFirstType child)
      return pft_opaque;
 }
 
-static inline PrsFirstType inChoice(const PrsFirstType before,
-                                    const PrsFirstType after)
+static inline CuFirstType inChoice(const CuFirstType before,
+                                    const CuFirstType after)
 {
     // T(ff/) = f, T(fo/) = o, T(ft/) = t, T(fe/) = e
     // T(of/) = o, T(oo/) = o, T(ot/) = t, T(oe/) = o
@@ -123,8 +123,8 @@ static inline PrsFirstType inChoice(const PrsFirstType before,
     return pft_fixed;
 }
 
-static inline PrsFirstType inSequence(const PrsFirstType before,
-                                      const PrsFirstType after)
+static inline CuFirstType inSequence(const CuFirstType before,
+                                      const CuFirstType after)
 {
     // T(ff;) = f, T(fo;) = f, T(ft;) = f, T(fe;) = f
     // T(of;) = o, T(oo;) = o, T(ot;) = o, T(oe;) = o
@@ -151,189 +151,189 @@ static inline PrsFirstType inSequence(const PrsFirstType before,
 typedef struct copper* Copper;
 
 /* */
-typedef struct prs_firstset  *PrsFirstSet;
-typedef struct prs_firstlist *PrsFirstList;
-typedef struct prs_metafirst *PrsMetaFirst;
-typedef struct prs_metaset   *PrsMetaSet;
+typedef struct cu_firstset  *CuFirstSet;
+typedef struct cu_firstlist *CuFirstList;
+typedef struct cu_metafirst *CuMetaFirst;
+typedef struct cu_metaset   *CuMetaSet;
 
 /* parse node arguments */
-typedef unsigned char      PrsChar;
-typedef struct prs_string *PrsString;
-typedef struct prs_range  *PrsRange;
-typedef struct prs_set    *PrsSet;
-typedef const  char       *PrsName;
-typedef struct prs_node   *PrsNode;
-typedef struct prs_pair   *PrsPair;
+typedef unsigned char      CuChar;
+typedef struct cu_string *CuString;
+typedef struct cu_range  *CuRange;
+typedef struct cu_set    *CuSet;
+typedef const  char       *CuName;
+typedef struct cu_node   *CuNode;
+typedef struct cu_pair   *CuPair;
 /* parse event queue */
-typedef struct prs_thread *PrsThread;
-typedef struct prs_queue  *PrsQueue;
+typedef struct cu_thread *CuThread;
+typedef struct cu_queue  *CuQueue;
 
 /* parsing cache node */
-typedef struct prs_point *PrsPoint;
-typedef struct prs_cache *PrsCache;
-typedef struct prs_tree  *PrsTree;
+typedef struct cu_point *CuPoint;
+typedef struct cu_cache *CuCache;
+typedef struct cu_tree  *CuTree;
 
-struct prs_firstset {
+struct cu_firstset {
     const unsigned char bitfield[32];
 };
 
-struct prs_firstlist {
+struct cu_firstlist {
     const unsigned count;
     const char* names[];
 };
 
 /* parsing data buffer */
-struct prs_text {
+struct cu_text {
     unsigned  size;   // size of buffer
     unsigned  limit;  // end of input
     char     *buffer;
 };
 
-typedef struct prs_text PrsText;
+typedef struct cu_text CuText;
 
-struct prs_data {
+struct cu_data {
     unsigned    length;
     const char* start; // this is NOT a zero terminated string
 };
 
-typedef struct prs_data PrsData;
+typedef struct cu_data CuData;
 
-struct prs_string {
+struct cu_string {
     unsigned length;
-    PrsChar  text[];
+    CuChar  text[];
 };
 
-struct prs_range {
-    PrsChar begin;
-    PrsChar end;
+struct cu_range {
+    CuChar begin;
+    CuChar end;
 };
 
-struct prs_set {
+struct cu_set {
     const char *label;
     const unsigned char bitfield[];
 };
 
-struct prs_pair {
-    PrsNode left;
-    PrsNode right;
+struct cu_pair {
+    CuNode left;
+    CuNode right;
 };
 
-struct prs_cursor {
+struct cu_cursor {
     unsigned line_number;
     unsigned char_offset;
     unsigned text_inx;
 };
 
-typedef struct prs_cursor PrsCursor;
+typedef struct cu_cursor CuCursor;
 
-struct prs_state {
+struct cu_state {
     const char* rule;
-    PrsCursor   begin;
-    PrsCursor   end;
+    CuCursor   begin;
+    CuCursor   end;
 };
 
-typedef struct prs_state PrsState;
+typedef struct cu_state CuState;
 
 /* user define event actions */
 /* these are ONLY call after a sucessful parse completes */
-typedef bool (*PrsEvent)(Copper, PrsCursor);
+typedef bool (*CuEvent)(Copper, CuCursor);
 
-struct prs_label {
-    PrsEvent  function;
-    PrsName   name;
+struct cu_label {
+    CuEvent  function;
+    CuName   name;
 };
 
-typedef struct prs_label PrsLabel;
+typedef struct cu_label CuLabel;
 
-struct prs_thread {
-    PrsThread   next;
+struct cu_thread {
+    CuThread   next;
     const char* rule;
-    PrsCursor   at;
-    PrsLabel    label;
+    CuCursor   at;
+    CuLabel    label;
 };
 
-struct prs_slice {
-    PrsThread begin;
-    PrsThread end;
+struct cu_slice {
+    CuThread begin;
+    CuThread end;
 };
 
-typedef struct prs_slice PrsSlice;
+typedef struct cu_slice CuSlice;
 
-struct prs_queue {
-    PrsThread free_list;
-    PrsThread begin;
-    PrsThread end;
+struct cu_queue {
+    CuThread free_list;
+    CuThread begin;
+    CuThread end;
 };
 
-struct prs_point {
-    PrsPoint next;
-    PrsNode  node;
+struct cu_point {
+    CuPoint next;
+    CuNode  node;
     unsigned offset;
 };
 
-struct prs_cache {
-    PrsPoint free_list;
+struct cu_cache {
+    CuPoint free_list;
     unsigned size;
-    PrsPoint table[];
+    CuPoint table[];
 };
 
-struct prs_tree {
+struct cu_tree {
     const char* name;
-    PrsNode     node;
-    PrsTree     left;
-    PrsTree     right;
+    CuNode     node;
+    CuTree     left;
+    CuTree     right;
 };
 
-struct prs_metaset {
+struct cu_metaset {
     unsigned char bitfield[32];
 };
 
-struct prs_metafirst {
-    PrsMetaFirst   next;
+struct cu_metafirst {
+    CuMetaFirst   next;
     bool           done;
-    PrsNode        node;
-    PrsFirstType   type;
-    PrsMetaSet     first;
-    PrsMetaFirst   left;
-    PrsMetaFirst   right;
+    CuNode        node;
+    CuFirstType   type;
+    CuMetaSet     first;
+    CuMetaFirst   left;
+    CuMetaFirst   right;
 };
 
-struct prs_node {
-    PrsFirstType type;
-    PrsFirstSet  first;    // the static first set of node (if known)
-    PrsFirstList start;    // the static list of name that start this note (if any)
-    PrsMetaFirst metadata; // dynamically allocated state use by the engine.
-    PrsName      label;    // the compiler assigned label (for debugging)
-    PrsOperator  oper;
-    union prs_arg {
-        PrsChar   letter;
-        PrsString string;
-        PrsRange  range;
-        PrsSet    set;
-        PrsName   name;
-        PrsNode   node;
-        PrsPair   pair;
-        PrsEvent  event;
-        PrsLabel *label;
+struct cu_node {
+    CuFirstType type;
+    CuFirstSet  first;    // the static first set of node (if known)
+    CuFirstList start;    // the static list of name that start this note (if any)
+    CuMetaFirst metadata; // dynamically allocated state use by the engine.
+    CuName      label;    // the compiler assigned label (for debugging)
+    CuOperator  oper;
+    union cu_arg {
+        CuChar   letter;
+        CuString string;
+        CuRange  range;
+        CuSet    set;
+        CuName   name;
+        CuNode   node;
+        CuPair   pair;
+        CuEvent  event;
+        CuLabel *label;
     } arg;
 };
 
-typedef bool (*PrsPredicate)(Copper); // user defined predicate
+typedef bool (*CuPredicate)(Copper); // user defined predicate
 
 // do we need these ?
 // if a predicate ALWAY return true then is it an action
-typedef void (*PrsAction)(Copper);            // user defined parsing action
+typedef void (*CuAction)(Copper);            // user defined parsing action
 
 /* parsing structure call back */
-typedef bool (*CurrentChar)(Copper, PrsChar*);                  // return the char at the cursor location
+typedef bool (*CurrentChar)(Copper, CuChar*);                  // return the char at the cursor location
 typedef bool (*NextChar)(Copper);                               // move the cursor by on char
 typedef bool (*MoreData)(Copper);                               // add more text to the data buffer
 
-typedef bool (*FindNode)(Copper, PrsName, PrsNode*);            // find the PrsNode labelled name
-typedef bool (*AddName)(Copper, PrsName, PrsNode);              // add a PrsNode to label name
+typedef bool (*FindNode)(Copper, CuName, CuNode*);            // find the CuNode labelled name
+typedef bool (*AddName)(Copper, CuName, CuNode);              // add a CuNode to label name
 
-typedef bool (*FindPredicate)(Copper, PrsName, PrsPredicate*);  // find the PrsPredicate labelled name
-typedef bool (*FindEvent)(Copper, PrsName, PrsEvent*);          // find the PrsEvent labelled name
+typedef bool (*FindPredicate)(Copper, CuName, CuPredicate*);  // find the CuPredicate labelled name
+typedef bool (*FindEvent)(Copper, CuName, CuEvent*);          // find the CuEvent labelled name
 
 struct copper {
     /* call-backs */
@@ -344,23 +344,23 @@ struct copper {
     FindEvent     event;
 
     /* data */
-    PrsText   data;
-    PrsCursor cursor;
-    PrsCursor reach;
+    CuText   data;
+    CuCursor cursor;
+    CuCursor reach;
 
-    PrsCache cache;
-    PrsTree  map;
-    PrsQueue queue;
-    PrsState context;
+    CuCache cache;
+    CuTree  map;
+    CuQueue queue;
+    CuState context;
 };
 
 extern bool cu_InputInit(Copper input, unsigned cacheSize);
-extern bool cu_AddName(Copper input, PrsName, PrsNode);
+extern bool cu_AddName(Copper input, CuName, CuNode);
 extern bool cu_FillMetadata(Copper input);
 extern bool cu_Parse(const char* name, Copper input);
 extern bool cu_AppendData(Copper input, const unsigned count, const char *src);
 extern bool cu_RunQueue(Copper input);
-extern bool cu_MarkedText(Copper input, PrsData *target);
+extern bool cu_MarkedText(Copper input, CuData *target);
 extern void cu_SyntaxError(FILE* error, Copper cu_input, const char* filename);
 
 extern unsigned cu_global_debug;

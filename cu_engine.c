@@ -20,7 +20,7 @@
 
 /* */
 
-static bool text_Extend(struct prs_text *text, const unsigned room) {
+static bool text_Extend(struct cu_text *text, const unsigned room) {
     if (!text) return false;
 
     const unsigned point  = text->limit;
@@ -52,11 +52,11 @@ static bool text_Extend(struct prs_text *text, const unsigned room) {
 }
 
 static bool make_Thread(const char* rule,
-                        PrsCursor at,
-                        PrsLabel  label,
-                        PrsThread *target)
+                        CuCursor at,
+                        CuLabel  label,
+                        CuThread *target)
 {
-    struct prs_thread *result = malloc(sizeof(struct prs_thread));
+    struct cu_thread *result = malloc(sizeof(struct cu_thread));
 
     result->next  = 0;
     result->rule  = rule;
@@ -68,8 +68,8 @@ static bool make_Thread(const char* rule,
     return true;
 }
 
-static bool make_Queue(PrsQueue *target) {
-    struct prs_queue *result = malloc(sizeof(struct prs_queue));
+static bool make_Queue(CuQueue *target) {
+    struct cu_queue *result = malloc(sizeof(struct cu_queue));
 
     result->free_list = 0;
     result->begin     = 0;
@@ -80,14 +80,14 @@ static bool make_Queue(PrsQueue *target) {
     return true;
 }
 
-static bool queue_Event(PrsQueue    queue,
+static bool queue_Event(CuQueue    queue,
                         const char* rule,
-                        PrsCursor   at,
-                        PrsLabel    label)
+                        CuCursor   at,
+                        CuLabel    label)
 {
     if (!queue) return true;
 
-    struct prs_thread *result = queue->free_list;
+    struct cu_thread *result = queue->free_list;
 
     if (!result) {
         make_Thread(rule, at, label, &result);
@@ -110,21 +110,21 @@ static bool queue_Event(PrsQueue    queue,
     return true;
 }
 
-static bool queue_Run(PrsQueue queue,
+static bool queue_Run(CuQueue queue,
                       Copper input)
 {
     if (!queue)        return true;
     if (!queue->begin) return true;
     if (!input)        return false;
 
-    PrsThread current = queue->begin;
+    CuThread current = queue->begin;
 
     queue->begin = 0;
 
     unsigned index = 0;
 
     for ( ; current ; ) {
-        PrsLabel label = current->label;
+        CuLabel label = current->label;
 
         input->context.rule = current->rule;
 
@@ -135,7 +135,7 @@ static bool queue_Run(PrsQueue queue,
 
         index += 1;
 
-        PrsThread next   = current->next;
+        CuThread next   = current->next;
         current->next    = queue->free_list;
         queue->free_list = current;
         current = next;
@@ -144,14 +144,14 @@ static bool queue_Run(PrsQueue queue,
     return true;
 }
 
-static bool queue_FreeList(PrsQueue queue,
-                           PrsThread list)
+static bool queue_FreeList(CuQueue queue,
+                           CuThread list)
 {
     if (!list) return true;
 
     if (!queue) {
         for ( ; list ; ) {
-            PrsThread next = list->next;
+            CuThread next = list->next;
             free(list);
             list = next;
         }
@@ -159,7 +159,7 @@ static bool queue_FreeList(PrsQueue queue,
     }
 
     for ( ; list ; ) {
-        PrsThread next = list->next;
+        CuThread next = list->next;
         list->next = queue->free_list;
         queue->free_list = list;
         list = next;
@@ -168,8 +168,8 @@ static bool queue_FreeList(PrsQueue queue,
     return true;
 }
 
-static bool queue_TrimTo(PrsQueue  queue,
-                         PrsThread to)
+static bool queue_TrimTo(CuQueue  queue,
+                         CuThread to)
 {
     if (!queue) return false;
     if (!to) {
@@ -183,7 +183,7 @@ static bool queue_TrimTo(PrsQueue  queue,
 
     if (to == queue->end) return true;
 
-    PrsThread current = queue->begin;
+    CuThread current = queue->begin;
 
     for ( ; current ; current = current->next ) {
         if (current == to) break;
@@ -201,10 +201,10 @@ static bool queue_TrimTo(PrsQueue  queue,
 
 }
 
-static bool queue_Clear(PrsQueue queue) {
+static bool queue_Clear(CuQueue queue) {
     if (!queue) return true;
 
-    PrsThread node = queue->begin;
+    CuThread node = queue->begin;
 
     queue->begin = 0;
     queue->end   = 0;
@@ -212,21 +212,21 @@ static bool queue_Clear(PrsQueue queue) {
     return queue_FreeList(queue, node);
 }
 
-static bool mark_begin(Copper input, PrsCursor at) {
+static bool mark_begin(Copper input, CuCursor at) {
     if (!input) return false;
     input->context.begin = at;
     return true;
 }
 
-static struct prs_label begin_label = { &mark_begin, "set.begin" };
+static struct cu_label begin_label = { &mark_begin, "set.begin" };
 
-static bool mark_end(Copper input, PrsCursor at) {
+static bool mark_end(Copper input, CuCursor at) {
     if (!input) return false;
     input->context.end = at;
     return true;
 }
 
-static struct prs_label end_label = { &mark_end, "set.end" };
+static struct cu_label end_label = { &mark_end, "set.end" };
 
 /* this is use only in copper_vm for debugging (SINGLE THEADED ALERT) */
 static char *char2string(unsigned char value)
@@ -269,11 +269,11 @@ static char *char2string(unsigned char value)
     return text;
 }
 
-static bool make_Point(PrsPoint *target)
+static bool make_Point(CuPoint *target)
 {
-    unsigned fullsize = sizeof(struct prs_point);
+    unsigned fullsize = sizeof(struct cu_point);
 
-    struct prs_point *result = malloc(fullsize);
+    struct cu_point *result = malloc(fullsize);
     memset(result, 0, fullsize);
 
     *target = result;
@@ -281,13 +281,13 @@ static bool make_Point(PrsPoint *target)
     return true;
 }
 
-static bool cache_MorePoints(PrsCache value, unsigned count) {
+static bool cache_MorePoints(CuCache value, unsigned count) {
     if (!value) return false;
 
-    PrsPoint list = value->free_list;
+    CuPoint list = value->free_list;
 
     for ( ; count ; --count) {
-        PrsPoint head;
+        CuPoint head;
 
         if (!make_Point(&head)) return false;
 
@@ -300,10 +300,10 @@ static bool cache_MorePoints(PrsCache value, unsigned count) {
 }
 
 
-static bool make_Cache(unsigned size, PrsCache *target) {
-    unsigned fullsize = (sizeof(struct prs_cache) + (size * sizeof(PrsPoint)));
+static bool make_Cache(unsigned size, CuCache *target) {
+    unsigned fullsize = (sizeof(struct cu_cache) + (size * sizeof(CuPoint)));
 
-    struct prs_cache *result = malloc(fullsize);
+    struct cu_cache *result = malloc(fullsize);
     memset(result, 0, fullsize);
 
     result->size = size;
@@ -315,12 +315,12 @@ static bool make_Cache(unsigned size, PrsCache *target) {
     return true;
 }
 
-static bool cache_Point(PrsCache cache, PrsNode node, unsigned offset) {
+static bool cache_Point(CuCache cache, CuNode node, unsigned offset) {
     if (!cache) return false;
 
     unsigned code  = offset;
     unsigned index = code  % cache->size;
-    PrsPoint list  = cache->table[index];
+    CuPoint list  = cache->table[index];
 
     for ( ; list ; list = list->next) {
         if (node   != list->node)   continue;
@@ -332,7 +332,7 @@ static bool cache_Point(PrsCache cache, PrsNode node, unsigned offset) {
         if (!cache_MorePoints(cache, cache->size)) return false;
     }
 
-    PrsPoint head = cache->free_list;
+    CuPoint head = cache->free_list;
 
     head->node   = node;
     head->offset = offset;
@@ -346,12 +346,12 @@ static bool cache_Point(PrsCache cache, PrsNode node, unsigned offset) {
     return true;
 }
 
-static bool cache_Find(PrsCache cache, PrsNode node, unsigned offset) {
+static bool cache_Find(CuCache cache, CuNode node, unsigned offset) {
     if (!cache) return false;
 
     unsigned code  = offset;
     unsigned index = code  % cache->size;
-    PrsPoint list  = cache->table[index];
+    CuPoint list  = cache->table[index];
 
     for ( ; list ; list = list->next) {
         if (node   != list->node)   continue;
@@ -362,12 +362,12 @@ static bool cache_Find(PrsCache cache, PrsNode node, unsigned offset) {
     return false;
 }
 
-static bool cache_Remove(PrsCache cache, PrsNode node, unsigned offset) {
+static bool cache_Remove(CuCache cache, CuNode node, unsigned offset) {
     if (!cache) return false;
 
     unsigned code  = offset;
     unsigned index = code  % cache->size;
-    PrsPoint list  = cache->table[index];
+    CuPoint list  = cache->table[index];
 
     if (node   == list->node) {
         if (offset == list->offset) {
@@ -378,7 +378,7 @@ static bool cache_Remove(PrsCache cache, PrsNode node, unsigned offset) {
         }
     }
 
-    PrsPoint prev = list;
+    CuPoint prev = list;
 
     for ( ; list->next ; ) {
         prev = list;
@@ -396,17 +396,17 @@ static bool cache_Remove(PrsCache cache, PrsNode node, unsigned offset) {
     return true;
 }
 
-static bool cache_Clear(PrsCache cache) {
+static bool cache_Clear(CuCache cache) {
     if (!cache) return false;
 
     unsigned index   = 0;
     unsigned columns = cache->size;
 
     for ( ; index < columns ; ++index ) {
-        PrsPoint list = cache->table[index];
+        CuPoint list = cache->table[index];
         cache->table[index] = 0;
         for ( ; list ; ) {
-            PrsPoint next = list->next;
+            CuPoint next = list->next;
             list->next = cache->free_list;
             cache->free_list = list;
             list = next;
@@ -418,22 +418,22 @@ static bool cache_Clear(PrsCache cache) {
 
 
 static bool copper_vm(const char* rulename,
-                      PrsNode start,
+                      CuNode start,
                       unsigned level,
                       Copper input)
 {
     assert(0 != input);
     assert(0 != start);
 
-    PrsQueue queue = input->queue;
+    CuQueue queue = input->queue;
     assert(0 != queue);
 
-    PrsThread mark   = 0;
-    PrsCursor at;
+    CuThread mark   = 0;
+    CuCursor at;
 
     char buffer[10];
 
-    inline const char* node_label(PrsNode node) {
+    inline const char* node_label(CuNode node) {
         if (node->label) return node->label;
         sprintf(buffer, "%x__", (unsigned) node);
         return buffer;
@@ -476,7 +476,7 @@ static bool copper_vm(const char* rulename,
         return true;
     }
 
-    inline bool current(PrsChar *target) {
+    inline bool current(CuChar *target) {
         unsigned point = input->cursor.text_inx;
         unsigned limit = input->data.limit;
 
@@ -489,7 +489,7 @@ static bool copper_vm(const char* rulename,
         return true;
     }
 
-    inline bool node(PrsName name, PrsNode* target) {
+    inline bool node(CuName name, CuNode* target) {
         if (!input->node(input, name, target)) {
             CU_ERROR("node %s not found\n", name);
             return false;
@@ -497,8 +497,8 @@ static bool copper_vm(const char* rulename,
         return true;
     }
 
-    inline bool predicate(PrsName name) {
-        PrsPredicate test = 0;
+    inline bool predicate(CuName name) {
+        CuPredicate test = 0;
         if (!input->predicate(input, name, &test)) {
             CU_ERROR("predicate %s not found\n", name);
             return false;
@@ -506,15 +506,15 @@ static bool copper_vm(const char* rulename,
         return test(input);
     }
 
-    inline bool set_cache(PrsNode cnode) {
+    inline bool set_cache(CuNode cnode) {
         return cache_Point(input->cache, cnode, at.text_inx);
     }
 
-    inline bool check_cache(PrsNode cnode) {
+    inline bool check_cache(CuNode cnode) {
         if (cache_Find(input->cache, cnode, at.text_inx)) return true;
-        if (prs_MatchName != cnode->oper) return false;
+        if (cu_MatchName != cnode->oper) return false;
         const char *name = cnode->arg.name;
-        PrsNode value;
+        CuNode value;
         if (!node(name, &value)) return false;
         if (!check_cache(value)) return false;
         set_cache(value);
@@ -539,7 +539,7 @@ static bool copper_vm(const char* rulename,
                     });
     }
 
-    inline bool add_event(PrsLabel label) {
+    inline bool add_event(CuLabel label) {
         indent(2); CU_DEBUG(2, "event %s(%x) at (%u,%u)\n",
                            label.name,
                            (unsigned) label.function,
@@ -552,12 +552,12 @@ static bool copper_vm(const char* rulename,
                            label);
     }
 
-    inline bool checkFirstSet(PrsNode cnode, bool *target) {
+    inline bool checkFirstSet(CuNode cnode, bool *target) {
         if (!target) return false;
 
-        if (prs_MatchName == cnode->oper) {
+        if (cu_MatchName == cnode->oper) {
             const char *name = cnode->arg.name;
-            PrsNode value;
+            CuNode value;
             if (!node(name, &value)) return false;
             if (!checkFirstSet(value, target)) return false;
             if (!*target) set_cache(value);
@@ -567,8 +567,8 @@ static bool copper_vm(const char* rulename,
         if (pft_opaque == cnode->type) return false;
         if (pft_event  == cnode->type) return false;
 
-        PrsFirstSet  first = cnode->first;
-        PrsFirstList list  = cnode->start;
+        CuFirstSet  first = cnode->first;
+        CuFirstList list  = cnode->start;
 
         if (!first) return false;
 
@@ -582,7 +582,7 @@ static bool copper_vm(const char* rulename,
             }
         }
 
-        PrsChar chr = 0;
+        CuChar chr = 0;
         if (!current(&chr)) return false;
 
         unsigned             binx   = chr;
@@ -624,10 +624,10 @@ static bool copper_vm(const char* rulename,
         return true;
     }
 
-    inline bool checkMetadata(PrsNode cnode, bool *target) {
+    inline bool checkMetadata(CuNode cnode, bool *target) {
         if (!target) return false;
 
-        PrsMetaFirst meta  = cnode->metadata;
+        CuMetaFirst meta  = cnode->metadata;
 
         if (!meta) return false;
 
@@ -647,9 +647,9 @@ static bool copper_vm(const char* rulename,
             return false;
         }
 
-        if (prs_MatchName == cnode->oper) {
+        if (cu_MatchName == cnode->oper) {
             const char *name = cnode->arg.name;
-            PrsNode value;
+            CuNode value;
             if (!node(name, &value)) return false;
             if (!checkMetadata(value, target)) return false;
             if (!*target) set_cache(value);
@@ -661,7 +661,7 @@ static bool copper_vm(const char* rulename,
                                 node_label(cnode));
         }
 
-        PrsMetaSet first = meta->first;
+        CuMetaSet first = meta->first;
 
         if (!first) {
             indent(4); CU_DEBUG(4, "check (%s) at (%u,%u) meta (bypass no first)\n",
@@ -671,7 +671,7 @@ static bool copper_vm(const char* rulename,
             return false;
         }
 
-        PrsChar chr = 0;
+        CuChar chr = 0;
         if (!current(&chr)) return false;
 
         unsigned             binx = chr;
@@ -715,7 +715,7 @@ static bool copper_vm(const char* rulename,
         return true;
     }
 
-    inline bool prs_and() {
+    inline bool cu_and() {
         if (!copper_vm(rulename, start->arg.pair->left, level, input))  {
             reset();
             return false;
@@ -728,7 +728,7 @@ static bool copper_vm(const char* rulename,
         return true;
     }
 
-    inline bool prs_choice() {
+    inline bool cu_choice() {
         if (copper_vm(rulename, start->arg.pair->left, level, input)) {
             return true;
         }
@@ -740,7 +740,7 @@ static bool copper_vm(const char* rulename,
         return false;
     }
 
-    inline bool prs_zero_plus() {
+    inline bool cu_zero_plus() {
         while (copper_vm(rulename, start->arg.node, level, input)) {
             hold();
         }
@@ -748,7 +748,7 @@ static bool copper_vm(const char* rulename,
         return true;
     }
 
-    inline bool prs_one_plus() {
+    inline bool cu_one_plus() {
         bool result = false;
         while (copper_vm(rulename, start->arg.node, level, input)) {
             result = true;
@@ -758,7 +758,7 @@ static bool copper_vm(const char* rulename,
         return result;
     }
 
-    inline bool prs_optional() {
+    inline bool cu_optional() {
         if (copper_vm(rulename, start->arg.node, level, input)) {
             return true;
         }
@@ -766,7 +766,7 @@ static bool copper_vm(const char* rulename,
         return true;
     }
 
-    inline bool prs_assert_true() {
+    inline bool cu_assert_true() {
         if (copper_vm(rulename, start->arg.node, level, input)) {
             reset();
             return true;
@@ -775,7 +775,7 @@ static bool copper_vm(const char* rulename,
         return false;
     }
 
-    inline bool prs_assert_false() {
+    inline bool cu_assert_false() {
         if (copper_vm(rulename, start->arg.node, level, input)) {
             reset();
             return false;
@@ -784,8 +784,8 @@ static bool copper_vm(const char* rulename,
         return true;
     }
 
-    inline bool prs_char() {
-        PrsChar chr = 0;
+    inline bool cu_char() {
+        CuChar chr = 0;
         if (!current(&chr)) {
             indent(2); CU_DEBUG(2, "match(\'%s\') to end-of-file at (%u,%u)\n",
                                char2string(start->arg.letter),
@@ -807,8 +807,8 @@ static bool copper_vm(const char* rulename,
         return true;
     }
 
-    inline bool prs_between() {
-        PrsChar chr = 0;
+    inline bool cu_between() {
+        CuChar chr = 0;
         if (!current(&chr)) {
             indent(2); CU_DEBUG(2, "between(\'%s\',\'%s\') to end-of-file at (%u,%u)\n",
                                char2string(start->arg.range->begin),
@@ -835,8 +835,8 @@ static bool copper_vm(const char* rulename,
         return true;
     }
 
-    inline bool prs_in() {
-        PrsChar chr = 0;
+    inline bool cu_in() {
+        CuChar chr = 0;
 
         if (!current(&chr)) {
             indent(2); CU_DEBUG(2, "set(%s) to end-of-file at (%u,%u)\n",
@@ -863,9 +863,9 @@ static bool copper_vm(const char* rulename,
         return false;
     }
 
-    inline bool prs_name() {
+    inline bool cu_name() {
         const char *name = start->arg.name;
-        PrsNode     value;
+        CuNode     value;
 
         if (!node(name, &value)) return false;
 
@@ -906,8 +906,8 @@ static bool copper_vm(const char* rulename,
         return result;
     }
 
-    inline bool prs_dot() {
-        PrsChar chr;
+    inline bool cu_dot() {
+        CuChar chr;
         if (!current(&chr)) {
             return false;
         }
@@ -915,15 +915,15 @@ static bool copper_vm(const char* rulename,
         return true;
     }
 
-    inline bool prs_begin() {
+    inline bool cu_begin() {
         return add_event(begin_label);
     }
 
-    inline bool prs_end() {
+    inline bool cu_end() {
         return add_event(end_label);
     }
 
-    inline bool prs_predicate() {
+    inline bool cu_predicate() {
         if (!predicate(start->arg.name)) {
             reset();
             return false;
@@ -931,10 +931,10 @@ static bool copper_vm(const char* rulename,
         return true;
     }
 
-    inline bool prs_apply() {
+    inline bool cu_apply() {
         const char *name  = start->arg.name;
-        PrsLabel    label = { 0, name };
-        PrsEvent    event = 0;
+        CuLabel    label = { 0, name };
+        CuEvent    event = 0;
 
         indent(2); CU_DEBUG(2, "fetching event %s at (%u,%u)\n",
                            name,
@@ -952,15 +952,15 @@ static bool copper_vm(const char* rulename,
 
         return true;
     }
-    inline bool prs_thunk() {
+    inline bool cu_thunk() {
         return add_event(*(start->arg.label));
     }
 
-    inline bool prs_text() {
-        const PrsChar *text = (const PrsChar *) start->arg.name;
+    inline bool cu_text() {
+        const CuChar *text = (const CuChar *) start->arg.name;
 
         for ( ; 0 != *text ; ++text) {
-            PrsChar chr = 0;
+            CuChar chr = 0;
 
             if (!current(&chr)) {
                 indent(2); CU_DEBUG(2, "match(\"%s\") to end-of-file at (%u,%u)\n",
@@ -1000,25 +1000,25 @@ static bool copper_vm(const char* rulename,
         }
 
         switch (start->oper) {
-        case prs_Apply:       return prs_apply();
-        case prs_AssertFalse: return prs_assert_false();
-        case prs_AssertTrue:  return prs_assert_true();
-        case prs_Begin:       return prs_begin();
-        case prs_Choice:      return prs_choice();
-        case prs_End:         return prs_end();
-        case prs_MatchChar:   return prs_char();
-        case prs_MatchDot:    return prs_dot();
-        case prs_MatchName:   return prs_name();
-        case prs_MatchRange:  return prs_between();
-        case prs_MatchSet:    return prs_in();
-        case prs_MatchText:   return prs_text();
-        case prs_OneOrMore:   return prs_one_plus();
-        case prs_Predicate:   return prs_predicate();
-        case prs_Sequence:    return prs_and();
-        case prs_Thunk:       return prs_thunk();
-        case prs_ZeroOrMore:  return prs_zero_plus();
-        case prs_ZeroOrOne:   return prs_optional();
-        case prs_Void:        return false;
+        case cu_Apply:       return cu_apply();
+        case cu_AssertFalse: return cu_assert_false();
+        case cu_AssertTrue:  return cu_assert_true();
+        case cu_Begin:       return cu_begin();
+        case cu_Choice:      return cu_choice();
+        case cu_End:         return cu_end();
+        case cu_MatchChar:   return cu_char();
+        case cu_MatchDot:    return cu_dot();
+        case cu_MatchName:   return cu_name();
+        case cu_MatchRange:  return cu_between();
+        case cu_MatchSet:    return cu_in();
+        case cu_MatchText:   return cu_text();
+        case cu_OneOrMore:   return cu_one_plus();
+        case cu_Predicate:   return cu_predicate();
+        case cu_Sequence:    return cu_and();
+        case cu_Thunk:       return cu_thunk();
+        case cu_ZeroOrMore:  return cu_zero_plus();
+        case cu_ZeroOrOne:   return cu_optional();
+        case cu_Void:        return false;
         }
         return false;
     }
@@ -1030,7 +1030,7 @@ static bool copper_vm(const char* rulename,
                                 node_label(start),
                                 oper2name(start->oper));
 
-            if (prs_MatchName == start->oper) {
+            if (cu_MatchName == start->oper) {
                 const char *name = start->arg.name;
                 CU_DEBUG(3, " %s", name);
             }
@@ -1063,13 +1063,13 @@ extern bool cu_InputInit(Copper input, unsigned cacheSize) {
     CU_DEBUG(3, "making queue\n");
     if (!make_Queue(&(input->queue))) return false;
 
-    PrsQueue queue = input->queue;
+    CuQueue queue = input->queue;
     assert(0 != queue);
 
     CU_DEBUG(3, "making cache\n");
     if (!make_Cache(cacheSize, &(input->cache))) return false;
 
-    PrsCache cache = input->cache;
+    CuCache cache = input->cache;
     assert(0 != cache);
     assert(cacheSize == cache->size);
 
@@ -1081,7 +1081,7 @@ extern bool cu_InputInit(Copper input, unsigned cacheSize) {
 extern bool cu_Parse(const char* name, Copper input) {
     assert(0 != input);
 
-    PrsNode start = 0;
+    CuNode start = 0;
 
     CU_DEBUG(3, "requesting start node %s\n", name);
     if (!input->node(input, name, &start)) return false;
@@ -1114,7 +1114,7 @@ extern bool cu_AppendData(Copper input,
     if (1 > count) return true;
     if (!src)      return false;
 
-    struct prs_text *data = &input->data;
+    struct cu_text *data = &input->data;
 
     text_Extend(data, count);
 
@@ -1133,7 +1133,7 @@ extern bool cu_RunQueue(Copper input) {
     return queue_Run(input->queue, input);
 }
 
-extern bool cu_MarkedText(Copper input, PrsData *target) {
+extern bool cu_MarkedText(Copper input, CuData *target) {
     if (!input)  return false;
     if (!target) return false;
 

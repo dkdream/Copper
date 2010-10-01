@@ -21,7 +21,7 @@
 
 static char buffer[4096];
 
-static const char* convert(PrsData name) {
+static const char* convert(CuData name) {
     strncpy(buffer, name.start, name.length);
     buffer[name.length] = 0;
     return buffer;
@@ -30,10 +30,10 @@ static const char* convert(PrsData name) {
 static bool make_Map(unsigned code,
                      const void* key,
                      void* value,
-                     struct prs_map *next,
-                     struct prs_map **target)
+                     struct cu_map *next,
+                     struct cu_map **target)
 {
-    struct prs_map *result = malloc(sizeof(struct prs_map));
+    struct cu_map *result = malloc(sizeof(struct cu_map));
 
     result->code  = code;
     result->key   = key;
@@ -47,12 +47,12 @@ static bool make_Map(unsigned code,
 static bool make_Hash(Hashcode encode,
                       Matchkey compare,
                       unsigned size,
-                      struct prs_hash **target)
+                      struct cu_hash **target)
 {
-    unsigned fullsize = (sizeof(struct prs_hash)
-                         + (size * sizeof(struct prs_map *)));
+    unsigned fullsize = (sizeof(struct cu_hash)
+                         + (size * sizeof(struct cu_map *)));
 
-    struct prs_hash* result = malloc(fullsize);
+    struct cu_hash* result = malloc(fullsize);
     memset(result, 0, fullsize);
 
     result->encode  = encode;
@@ -63,7 +63,7 @@ static bool make_Hash(Hashcode encode,
     return true;
 }
 
-static bool hash_Find(struct prs_hash *hash,
+static bool hash_Find(struct cu_hash *hash,
                       const void* key,
                       void** target)
 {
@@ -72,7 +72,7 @@ static bool hash_Find(struct prs_hash *hash,
     unsigned code  = hash->encode(key);
     unsigned index = code % hash->size;
 
-    struct prs_map *map = hash->table[index];
+    struct cu_map *map = hash->table[index];
 
     for ( ; map ; map = map->next) {
         if (code != map->code) continue;
@@ -84,7 +84,7 @@ static bool hash_Find(struct prs_hash *hash,
     return false;
 }
 
-static bool hash_Replace(struct prs_hash *hash,
+static bool hash_Replace(struct cu_hash *hash,
                          const void* key,
                          void* value,
                          FreeValue release)
@@ -96,7 +96,7 @@ static bool hash_Replace(struct prs_hash *hash,
     unsigned long code  = hash->encode(key);
     unsigned      index = code % hash->size;
 
-    struct prs_map *map = hash->table[index];
+    struct cu_map *map = hash->table[index];
 
     for ( ; map ; map = map->next) {
         if (code != map->code) continue;
@@ -117,7 +117,7 @@ static bool hash_Replace(struct prs_hash *hash,
     return true;
 }
 
-static bool buffer_GetLine(struct prs_buffer *input, Copper base)
+static bool buffer_GetLine(struct cu_buffer *input, Copper base)
 {
     if (input->cursor >= input->read) {
         int read = getline(&input->line, &input->allocated, input->file);
@@ -137,12 +137,12 @@ static bool buffer_GetLine(struct prs_buffer *input, Copper base)
 }
 
 static bool file_MoreData(Copper input) {
-    struct prs_file *file = (struct prs_file *)input;
+    struct cu_file *file = (struct cu_file *)input;
     return buffer_GetLine(&file->buffer, &file->base);
 }
 
-static bool file_FindNode(Copper input, PrsName name, PrsNode* target) {
-    struct prs_file *file = (struct prs_file *)input;
+static bool file_FindNode(Copper input, CuName name, CuNode* target) {
+    struct cu_file *file = (struct cu_file *)input;
     if (hash_Find(file->nodes, name, (void**)target)) {
         return true;
     }
@@ -153,32 +153,32 @@ static bool noop_release(void* value) {
     return true;
 }
 
-static bool file_FindPredicate(Copper input, PrsName name, PrsPredicate* target) {
-    struct prs_file *file = (struct prs_file *)input;
+static bool file_FindPredicate(Copper input, CuName name, CuPredicate* target) {
+    struct cu_file *file = (struct cu_file *)input;
     return hash_Find(file->predicates, name, (void**)target);
 }
 
-static bool file_FindEvent(Copper input, PrsName name, PrsEvent* target) {
-    struct prs_file *file = (struct prs_file *)input;
+static bool file_FindEvent(Copper input, CuName name, CuEvent* target) {
+    struct cu_file *file = (struct cu_file *)input;
     return hash_Find(file->events, name, (void**)target);
 }
 
-static bool file_AddName(Copper input, PrsName name, PrsNode value) {
-    struct prs_file *file = (struct prs_file *)input;
+static bool file_AddName(Copper input, CuName name, CuNode value) {
+    struct cu_file *file = (struct cu_file *)input;
     return hash_Replace(file->nodes, (void*)name, value, noop_release);
 }
 
 /* -- */
 
-extern bool file_SetPredicate(struct prs_file *file, PrsName name, PrsPredicate value) {
+extern bool file_SetPredicate(struct cu_file *file, CuName name, CuPredicate value) {
     return hash_Replace(file->predicates, (void*)name, value, noop_release);
 }
 
-extern bool file_SetEvent(struct prs_file *file, PrsName name, PrsEvent value) {
+extern bool file_SetEvent(struct cu_file *file, CuName name, CuEvent value) {
     return hash_Replace(file->events, (void*)name, value, noop_release);
 }
 
-static unsigned long encode_name(PrsName name) {
+static unsigned long encode_name(CuName name) {
     const char *cursor = name;
 
     unsigned long result = 5381;
@@ -191,7 +191,7 @@ static unsigned long encode_name(PrsName name) {
     return result;
 }
 
-static unsigned compare_name(PrsName lname, PrsName rname) {
+static unsigned compare_name(CuName lname, CuName rname) {
     const char *left  = lname;
     const char *right = rname;
 
@@ -200,10 +200,10 @@ static unsigned compare_name(PrsName lname, PrsName rname) {
     return (0 == result);
 }
 
-extern bool make_PrsFile(FILE* file, const char* filename, Copper *target) {
-    struct prs_file *result = malloc(sizeof(struct prs_file));
+extern bool make_CuFile(FILE* file, const char* filename, Copper *target) {
+    struct cu_file *result = malloc(sizeof(struct cu_file));
 
-    memset(result, 0, sizeof(struct prs_file));
+    memset(result, 0, sizeof(struct cu_file));
 
     result->base.more      = file_MoreData;
     result->base.node      = file_FindNode;
@@ -265,9 +265,9 @@ static bool make_Any(SynType   type,
     return true;
 }
 
-static bool makeChunk(struct prs_file *file, SynType type, SynChunk *target) {
+static bool makeChunk(struct cu_file *file, SynType type, SynChunk *target) {
     SynChunk chunk = 0;
-    PrsData value;
+    CuData value;
 
     if (syn_chunk != type2kind(type)) return false;
 
@@ -294,11 +294,11 @@ static bool makeChunk(struct prs_file *file, SynType type, SynChunk *target) {
     return true;
 }
 
-static unsigned depth(struct prs_file *file) {
+static unsigned depth(struct cu_file *file) {
     if (!file) return 0;
 
-    struct prs_stack *stack = &file->stack;
-    struct prs_cell  *top   = stack->top;
+    struct cu_stack *stack = &file->stack;
+    struct cu_cell  *top   = stack->top;
 
     unsigned result = 0;
 
@@ -309,13 +309,13 @@ static unsigned depth(struct prs_file *file) {
     return result;
 }
 
-static bool push(struct prs_file *file, SynNode value) {
+static bool push(struct cu_file *file, SynNode value) {
     if (!file)      return false;
     if (!value.any) return false;
 
-    unsigned       fullsize = sizeof(struct prs_cell);
-    struct prs_stack *stack = &file->stack;
-    struct prs_cell  *top  = stack->free_list;
+    unsigned       fullsize = sizeof(struct cu_cell);
+    struct cu_stack *stack = &file->stack;
+    struct cu_cell  *top  = stack->free_list;
 
     if (top) {
         stack->free_list = top->next;
@@ -333,12 +333,12 @@ static bool push(struct prs_file *file, SynNode value) {
     return true;
 }
 
-static bool pop(struct prs_file *file, SynTarget target) {
+static bool pop(struct cu_file *file, SynTarget target) {
     if (!file)       return false;
     if (!target.any) return false;
 
-    struct prs_stack *stack = &file->stack;
-    struct prs_cell  *top   = stack->top;
+    struct cu_stack *stack = &file->stack;
+    struct cu_cell  *top   = stack->top;
 
     if (!top) return false;
 
@@ -351,19 +351,19 @@ static bool pop(struct prs_file *file, SynTarget target) {
     return true;
 }
 
-static bool empty(struct prs_file *file) {
+static bool empty(struct cu_file *file) {
     if (!file) return true;
 
-    struct prs_stack *stack = &file->stack;
+    struct cu_stack *stack = &file->stack;
 
     if (!stack->top) return true;
 
     return false;
 }
 
-static bool makeText(struct prs_file *file, SynType type) {
+static bool makeText(struct cu_file *file, SynType type) {
     SynText text = 0;
-    PrsData value;
+    CuData value;
 
     if (syn_text != type2kind(type)) return false;
 
@@ -378,7 +378,7 @@ static bool makeText(struct prs_file *file, SynType type) {
     return push(file, text);
 }
 
-static bool makeOperator(struct prs_file *file, SynType type) {
+static bool makeOperator(struct cu_file *file, SynType type) {
     SynOperator operator = 0;
     SynNode     value;
 
@@ -397,7 +397,7 @@ static bool makeOperator(struct prs_file *file, SynType type) {
     return true;
 }
 
-static bool makeTree(struct prs_file *file, SynType type) {
+static bool makeTree(struct cu_file *file, SynType type) {
     SynTree tree = 0;
     SynNode before;
     SynNode after;
@@ -420,10 +420,10 @@ static bool makeTree(struct prs_file *file, SynType type) {
     return push(file, tree);
 }
 
-extern bool checkRule(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool checkRule(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
 
-    PrsData name;
+    CuData name;
 
     if (!cu_MarkedText((Copper) file, &name)) return false;
 
@@ -444,8 +444,8 @@ extern bool checkRule(Copper input, PrsCursor at) {
     return push(file, rule);
 }
 
-extern bool defineRule(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool defineRule(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
 
     SynDefine rule;
     SynNode   value;
@@ -479,8 +479,8 @@ extern bool defineRule(Copper input, PrsCursor at) {
     return true;
 }
 
-extern bool makeEnd(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeEnd(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
 
     SynAny value = 0;
 
@@ -491,8 +491,8 @@ extern bool makeEnd(Copper input, PrsCursor at) {
     return true;
 }
 
-extern bool makeBegin(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeBegin(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
 
     SynAny value = 0;
 
@@ -504,8 +504,8 @@ extern bool makeBegin(Copper input, PrsCursor at) {
 }
 
 // nameless event
-extern bool makeThunk(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeThunk(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
 
     SynChunk thunk = 0;
 
@@ -515,18 +515,18 @@ extern bool makeThunk(Copper input, PrsCursor at) {
 }
 
 // namefull event
-extern bool makeApply(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeApply(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
     return makeText(file, syn_apply);
 }
 
-extern bool makePredicate(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makePredicate(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
     return makeText(file, syn_predicate);
 }
 
-extern bool makeDot(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeDot(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
     SynAny value = 0;
 
     if (!make_Any(syn_dot, &value)) return false;
@@ -536,78 +536,78 @@ extern bool makeDot(Copper input, PrsCursor at) {
     return true;
 }
 
-extern bool makeSet(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeSet(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
     return makeText(file, syn_set);
 }
 
-extern bool makeString(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeString(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
     return makeText(file, syn_string);
 }
 
-extern bool makeCall(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeCall(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
     return makeText(file, syn_call);
 }
 
-extern bool makePlus(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makePlus(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
     return makeOperator(file, syn_plus);
 }
 
-extern bool makeStar(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeStar(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
     return makeOperator(file, syn_star);
 }
 
-extern bool makeQuestion(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeQuestion(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
     return makeOperator(file, syn_question);
 }
 
-extern bool makeNot(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeNot(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
     return makeOperator(file, syn_not);
 }
 
-extern bool makeCheck(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeCheck(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
     return makeOperator(file, syn_check);
 }
 
-extern bool makeSequence(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeSequence(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
     return makeTree(file, syn_sequence);
 }
 
-extern bool makeChoice(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeChoice(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
     return makeTree(file, syn_choice);
 }
 
-extern bool makeHeader(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeHeader(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
     return makeChunk(file, syn_header, 0);
 }
 
-extern bool makeInclude(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeInclude(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
     return makeChunk(file, syn_include, 0);
 }
 
-extern bool makeFooter(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool makeFooter(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
     return makeChunk(file, syn_footer, 0);
 }
 
 
-static void data_Write(PrsData data, FILE* output);
+static void data_Write(CuData data, FILE* output);
 static void char_Write(unsigned char value, FILE* output);
 static void charclass_Write(unsigned char *bits, FILE* output);
-static void namelist_Write(unsigned count, PrsData name[], FILE* output);
+static void namelist_Write(unsigned count, CuData name[], FILE* output);
 
-static unsigned char *makeBitfield(PrsData data)
+static unsigned char *makeBitfield(CuData data)
 {
     static unsigned char bits[32];
     bool clear = false;
@@ -665,7 +665,7 @@ static unsigned char *makeBitfield(PrsData data)
     return bits;
 }
 
-static int data_FirstChar(PrsData data)
+static int data_FirstChar(CuData data)
 {
     const char *at = data.start;
     unsigned inx = 0;
@@ -694,8 +694,8 @@ static bool node_ComputeSets(SynNode node)
 {
     SynFirst first = 0;
 
-    inline bool allocate(PrsFirstType type, bool set, unsigned count) {
-        unsigned fullsize = sizeof(struct syn_first) + (sizeof(PrsData) * count);
+    inline bool allocate(CuFirstType type, bool set, unsigned count) {
+        unsigned fullsize = sizeof(struct syn_first) + (sizeof(CuData) * count);
 
         first = malloc(fullsize);
 
@@ -897,7 +897,7 @@ static bool node_ComputeSets(SynNode node)
         unsigned     total = before->count + after->count;
         bool         bits  = (0 != before->bitfield) || (0 != after->bitfield);
 
-        PrsFirstType type = inChoice(before->type, after->type);
+        CuFirstType type = inChoice(before->type, after->type);
 
         if (!allocate(type, bits, total)) return false;
 
@@ -925,7 +925,7 @@ static bool node_ComputeSets(SynNode node)
         // T(tf;) = f, T(to;) = o, T(tt;) = t, T(te;) = e
         // T(ef;) = f, T(eo;) = o, T(et;) = e, T(ee;) = e
 
-        PrsFirstType type = inSequence(before->type, after->type);
+        CuFirstType type = inSequence(before->type, after->type);
 
         if (!allocate(type, bits, total)) return false;
 
@@ -977,7 +977,7 @@ static bool node_ComputeSets(SynNode node)
     return do_opaque();
 }
 
-static void data_cooked_Write(PrsData data, FILE* output)
+static void data_cooked_Write(CuData data, FILE* output)
 {
     unsigned    count = data.length;
     const char* ptr   = (const char*) data.start;
@@ -1001,7 +1001,7 @@ static void data_cooked_Write(PrsData data, FILE* output)
     fprintf(output, "\"");
 }
 
-static void data_Write(PrsData data, FILE* output)
+static void data_Write(CuData data, FILE* output)
 {
     unsigned    count = data.length;
     const char* ptr   = (const char*) data.start;
@@ -1047,7 +1047,7 @@ static void charclass_Write(unsigned char *bits, FILE* output)
    fprintf(output, "\"");
 }
 
-static void namelist_Write(unsigned count, PrsData name[], FILE* output)
+static void namelist_Write(unsigned count, CuData name[], FILE* output)
 {
     if (1 > count) return;
 
@@ -1090,7 +1090,7 @@ static bool node_WriteSets(SynNode node, FILE* output)
 
     if (first->bitfield) {
         fprintf(output,
-                "static struct prs_firstset  first_%x_set  = { ",
+                "static struct cu_firstset  first_%x_set  = { ",
                 (unsigned) node.any);
 
         charclass_Write(first->bitfield, output);
@@ -1100,7 +1100,7 @@ static bool node_WriteSets(SynNode node, FILE* output)
 
     if (first->count) {
         fprintf(output,
-                "static struct prs_firstlist first_%x_list = { %u, ",
+                "static struct cu_firstlist first_%x_list = { %u, ",
                 (unsigned) node.any,
                 first->count);
 
@@ -1164,7 +1164,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_Apply, (union prs_arg) ((PrsName)",
+                "static struct cu_node  node_%x  = { %s cu_Apply, (union cu_arg) ((CuName)",
                 (unsigned) node.any,
                 first_sets);
 
@@ -1179,7 +1179,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_Begin, };\n",
+                "static struct cu_node  node_%x  = { %s cu_Begin, };\n",
                 (unsigned) node.any,
                 first_sets);
 
@@ -1190,7 +1190,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_MatchName, (union prs_arg) ((PrsName)",
+                "static struct cu_node  node_%x  = { %s cu_MatchName, (union cu_arg) ((CuName)",
                 (unsigned) node.any,
                 first_sets);
 
@@ -1205,7 +1205,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_MatchChar, (union prs_arg) ((PrsChar)",
+                "static struct cu_node  node_%x  = { %s cu_MatchChar, (union cu_arg) ((CuChar)",
                 (unsigned) node.any,
                 first_sets);
 
@@ -1221,7 +1221,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_AssertTrue, (union prs_arg) (&node_%x) };\n",
+                "static struct cu_node  node_%x  = { %s cu_AssertTrue, (union cu_arg) (&node_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.operator->value.any);
@@ -1234,7 +1234,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_WriteTree(node.tree->after, output))  return false;
 
         fprintf(output,
-                "static struct prs_pair  pair_%x  = { &node_%x, &node_%x };\n",
+                "static struct cu_pair  pair_%x  = { &node_%x, &node_%x };\n",
                 (unsigned) node.any,
                 (unsigned) node.tree->before.any,
                 (unsigned) node.tree->after.any);
@@ -1242,7 +1242,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_Choice, (union prs_arg) (&pair_%x) };\n",
+                "static struct cu_node  node_%x  = { %s cu_Choice, (union cu_arg) (&pair_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.any);
@@ -1254,7 +1254,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_MatchDot };\n",
+                "static struct cu_node  node_%x  = { %s cu_MatchDot };\n",
                 (unsigned) node.any,
                 first_sets);
 
@@ -1265,7 +1265,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_End, };\n",
+                "static struct cu_node  node_%x  = { %s cu_End, };\n",
                 (unsigned) node.any,
                 first_sets);
 
@@ -1289,7 +1289,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_AssertFalse, (union prs_arg) (&node_%x) };\n",
+                "static struct cu_node  node_%x  = { %s cu_AssertFalse, (union cu_arg) (&node_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.operator->value.any);
@@ -1302,7 +1302,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_OneOrMore, (union prs_arg) (&node_%x) };\n",
+                "static struct cu_node  node_%x  = { %s cu_OneOrMore, (union cu_arg) (&node_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.operator->value.any);
@@ -1314,7 +1314,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_Predicate, (union prs_arg) ((PrsName)",
+                "static struct cu_node  node_%x  = { %s cu_Predicate, (union cu_arg) ((CuName)",
                 (unsigned) node.any,
                 first_sets);
 
@@ -1330,7 +1330,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_ZeroOrOne, (union prs_arg) (&node_%x) };\n",
+                "static struct cu_node  node_%x  = { %s cu_ZeroOrOne, (union cu_arg) (&node_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.operator->value.any);
@@ -1347,7 +1347,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_WriteTree(node.tree->after, output))  return false;
 
         fprintf(output,
-                "static struct prs_pair  pair_%x  = { &node_%x, &node_%x };\n",
+                "static struct cu_pair  pair_%x  = { &node_%x, &node_%x };\n",
                 (unsigned) node.any,
                 (unsigned) node.tree->before.any,
                 (unsigned) node.tree->after.any);
@@ -1355,7 +1355,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets))  return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_Sequence, (union prs_arg) (&pair_%x) };\n",
+                "static struct cu_node  node_%x  = { %s cu_Sequence, (union cu_arg) (&pair_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.any);
@@ -1365,7 +1365,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
 
     inline bool do_set() {
         fprintf(output,
-                "static struct prs_set   set_%x   = { ",
+                "static struct cu_set   set_%x   = { ",
                 (unsigned) node.any);
 
         data_cooked_Write(node.text->value, output);
@@ -1379,7 +1379,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_MatchSet, (union prs_arg) (&set_%x) };\n",
+                "static struct cu_node  node_%x  = { %s cu_MatchSet, (union cu_arg) (&set_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.any);
@@ -1392,7 +1392,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets))     return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_ZeroOrMore, (union prs_arg) (&node_%x) };\n",
+                "static struct cu_node  node_%x  = { %s cu_ZeroOrMore, (union cu_arg) (&node_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.operator->value.any);
@@ -1404,7 +1404,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_MatchText, (union prs_arg) ((PrsName)",
+                "static struct cu_node  node_%x  = { %s cu_MatchText, (union cu_arg) ((CuName)",
                 (unsigned) node.any,
                 first_sets);
 
@@ -1417,7 +1417,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
 
     inline bool do_thunk() {
         fprintf(output,
-                "static struct prs_label label_%x = { (&event_%x), \"event_%x\" };\n",
+                "static struct cu_label label_%x = { (&event_%x), \"event_%x\" };\n",
                 (unsigned) node.any,
                 (unsigned) node.any,
                 (unsigned) node.any);
@@ -1425,7 +1425,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct prs_node  node_%x  = { %s prs_Thunk, (union prs_arg) (&label_%x) };\n",
+                "static struct cu_node  node_%x  = { %s cu_Thunk, (union cu_arg) (&label_%x) };\n",
                 (unsigned) node.any,
                 first_sets,
                 (unsigned) node.any);
@@ -1465,8 +1465,8 @@ static bool node_WriteTree(SynNode node, FILE* output)
     return do_node();
 }
 
-extern bool writeTree(Copper input, PrsCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
+extern bool writeTree(Copper input, CuCursor at) {
+    struct cu_file *file = (struct cu_file *)input;
 
     if (!empty(file)) {
         CU_ERROR("stack not empty ; %u\n", depth(file));
@@ -1477,7 +1477,7 @@ extern bool writeTree(Copper input, PrsCursor at) {
 
 
 extern bool file_WriteTree(Copper input, FILE* output, const char* function) {
-    struct prs_file *file = (struct prs_file *)input;
+    struct cu_file *file = (struct cu_file *)input;
 
     fprintf(output, "/*-*- mode: c;-*-*/\n");
     fprintf(output, "/* A recursive-descent parser generated by copper %d.%d.%d */\n", COPPER_MAJOR, COPPER_MINOR, COPPER_LEVEL);
@@ -1498,7 +1498,7 @@ extern bool file_WriteTree(Copper input, FILE* output, const char* function) {
             break;
 
         case syn_thunk:
-            fprintf(output, "static bool event_%x(Copper input, PrsCursor cursor) {\n"
+            fprintf(output, "static bool event_%x(Copper input, CuCursor cursor) {\n"
                     "    %s\n"
                     "    return true;"
                     "\n}"
@@ -1521,7 +1521,7 @@ extern bool file_WriteTree(Copper input, FILE* output, const char* function) {
 
     fprintf(output, "extern bool %s(Copper input) {\n", function);
     fprintf(output, "\n");
-    fprintf(output, "    inline bool attach(PrsName name, PrsNode value) { return cu_AddName(input, name, value); }\n");
+    fprintf(output, "    inline bool attach(CuName name, CuNode value) { return cu_AddName(input, name, value); }\n");
     fprintf(output, "\n");
 
     rule = file->rules;
