@@ -148,7 +148,7 @@ static inline PrsFirstType inSequence(const PrsFirstType before,
 }
 
 /* parsing structure */
-typedef struct prs_input* PrsInput;
+typedef struct copper* Copper;
 
 /* */
 typedef struct prs_firstset  *PrsFirstSet;
@@ -236,7 +236,7 @@ typedef struct prs_state PrsState;
 
 /* user define event actions */
 /* these are ONLY call after a sucessful parse completes */
-typedef bool (*PrsEvent)(PrsInput, PrsCursor);
+typedef bool (*PrsEvent)(Copper, PrsCursor);
 
 struct prs_label {
     PrsEvent  function;
@@ -318,24 +318,24 @@ struct prs_node {
     } arg;
 };
 
-typedef bool (*PrsPredicate)(PrsInput); // user defined predicate
+typedef bool (*PrsPredicate)(Copper); // user defined predicate
 
 // do we need these ?
 // if a predicate ALWAY return true then is it an action
-typedef void (*PrsAction)(PrsInput);            // user defined parsing action
+typedef void (*PrsAction)(Copper);            // user defined parsing action
 
 /* parsing structure call back */
-typedef bool (*CurrentChar)(PrsInput, PrsChar*);                  // return the char at the cursor location
-typedef bool (*NextChar)(PrsInput);                               // move the cursor by on char
-typedef bool (*MoreData)(PrsInput);                               // add more text to the data buffer
+typedef bool (*CurrentChar)(Copper, PrsChar*);                  // return the char at the cursor location
+typedef bool (*NextChar)(Copper);                               // move the cursor by on char
+typedef bool (*MoreData)(Copper);                               // add more text to the data buffer
 
-typedef bool (*FindNode)(PrsInput, PrsName, PrsNode*);            // find the PrsNode labelled name
-typedef bool (*AddName)(PrsInput, PrsName, PrsNode);              // add a PrsNode to label name
+typedef bool (*FindNode)(Copper, PrsName, PrsNode*);            // find the PrsNode labelled name
+typedef bool (*AddName)(Copper, PrsName, PrsNode);              // add a PrsNode to label name
 
-typedef bool (*FindPredicate)(PrsInput, PrsName, PrsPredicate*);  // find the PrsPredicate labelled name
-typedef bool (*FindEvent)(PrsInput, PrsName, PrsEvent*);          // find the PrsEvent labelled name
+typedef bool (*FindPredicate)(Copper, PrsName, PrsPredicate*);  // find the PrsPredicate labelled name
+typedef bool (*FindEvent)(Copper, PrsName, PrsEvent*);          // find the PrsEvent labelled name
 
-struct prs_input {
+struct copper {
     /* call-backs */
     MoreData      more;
     FindNode      node;
@@ -354,14 +354,14 @@ struct prs_input {
     PrsState context;
 };
 
-extern bool cu_InputInit(PrsInput input, unsigned cacheSize);
-extern bool cu_AddName(PrsInput input, PrsName, PrsNode);
-extern bool cu_FillMetadata(PrsInput input);
-extern bool cu_Parse(const char* name, PrsInput input);
-extern bool cu_AppendData(PrsInput input, const unsigned count, const char *src);
-extern bool cu_RunQueue(PrsInput input);
-extern bool cu_MarkedText(PrsInput input, PrsData *target);
-extern void cu_SyntaxError(FILE* error, PrsInput cu_input, const char* filename);
+extern bool cu_InputInit(Copper input, unsigned cacheSize);
+extern bool cu_AddName(Copper input, PrsName, PrsNode);
+extern bool cu_FillMetadata(Copper input);
+extern bool cu_Parse(const char* name, Copper input);
+extern bool cu_AppendData(Copper input, const unsigned count, const char *src);
+extern bool cu_RunQueue(Copper input);
+extern bool cu_MarkedText(Copper input, PrsData *target);
+extern void cu_SyntaxError(FILE* error, Copper cu_input, const char* filename);
 
 extern unsigned cu_global_debug;
 extern void     cu_debug(const char *filename, unsigned int linenum, const char *format, ...);

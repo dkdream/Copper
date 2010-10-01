@@ -14,7 +14,7 @@
 /* */
 
 extern void cu_SyntaxError(FILE* error,
-                           PrsInput cu_input,
+                           Copper cu_input,
                            const char* filename)
 {
     inline bool more() {

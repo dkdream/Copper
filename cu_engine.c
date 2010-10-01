@@ -111,7 +111,7 @@ static bool queue_Event(PrsQueue    queue,
 }
 
 static bool queue_Run(PrsQueue queue,
-                      PrsInput input)
+                      Copper input)
 {
     if (!queue)        return true;
     if (!queue->begin) return true;
@@ -212,7 +212,7 @@ static bool queue_Clear(PrsQueue queue) {
     return queue_FreeList(queue, node);
 }
 
-static bool mark_begin(PrsInput input, PrsCursor at) {
+static bool mark_begin(Copper input, PrsCursor at) {
     if (!input) return false;
     input->context.begin = at;
     return true;
@@ -220,7 +220,7 @@ static bool mark_begin(PrsInput input, PrsCursor at) {
 
 static struct prs_label begin_label = { &mark_begin, "set.begin" };
 
-static bool mark_end(PrsInput input, PrsCursor at) {
+static bool mark_end(Copper input, PrsCursor at) {
     if (!input) return false;
     input->context.end = at;
     return true;
@@ -420,7 +420,7 @@ static bool cache_Clear(PrsCache cache) {
 static bool copper_vm(const char* rulename,
                       PrsNode start,
                       unsigned level,
-                      PrsInput input)
+                      Copper input)
 {
     assert(0 != input);
     assert(0 != start);
@@ -1057,7 +1057,7 @@ static bool copper_vm(const char* rulename,
  *************************************************************************************
  *************************************************************************************/
 
-extern bool cu_InputInit(PrsInput input, unsigned cacheSize) {
+extern bool cu_InputInit(Copper input, unsigned cacheSize) {
     assert(0 != input);
 
     CU_DEBUG(3, "making queue\n");
@@ -1078,7 +1078,7 @@ extern bool cu_InputInit(PrsInput input, unsigned cacheSize) {
     return true;
 }
 
-extern bool cu_Parse(const char* name, PrsInput input) {
+extern bool cu_Parse(const char* name, Copper input) {
     assert(0 != input);
 
     PrsNode start = 0;
@@ -1106,7 +1106,7 @@ extern bool cu_Parse(const char* name, PrsInput input) {
     return result;
 }
 
-extern bool cu_AppendData(PrsInput input,
+extern bool cu_AppendData(Copper input,
                           const unsigned count,
                           const char *src)
 {
@@ -1128,12 +1128,12 @@ extern bool cu_AppendData(PrsInput input,
     return true;
 }
 
-extern bool cu_RunQueue(PrsInput input) {
+extern bool cu_RunQueue(Copper input) {
     if (!input) return false;
     return queue_Run(input->queue, input);
 }
 
-extern bool cu_MarkedText(PrsInput input, PrsData *target) {
+extern bool cu_MarkedText(Copper input, PrsData *target) {
     if (!input)  return false;
     if (!target) return false;
 

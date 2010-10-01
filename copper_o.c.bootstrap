@@ -875,7 +875,7 @@ static struct prs_node  node_8b6ea98  = { pft_opaque, 0, &first_8b6ea98_list, 0,
 static struct prs_pair  pair_8b6eab0  = { &node_8b6e9c8, &node_8b6ea98 };
 static struct prs_node  node_8b6eab0  = { pft_opaque, 0, &first_8b6eab0_list, 0, "_8b6eab0",  prs_Sequence, (union prs_arg) (&pair_8b6eab0) };
 
-extern bool copper_graph(PrsInput input) {
+extern bool copper_graph(Copper input) {
 
     inline bool attach(PrsName name, PrsNode value) { return cu_AddName(input, name, value); }
 

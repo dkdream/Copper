@@ -117,7 +117,7 @@ static bool hash_Replace(struct prs_hash *hash,
     return true;
 }
 
-static bool buffer_GetLine(struct prs_buffer *input, PrsInput base)
+static bool buffer_GetLine(struct prs_buffer *input, Copper base)
 {
     if (input->cursor >= input->read) {
         int read = getline(&input->line, &input->allocated, input->file);
@@ -136,12 +136,12 @@ static bool buffer_GetLine(struct prs_buffer *input, PrsInput base)
     return true;
 }
 
-static bool file_MoreData(PrsInput input) {
+static bool file_MoreData(Copper input) {
     struct prs_file *file = (struct prs_file *)input;
     return buffer_GetLine(&file->buffer, &file->base);
 }
 
-static bool file_FindNode(PrsInput input, PrsName name, PrsNode* target) {
+static bool file_FindNode(Copper input, PrsName name, PrsNode* target) {
     struct prs_file *file = (struct prs_file *)input;
     if (hash_Find(file->nodes, name, (void**)target)) {
         return true;
@@ -153,17 +153,17 @@ static bool noop_release(void* value) {
     return true;
 }
 
-static bool file_FindPredicate(PrsInput input, PrsName name, PrsPredicate* target) {
+static bool file_FindPredicate(Copper input, PrsName name, PrsPredicate* target) {
     struct prs_file *file = (struct prs_file *)input;
     return hash_Find(file->predicates, name, (void**)target);
 }
 
-static bool file_FindEvent(PrsInput input, PrsName name, PrsEvent* target) {
+static bool file_FindEvent(Copper input, PrsName name, PrsEvent* target) {
     struct prs_file *file = (struct prs_file *)input;
     return hash_Find(file->events, name, (void**)target);
 }
 
-static bool file_AddName(PrsInput input, PrsName name, PrsNode value) {
+static bool file_AddName(Copper input, PrsName name, PrsNode value) {
     struct prs_file *file = (struct prs_file *)input;
     return hash_Replace(file->nodes, (void*)name, value, noop_release);
 }
@@ -200,7 +200,7 @@ static unsigned compare_name(PrsName lname, PrsName rname) {
     return (0 == result);
 }
 
-extern bool make_PrsFile(FILE* file, const char* filename, PrsInput *target) {
+extern bool make_PrsFile(FILE* file, const char* filename, Copper *target) {
     struct prs_file *result = malloc(sizeof(struct prs_file));
 
     memset(result, 0, sizeof(struct prs_file));
@@ -232,7 +232,7 @@ extern bool make_PrsFile(FILE* file, const char* filename, PrsInput *target) {
               100,
               &result->events);
 
-    *target = (PrsInput) result;
+    *target = (Copper) result;
 
     return true;
 }
@@ -271,7 +271,7 @@ static bool makeChunk(struct prs_file *file, SynType type, SynChunk *target) {
 
     if (syn_chunk != type2kind(type)) return false;
 
-    if (!cu_MarkedText((PrsInput) file, &value)) return false;
+    if (!cu_MarkedText((Copper) file, &value)) return false;
 
     if (!make_Any(type, &chunk)) return false;
 
@@ -367,7 +367,7 @@ static bool makeText(struct prs_file *file, SynType type) {
 
     if (syn_text != type2kind(type)) return false;
 
-    if (!cu_MarkedText((PrsInput) file, &value)) return false;
+    if (!cu_MarkedText((Copper) file, &value)) return false;
 
     if (!make_Any(type, &text)) return false;
 
@@ -420,12 +420,12 @@ static bool makeTree(struct prs_file *file, SynType type) {
     return push(file, tree);
 }
 
-extern bool checkRule(PrsInput input, PrsCursor at) {
+extern bool checkRule(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
 
     PrsData name;
 
-    if (!cu_MarkedText((PrsInput) file, &name)) return false;
+    if (!cu_MarkedText((Copper) file, &name)) return false;
 
     SynDefine rule = file->rules;
 
@@ -444,7 +444,7 @@ extern bool checkRule(PrsInput input, PrsCursor at) {
     return push(file, rule);
 }
 
-extern bool defineRule(PrsInput input, PrsCursor at) {
+extern bool defineRule(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
 
     SynDefine rule;
@@ -479,7 +479,7 @@ extern bool defineRule(PrsInput input, PrsCursor at) {
     return true;
 }
 
-extern bool makeEnd(PrsInput input, PrsCursor at) {
+extern bool makeEnd(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
 
     SynAny value = 0;
@@ -491,7 +491,7 @@ extern bool makeEnd(PrsInput input, PrsCursor at) {
     return true;
 }
 
-extern bool makeBegin(PrsInput input, PrsCursor at) {
+extern bool makeBegin(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
 
     SynAny value = 0;
@@ -504,7 +504,7 @@ extern bool makeBegin(PrsInput input, PrsCursor at) {
 }
 
 // nameless event
-extern bool makeThunk(PrsInput input, PrsCursor at) {
+extern bool makeThunk(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
 
     SynChunk thunk = 0;
@@ -515,17 +515,17 @@ extern bool makeThunk(PrsInput input, PrsCursor at) {
 }
 
 // namefull event
-extern bool makeApply(PrsInput input, PrsCursor at) {
+extern bool makeApply(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     return makeText(file, syn_apply);
 }
 
-extern bool makePredicate(PrsInput input, PrsCursor at) {
+extern bool makePredicate(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     return makeText(file, syn_predicate);
 }
 
-extern bool makeDot(PrsInput input, PrsCursor at) {
+extern bool makeDot(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     SynAny value = 0;
 
@@ -536,67 +536,67 @@ extern bool makeDot(PrsInput input, PrsCursor at) {
     return true;
 }
 
-extern bool makeSet(PrsInput input, PrsCursor at) {
+extern bool makeSet(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     return makeText(file, syn_set);
 }
 
-extern bool makeString(PrsInput input, PrsCursor at) {
+extern bool makeString(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     return makeText(file, syn_string);
 }
 
-extern bool makeCall(PrsInput input, PrsCursor at) {
+extern bool makeCall(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     return makeText(file, syn_call);
 }
 
-extern bool makePlus(PrsInput input, PrsCursor at) {
+extern bool makePlus(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     return makeOperator(file, syn_plus);
 }
 
-extern bool makeStar(PrsInput input, PrsCursor at) {
+extern bool makeStar(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     return makeOperator(file, syn_star);
 }
 
-extern bool makeQuestion(PrsInput input, PrsCursor at) {
+extern bool makeQuestion(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     return makeOperator(file, syn_question);
 }
 
-extern bool makeNot(PrsInput input, PrsCursor at) {
+extern bool makeNot(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     return makeOperator(file, syn_not);
 }
 
-extern bool makeCheck(PrsInput input, PrsCursor at) {
+extern bool makeCheck(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     return makeOperator(file, syn_check);
 }
 
-extern bool makeSequence(PrsInput input, PrsCursor at) {
+extern bool makeSequence(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     return makeTree(file, syn_sequence);
 }
 
-extern bool makeChoice(PrsInput input, PrsCursor at) {
+extern bool makeChoice(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     return makeTree(file, syn_choice);
 }
 
-extern bool makeHeader(PrsInput input, PrsCursor at) {
+extern bool makeHeader(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     return makeChunk(file, syn_header, 0);
 }
 
-extern bool makeInclude(PrsInput input, PrsCursor at) {
+extern bool makeInclude(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     return makeChunk(file, syn_include, 0);
 }
 
-extern bool makeFooter(PrsInput input, PrsCursor at) {
+extern bool makeFooter(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     return makeChunk(file, syn_footer, 0);
 }
@@ -1465,7 +1465,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
     return do_node();
 }
 
-extern bool writeTree(PrsInput input, PrsCursor at) {
+extern bool writeTree(Copper input, PrsCursor at) {
     struct prs_file *file = (struct prs_file *)input;
 
     if (!empty(file)) {
@@ -1476,7 +1476,7 @@ extern bool writeTree(PrsInput input, PrsCursor at) {
 }
 
 
-extern bool file_WriteTree(PrsInput input, FILE* output, const char* function) {
+extern bool file_WriteTree(Copper input, FILE* output, const char* function) {
     struct prs_file *file = (struct prs_file *)input;
 
     fprintf(output, "/*-*- mode: c;-*-*/\n");
@@ -1498,7 +1498,7 @@ extern bool file_WriteTree(PrsInput input, FILE* output, const char* function) {
             break;
 
         case syn_thunk:
-            fprintf(output, "static bool event_%x(PrsInput input, PrsCursor cursor) {\n"
+            fprintf(output, "static bool event_%x(Copper input, PrsCursor cursor) {\n"
                     "    %s\n"
                     "    return true;"
                     "\n}"
@@ -1519,7 +1519,7 @@ extern bool file_WriteTree(PrsInput input, FILE* output, const char* function) {
         fprintf(output, "\n");
     }
 
-    fprintf(output, "extern bool %s(PrsInput input) {\n", function);
+    fprintf(output, "extern bool %s(Copper input) {\n", function);
     fprintf(output, "\n");
     fprintf(output, "    inline bool attach(PrsName name, PrsNode value) { return cu_AddName(input, name, value); }\n");
     fprintf(output, "\n");

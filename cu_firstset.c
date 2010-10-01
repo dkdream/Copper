@@ -50,7 +50,7 @@ static inline const char* node_label(PrsNode node) {
     return buffer;
 }
 
-static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *target)
+static bool meta_StartFirstSets(Copper input, PrsNode node, PrsMetaFirst *target)
 {
     PrsMetaFirst result = 0;
 
@@ -332,7 +332,7 @@ static bool meta_StartFirstSets(PrsInput input, PrsNode node, PrsMetaFirst *targ
     return false;
 }
 
-static bool meta_Recheck(PrsInput input, PrsNode node, PrsMetaFirst *target, bool *changed)
+static bool meta_Recheck(Copper input, PrsNode node, PrsMetaFirst *target, bool *changed)
 {
     struct prs_metaset holding;
     PrsMetaFirst result = 0;
@@ -698,7 +698,7 @@ static void meta_DebugSets(FILE *output, unsigned level, PrsNode node)
     return;
 }
 
-static bool meta_Clear(PrsInput input, PrsNode node)
+static bool meta_Clear(Copper input, PrsNode node)
 {
     inline bool do_Nothing() {
         return true;
@@ -748,14 +748,14 @@ static bool meta_Clear(PrsInput input, PrsNode node)
     return false;
 }
 
-static bool tree_Clear(PrsInput input, PrsTree tree) {
+static bool tree_Clear(Copper input, PrsTree tree) {
     if (!tree) return true;
     tree->node = 0;
     if (!tree_Clear(input, tree->left)) return false;
     return tree_Clear(input, tree->right);
 }
 
-static bool tree_Fill(PrsInput input, PrsTree tree) {
+static bool tree_Fill(Copper input, PrsTree tree) {
     if (!input) return false;
     if (!tree)  return true;
 
@@ -769,7 +769,7 @@ static bool tree_Fill(PrsInput input, PrsTree tree) {
     return tree_Clear(input, tree->right);
 }
 
-static bool tree_StartFirstSets(PrsInput input, PrsTree tree) {
+static bool tree_StartFirstSets(Copper input, PrsTree tree) {
     if (!input)      return false;
     if (!tree)       return true;
     if (!tree->node) return false;
@@ -797,7 +797,7 @@ static bool tree_StartFirstSets(PrsInput input, PrsTree tree) {
     return true;
 }
 
-static bool tree_MergeFirstSets(PrsInput input, PrsTree tree, bool *changed) {
+static bool tree_MergeFirstSets(Copper input, PrsTree tree, bool *changed) {
     if (!input)      return false;
     if (!tree)       return true;
     if (!tree->node) return false;
@@ -820,7 +820,7 @@ static bool tree_MergeFirstSets(PrsInput input, PrsTree tree, bool *changed) {
     return tree_MergeFirstSets(input, tree->right, changed);
 }
 
-static bool tree_DebugSets(PrsInput input, PrsTree tree) {
+static bool tree_DebugSets(Copper input, PrsTree tree) {
     if (!input)      return false;
     if (!tree)       return true;
     if (!tree->node) return false;
@@ -835,7 +835,7 @@ static bool tree_DebugSets(PrsInput input, PrsTree tree) {
 }
 
 
-extern bool cu_FillMetadata(PrsInput input) {
+extern bool cu_FillMetadata(Copper input) {
 
     if (!input) {
         CU_DEBUG(1, "cu_FillMetadata error: no input\n");
@@ -879,7 +879,7 @@ extern bool cu_FillMetadata(PrsInput input) {
 }
 
 
-extern bool cu_AddName(PrsInput input, PrsName name, PrsNode node) {
+extern bool cu_AddName(Copper input, PrsName name, PrsNode node) {
     assert(0 != input);
     assert(0 != name);
     assert(0 != node);

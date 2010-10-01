@@ -15,7 +15,7 @@
 
 static char* program_name = 0;
 
-extern bool copper_graph(PrsInput parser);
+extern bool copper_graph(Copper parser);
 
 static void help() {
     fprintf(stderr, "copper [-verbose]+ --name c_func_name [--output outfile] [--file infile]\n");
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
         }
     }
 
-    PrsInput parser = 0;
+    Copper parser = 0;
 
     CU_DEBUG(1, "creating file parser object\n");
     if (!make_PrsFile(input, infile, &parser)) {

@@ -271,7 +271,7 @@ struct prs_stack {
 };
 
 struct prs_file {
-    struct prs_input   base;
+    struct copper   base;
 
     // parsing context
     const char        *filename;
@@ -288,35 +288,35 @@ struct prs_file {
     SynChunk  chunks;
 };
 
-extern bool make_PrsFile(FILE* file, const char* filename, PrsInput *input);
-extern bool file_WriteTree(PrsInput input, FILE* output, const char* name);
+extern bool make_PrsFile(FILE* file, const char* filename, Copper *input);
+extern bool file_WriteTree(Copper input, FILE* output, const char* name);
 extern bool file_SetPredicate(struct prs_file *file, PrsName name, PrsPredicate value);
 extern bool file_SetEvent(struct prs_file *file, PrsName name, PrsEvent value);
 
-extern bool writeTree(PrsInput input, PrsCursor at);
+extern bool writeTree(Copper input, PrsCursor at);
 
-extern bool checkRule(PrsInput input, PrsCursor at);
-extern bool defineRule(PrsInput input, PrsCursor at);
+extern bool checkRule(Copper input, PrsCursor at);
+extern bool defineRule(Copper input, PrsCursor at);
 
-extern bool makeEnd(PrsInput input, PrsCursor at);
-extern bool makeBegin(PrsInput input, PrsCursor at);
-extern bool makeThunk(PrsInput input, PrsCursor at);
-extern bool makeApply(PrsInput input, PrsCursor at);
-extern bool makePredicate(PrsInput input, PrsCursor at);
-extern bool makeDot(PrsInput input, PrsCursor at);
-extern bool makeSet(PrsInput input, PrsCursor at);
-extern bool makeString(PrsInput input, PrsCursor at);
-extern bool makeCall(PrsInput input, PrsCursor at);
-extern bool makePlus(PrsInput input, PrsCursor at);
-extern bool makeStar(PrsInput input, PrsCursor at);
-extern bool makeQuestion(PrsInput input, PrsCursor at);
-extern bool makeNot(PrsInput input, PrsCursor at);
-extern bool makeCheck(PrsInput input, PrsCursor at);
-extern bool makeSequence(PrsInput input, PrsCursor at);
-extern bool makeChoice(PrsInput input, PrsCursor at);
-extern bool defineRule(PrsInput input, PrsCursor at);
-extern bool makeHeader(PrsInput input, PrsCursor at);
-extern bool makeInclude(PrsInput input, PrsCursor at);
-extern bool makeFooter(PrsInput input, PrsCursor at);
+extern bool makeEnd(Copper input, PrsCursor at);
+extern bool makeBegin(Copper input, PrsCursor at);
+extern bool makeThunk(Copper input, PrsCursor at);
+extern bool makeApply(Copper input, PrsCursor at);
+extern bool makePredicate(Copper input, PrsCursor at);
+extern bool makeDot(Copper input, PrsCursor at);
+extern bool makeSet(Copper input, PrsCursor at);
+extern bool makeString(Copper input, PrsCursor at);
+extern bool makeCall(Copper input, PrsCursor at);
+extern bool makePlus(Copper input, PrsCursor at);
+extern bool makeStar(Copper input, PrsCursor at);
+extern bool makeQuestion(Copper input, PrsCursor at);
+extern bool makeNot(Copper input, PrsCursor at);
+extern bool makeCheck(Copper input, PrsCursor at);
+extern bool makeSequence(Copper input, PrsCursor at);
+extern bool makeChoice(Copper input, PrsCursor at);
+extern bool defineRule(Copper input, PrsCursor at);
+extern bool makeHeader(Copper input, PrsCursor at);
+extern bool makeInclude(Copper input, PrsCursor at);
+extern bool makeFooter(Copper input, PrsCursor at);
 
 #endif
