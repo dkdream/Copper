@@ -164,6 +164,7 @@ struct syn_first {
 // and as a generic node
 struct syn_any {
     SynType  type;
+    unsigned id;
     SynFirst first;
 };
 
@@ -171,6 +172,7 @@ struct syn_any {
 // - identifier = ....
 struct syn_define {
     SynType   type;
+    unsigned id;
     SynFirst  first;
     SynDefine next;
     CuData   name;
@@ -181,6 +183,7 @@ struct syn_define {
 // - 'chr
 struct syn_char {
     SynType  type;
+    unsigned id;
     SynFirst first;
     unsigned char value;
 };
@@ -193,6 +196,7 @@ struct syn_char {
 // - %predicate
 struct syn_text {
     SynType  type;
+    unsigned id;
     SynFirst first;
     CuData  value;
 };
@@ -204,6 +208,7 @@ struct syn_text {
 // - %footer ...
 struct syn_chunk {
     SynType  type;
+    unsigned id;
     SynFirst first;
     SynChunk next;
     CuData  value;
@@ -217,6 +222,7 @@ struct syn_chunk {
 // - e ?
 struct syn_operator {
     SynType  type;
+    unsigned id;
     SynFirst first;
     SynNode  value;
 };
@@ -226,6 +232,7 @@ struct syn_operator {
 // - e1 e2 ;
 struct syn_tree {
     SynType  type;
+    unsigned id;
     SynFirst first;
     SynNode  before;
     SynNode  after;
@@ -242,9 +249,9 @@ struct cu_buffer {
 };
 
 struct cu_map {
-    unsigned        code;
-    const void*     key;
-    void*           value;
+    unsigned       code;
+    const void*    key;
+    void*          value;
     struct cu_map *next;
 };
 

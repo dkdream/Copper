@@ -242,6 +242,7 @@ static bool make_Any(SynType   type,
 {
     if (!target.any) return false;
 
+    static unsigned next_id = 1;
     unsigned fullsize = 0;
 
     switch (type2kind(type)) {
@@ -259,6 +260,7 @@ static bool make_Any(SynType   type,
     memset(result, 0, fullsize);
 
     result->type = type;
+    result->id   = next_id++;
 
     *(target.any) = result;
 
@@ -1090,8 +1092,8 @@ static bool node_WriteSets(SynNode node, FILE* output)
 
     if (first->bitfield) {
         fprintf(output,
-                "static struct cu_firstset  first_%x_set  = { ",
-                (unsigned) node.any);
+                "static struct cu_firstset  first_%.6x_set  = { ",
+                node.any->id);
 
         charclass_Write(first->bitfield, output);
 
@@ -1100,8 +1102,8 @@ static bool node_WriteSets(SynNode node, FILE* output)
 
     if (first->count) {
         fprintf(output,
-                "static struct cu_firstlist first_%x_list = { %u, ",
-                (unsigned) node.any,
+                "static struct cu_firstlist first_%.6x_list = { %u, ",
+                node.any->id,
                 first->count);
 
         namelist_Write(first->count, first->name, output);
@@ -1124,7 +1126,7 @@ static bool node_FirstSet(SynNode node, FILE* output, const char **target)
     if (5 < index) index = 0;
 
     if (!node.any->first) {
-        sprintf(ptr, "pft_opaque,0/*missing*/,0,\"%x\",0,", (unsigned) node.any);
+        sprintf(ptr, "pft_opaque,0/*missing*/,0,\"%.6x\",0,", node.any->id);
         *target = start;
         return true;
     }
@@ -1136,18 +1138,18 @@ static bool node_FirstSet(SynNode node, FILE* output, const char **target)
     if (!first->bitfield) {
         ptr += sprintf(ptr, "%u, ", 0);
     } else {
-        ptr += sprintf(ptr, "&first_%x_set, ", (unsigned) node.any);
+        ptr += sprintf(ptr, "&first_%.6x_set, ", node.any->id);
     }
 
     if (!first->count) {
          ptr += sprintf(ptr, "%u, ", 0);
     } else {
-        ptr += sprintf(ptr, "&first_%x_list, ", (unsigned) node.any);
+        ptr += sprintf(ptr, "&first_%.6x_list, ", node.any->id);
     }
 
     ptr += sprintf(ptr, "%u, ", 0);
 
-    ptr += sprintf(ptr, "\"_%x\", ", (unsigned) node.any);
+    ptr += sprintf(ptr, "\"_%.6x\", ", node.any->id);
 
     *target = start;
 
@@ -1164,8 +1166,8 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_Apply, (union cu_arg) ((CuName)",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_Apply, (union cu_arg) ((CuName)",
+                node.any->id,
                 first_sets);
 
         data_Write(node.text->value, output);
@@ -1179,8 +1181,8 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_Begin, };\n",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_Begin, };\n",
+                node.any->id,
                 first_sets);
 
         return true;
@@ -1190,8 +1192,8 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_MatchName, (union cu_arg) ((CuName)",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_MatchName, (union cu_arg) ((CuName)",
+                node.any->id,
                 first_sets);
 
         data_Write(node.text->value, output);
@@ -1205,8 +1207,8 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_MatchChar, (union cu_arg) ((CuChar)",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_MatchChar, (union cu_arg) ((CuChar)",
+                node.any->id,
                 first_sets);
 
         char_Write(node.character->value, output);
@@ -1221,10 +1223,10 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_AssertTrue, (union cu_arg) (&node_%x) };\n",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_AssertTrue, (union cu_arg) (&node_%.6x) };\n",
+                node.any->id,
                 first_sets,
-                (unsigned) node.operator->value.any);
+                node.operator->value.any->id);
 
         return true;
     }
@@ -1234,18 +1236,18 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_WriteTree(node.tree->after, output))  return false;
 
         fprintf(output,
-                "static struct cu_pair  pair_%x  = { &node_%x, &node_%x };\n",
-                (unsigned) node.any,
-                (unsigned) node.tree->before.any,
-                (unsigned) node.tree->after.any);
+                "static struct cu_pair  pair_%.6x  = { &node_%.6x, &node_%.6x };\n",
+                node.any->id,
+                node.tree->before.any->id,
+                node.tree->after.any->id);
 
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_Choice, (union cu_arg) (&pair_%x) };\n",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_Choice, (union cu_arg) (&pair_%.6x) };\n",
+                node.any->id,
                 first_sets,
-                (unsigned) node.any);
+                node.any->id);
 
         return true;
     }
@@ -1254,8 +1256,8 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_MatchDot };\n",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_MatchDot };\n",
+                node.any->id,
                 first_sets);
 
         return true;
@@ -1265,8 +1267,8 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_End, };\n",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_End, };\n",
+                node.any->id,
                 first_sets);
 
         return true;
@@ -1289,10 +1291,10 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_AssertFalse, (union cu_arg) (&node_%x) };\n",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_AssertFalse, (union cu_arg) (&node_%.6x) };\n",
+                node.any->id,
                 first_sets,
-                (unsigned) node.operator->value.any);
+                node.operator->value.any->id);
 
         return true;
     }
@@ -1302,10 +1304,10 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_OneOrMore, (union cu_arg) (&node_%x) };\n",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_OneOrMore, (union cu_arg) (&node_%.6x) };\n",
+                node.any->id,
                 first_sets,
-                (unsigned) node.operator->value.any);
+                node.operator->value.any->id);
 
         return true;
     }
@@ -1314,8 +1316,8 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_Predicate, (union cu_arg) ((CuName)",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_Predicate, (union cu_arg) ((CuName)",
+                node.any->id,
                 first_sets);
 
         data_Write(node.text->value, output);
@@ -1330,10 +1332,10 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_ZeroOrOne, (union cu_arg) (&node_%x) };\n",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_ZeroOrOne, (union cu_arg) (&node_%.6x) };\n",
+                node.any->id,
                 first_sets,
-                (unsigned) node.operator->value.any);
+                node.operator->value.any->id);
 
         return true;
     }
@@ -1347,26 +1349,26 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_WriteTree(node.tree->after, output))  return false;
 
         fprintf(output,
-                "static struct cu_pair  pair_%x  = { &node_%x, &node_%x };\n",
-                (unsigned) node.any,
-                (unsigned) node.tree->before.any,
-                (unsigned) node.tree->after.any);
+                "static struct cu_pair  pair_%.6x  = { &node_%.6x, &node_%.6x };\n",
+                node.any->id,
+                node.tree->before.any->id,
+                node.tree->after.any->id);
 
         if (!node_FirstSet(node, output, &first_sets))  return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_Sequence, (union cu_arg) (&pair_%x) };\n",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_Sequence, (union cu_arg) (&pair_%.6x) };\n",
+                node.any->id,
                 first_sets,
-                (unsigned) node.any);
+                node.any->id);
 
         return true;
     }
 
     inline bool do_set() {
         fprintf(output,
-                "static struct cu_set   set_%x   = { ",
-                (unsigned) node.any);
+                "static struct cu_set   set_%.6x   = { ",
+                node.any->id);
 
         data_cooked_Write(node.text->value, output);
 
@@ -1379,10 +1381,10 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_MatchSet, (union cu_arg) (&set_%x) };\n",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_MatchSet, (union cu_arg) (&set_%.6x) };\n",
+                node.any->id,
                 first_sets,
-                (unsigned) node.any);
+                node.any->id);
 
         return true;
     }
@@ -1392,10 +1394,10 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets))     return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_ZeroOrMore, (union cu_arg) (&node_%x) };\n",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_ZeroOrMore, (union cu_arg) (&node_%.6x) };\n",
+                node.any->id,
                 first_sets,
-                (unsigned) node.operator->value.any);
+                node.operator->value.any->id);
 
         return true;
     }
@@ -1404,8 +1406,8 @@ static bool node_WriteTree(SynNode node, FILE* output)
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_MatchText, (union cu_arg) ((CuName)",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_MatchText, (union cu_arg) ((CuName)",
+                node.any->id,
                 first_sets);
 
         data_Write(node.text->value, output);
@@ -1417,18 +1419,18 @@ static bool node_WriteTree(SynNode node, FILE* output)
 
     inline bool do_thunk() {
         fprintf(output,
-                "static struct cu_label label_%x = { (&event_%x), \"event_%x\" };\n",
-                (unsigned) node.any,
-                (unsigned) node.any,
-                (unsigned) node.any);
+                "static struct cu_label label_%.6x = { (&event_%.6x), \"event_%.6x\" };\n",
+                node.any->id,
+                node.any->id,
+                node.any->id);
 
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node  node_%x  = { %s cu_Thunk, (union cu_arg) (&label_%x) };\n",
-                (unsigned) node.any,
+                "static struct cu_node  node_%.6x  = { %s cu_Thunk, (union cu_arg) (&label_%.6x) };\n",
+                node.any->id,
                 first_sets,
-                (unsigned) node.any);
+                node.any->id);
 
         return true;
     }
@@ -1498,12 +1500,12 @@ extern bool file_WriteTree(Copper input, FILE* output, const char* function) {
             break;
 
         case syn_thunk:
-            fprintf(output, "static bool event_%x(Copper input, CuCursor cursor) {\n"
+            fprintf(output, "static bool event_%.6x(Copper input, CuCursor cursor) {\n"
                     "    %s\n"
                     "    return true;"
                     "\n}"
                     "\n",
-                    (unsigned)chunk,
+                    chunk->id,
                     convert(chunk->value));
             break;
         }
@@ -1526,9 +1528,9 @@ extern bool file_WriteTree(Copper input, FILE* output, const char* function) {
 
     rule = file->rules;
     for ( ; rule ; rule = rule->next ) {
-        fprintf(output, "    if (!attach(\"%s\", &node_%x)) return false;\n",
+        fprintf(output, "    if (!attach(\"%s\", &node_%.6x)) return false;\n",
                 convert(rule->name),
-                (unsigned) rule->value.any);
+                rule->value.any->id);
     }
     fprintf(output, "\n");
     fprintf(output, "    return true;\n");
