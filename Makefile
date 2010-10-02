@@ -31,15 +31,9 @@ all : copper.vm
 
 full : do.stage.two 
 
-install : $(COPPER) copper.h libCopper.a
-	[ -d $(BINDIR) ] || mkdir -p $(BINDIR)
-	[ -d $(INCDIR) ] || mkdir -p $(INCDIR)
-	[ -d $(LIBDIR) ] || mkdir -p $(LIBDIR)
-	cp -p $< $(BINDIR)/copper
-	strip $(BINDIR)/copper
-	cp -p copper.h       $(INCDIR)/copper.h
-	cp -p static_table.h $(INCDIR)/static_table.h
-	cp -p libCopper.a    $(LIBDIR)/libCopper.a
+install :: $(BINDIR)/copper
+install :: $(INCDIR)/copper.h
+install :: $(LIBDIR)/libCopper.a
 
 push : #-- put the new graph under version control
 	cp copper.c copper_o.c.bootstrap
@@ -52,6 +46,22 @@ test : $(COPPER.test) ; $(MAKE) --directory=tests
 
 err_test: copper.vm
 	./copper.ovm --name test --file test_error.cu
+
+
+$(BINDIR) : ; [ -d $@ ] || mkdir -p $@
+$(INCDIR) : ; [ -d $@ ] || mkdir -p $@
+$(LIBDIR) : ; [ -d $@ ] || mkdir -p $@
+
+$(BINDIR)/copper : $(BINDIR) $(COPPER)
+	cp -p $(COPPER) $@
+	strip $@
+
+$(INCDIR)/copper.h : $(INCDIR) copper.h
+	cp -p copper.h $@
+
+$(LIBDIR)/libCopper.a : $(LIBDIR) libCopper.a
+	cp -p libCopper.a $@
+
 
 # -- -------------------------------------------------
 DEPENDS += .depends/compiler.d
