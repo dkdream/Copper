@@ -56,7 +56,7 @@ range      = char '-' char
 char       = '\\' [abefnrtv'"\[\]\\]
            | '\\' [0-3][0-7][0-7]
            | '\\' [0-7][0-7]?
-           | !'\\' .
+           | !'\\' !end-of-line .
 
 thunk      = '{' < braces* > '}' - 
 
