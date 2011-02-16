@@ -10,6 +10,28 @@
 #define COPPER_MINOR    1
 #define COPPER_LEVEL    0
 
+/* parsing structure */
+typedef struct copper* Copper;
+
+/* a location in the current input */
+struct cu_cursor {
+    unsigned line_number; // line number in the current file
+    unsigned char_offset; // char offset in the current line
+    unsigned text_inx;    // char offset in the current buffer (copper->data)
+};
+
+typedef struct cu_cursor CuCursor;
+
+/* user define event actions */
+/* these are ONLY call after a sucessful parse completes */
+typedef bool (*CuEvent)(Copper, CuCursor);
+
+// if a predicate ALWAY return true then is it an action
+// these are call during the parse to check if every can proceed
+// example of use:
+// name = < ([a-z][A-Z])+ > !%keyword
+typedef bool (*CuPredicate)(Copper); // user defined predicate
+
 enum cu_operator {
     cu_Apply,       // @name - an named event
     cu_AssertFalse, // e !
@@ -147,9 +169,6 @@ static inline CuFirstType inSequence(const CuFirstType before,
     return pft_opaque;
 }
 
-/* parsing structure */
-typedef struct copper* Copper;
-
 /* */
 typedef struct cu_firstset  *CuFirstSet;
 typedef struct cu_firstlist *CuFirstList;
@@ -218,14 +237,6 @@ struct cu_pair {
     CuNode right;
 };
 
-struct cu_cursor {
-    unsigned line_number;
-    unsigned char_offset;
-    unsigned text_inx;
-};
-
-typedef struct cu_cursor CuCursor;
-
 struct cu_state {
     const char* rule;
     CuCursor   begin;
@@ -233,10 +244,6 @@ struct cu_state {
 };
 
 typedef struct cu_state CuState;
-
-/* user define event actions */
-/* these are ONLY call after a sucessful parse completes */
-typedef bool (*CuEvent)(Copper, CuCursor);
 
 struct cu_label {
     CuEvent  function;
@@ -318,16 +325,12 @@ struct cu_node {
     } arg;
 };
 
-typedef bool (*CuPredicate)(Copper); // user defined predicate
 
 // do we need these ?
-// if a predicate ALWAY return true then is it an action
-typedef void (*CuAction)(Copper);            // user defined parsing action
+//typedef void (*CuAction)(Copper);            // user defined parsing action
 
 /* parsing structure call back */
-typedef bool (*CurrentChar)(Copper, CuChar*);                  // return the char at the cursor location
-typedef bool (*NextChar)(Copper);                               // move the cursor by on char
-typedef bool (*MoreData)(Copper);                               // add more text to the data buffer
+typedef bool (*MoreData)(Copper);                             // add more text to the data buffer
 
 typedef bool (*FindNode)(Copper, CuName, CuNode*);            // find the CuNode labelled name
 typedef bool (*AddName)(Copper, CuName, CuNode);              // add a CuNode to label name
@@ -337,24 +340,28 @@ typedef bool (*FindEvent)(Copper, CuName, CuEvent*);          // find the CuEven
 
 struct copper {
     /* call-backs */
-    MoreData      more;
-    FindNode      node;
-    AddName       attach;
-    FindPredicate predicate;
-    FindEvent     event;
+    MoreData      more;      // add more text to the data buffer
+    FindNode      node;      // find the CuNode for rule name
+    AddName       attach;    // add CuNode as rule name
+    FindPredicate predicate; // find CuPredicate by name
+    FindEvent     event;     // find CuEvent by name
 
     /* data */
-    CuText   data;
-    CuCursor cursor;
-    CuCursor reach;
+    CuText   data;   // the text in the current parse phase
+    CuCursor cursor; // the location in the current parse phase
+    CuCursor reach;  // the maximum location reached in the current parse phase
 
-    CuCache cache;
-    CuTree  map;
-    CuQueue queue;
-    CuState context;
+    /* parse phase markers */
+    unsigned begin_inx; // the char offset when the last begin event was added
+    unsigned end_inx;   // the char offset when the last end event was added
+
+    CuCache cache;   // parser state cache (stores parse failures: (node, text_inx))
+    CuTree  map;     // map rule name to first-set
+    CuQueue queue;   // the current event queue
+    CuState context; // the current context while the event queue is running
 };
 
-extern bool cu_InputInit(Copper input, unsigned cacheSize);
+extern bool cu_InputInit(Copper input, unsigned cacheSize); // initials the copper parser
 extern bool cu_AddName(Copper input, CuName, CuNode);
 extern bool cu_FillMetadata(Copper input);
 extern bool cu_Parse(const char* name, Copper input);

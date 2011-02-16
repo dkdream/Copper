@@ -171,7 +171,7 @@ static bool meta_StartFirstSets(Copper input, CuNode node, CuMetaFirst *target)
         CuNode     value;
 
         if (!input->node(input, name, &value)) {
-            CU_ERROR("node %s not found\n", name);
+            CU_ERROR("node \'%s\' not found\n", name);
             return false;
         }
 

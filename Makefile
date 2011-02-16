@@ -33,6 +33,7 @@ full : do.stage.two
 
 install :: $(BINDIR)/copper
 install :: $(INCDIR)/copper.h
+install :: $(INCDIR)/static_table.h
 install :: $(LIBDIR)/libCopper.a
 
 push : #-- put the new graph under version control
@@ -58,6 +59,9 @@ $(BINDIR)/copper : $(BINDIR) $(COPPER)
 
 $(INCDIR)/copper.h : $(INCDIR) copper.h
 	cp -p copper.h $@
+
+$(INCDIR)/static_table.h : $(INCDIR) static_table.h
+	cp -p static_table.h $@
 
 $(LIBDIR)/libCopper.a : $(LIBDIR) libCopper.a
 	cp -p libCopper.a $@

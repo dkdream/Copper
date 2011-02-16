@@ -135,7 +135,7 @@ static bool queue_Run(CuQueue queue,
 
         index += 1;
 
-        CuThread next   = current->next;
+        CuThread next    = current->next;
         current->next    = queue->free_list;
         queue->free_list = current;
         current = next;
@@ -428,7 +428,7 @@ static bool copper_vm(const char* rulename,
     CuQueue queue = input->queue;
     assert(0 != queue);
 
-    CuThread mark   = 0;
+    CuThread mark = 0;
     CuCursor at;
 
     char buffer[10];
@@ -447,7 +447,12 @@ static bool copper_vm(const char* rulename,
         }
     }
 
-    inline bool reset()   {
+    inline bool cursorMoved() {
+        CuCursor current = input->cursor;
+        return current.text_inx > at.text_inx;
+    }
+
+    inline bool reset() {
         if (!mark) {
             if (!queue_Clear(queue)) return false;
         } else {
@@ -742,6 +747,7 @@ static bool copper_vm(const char* rulename,
 
     inline bool cu_zero_plus() {
         while (copper_vm(rulename, start->arg.node, level, input)) {
+            if (!cursorMoved()) break;
             hold();
         }
         reset();
