@@ -9,6 +9,7 @@
  **
  ***/
 #include "compiler.h"
+#include "copper_inline.h"
 
 /* */
 #include <string.h>
@@ -30,10 +31,10 @@ static const char* convert(CuData name) {
 static bool make_Map(unsigned code,
                      const void* key,
                      void* value,
-                     struct cu_map *next,
-                     struct cu_map **target)
+                     struct prs_map *next,
+                     struct prs_map **target)
 {
-    struct cu_map *result = malloc(sizeof(struct cu_map));
+    struct prs_map *result = malloc(sizeof(struct prs_map));
 
     result->code  = code;
     result->key   = key;
@@ -47,12 +48,12 @@ static bool make_Map(unsigned code,
 static bool make_Hash(Hashcode encode,
                       Matchkey compare,
                       unsigned size,
-                      struct cu_hash **target)
+                      struct prs_hash **target)
 {
-    unsigned fullsize = (sizeof(struct cu_hash)
-                         + (size * sizeof(struct cu_map *)));
+    unsigned fullsize = (sizeof(struct prs_hash)
+                         + (size * sizeof(struct prs_map *)));
 
-    struct cu_hash* result = malloc(fullsize);
+    struct prs_hash* result = malloc(fullsize);
     memset(result, 0, fullsize);
 
     result->encode  = encode;
@@ -63,7 +64,7 @@ static bool make_Hash(Hashcode encode,
     return true;
 }
 
-static bool hash_Find(struct cu_hash *hash,
+static bool hash_Find(struct prs_hash *hash,
                       const void* key,
                       void** target)
 {
@@ -72,7 +73,7 @@ static bool hash_Find(struct cu_hash *hash,
     unsigned code  = hash->encode(key);
     unsigned index = code % hash->size;
 
-    struct cu_map *map = hash->table[index];
+    struct prs_map *map = hash->table[index];
 
     for ( ; map ; map = map->next) {
         if (code != map->code) continue;
@@ -84,7 +85,7 @@ static bool hash_Find(struct cu_hash *hash,
     return false;
 }
 
-static bool hash_Replace(struct cu_hash *hash,
+static bool hash_Replace(struct prs_hash *hash,
                          const void* key,
                          void* value,
                          FreeValue release)
@@ -96,7 +97,7 @@ static bool hash_Replace(struct cu_hash *hash,
     unsigned long code  = hash->encode(key);
     unsigned      index = code % hash->size;
 
-    struct cu_map *map = hash->table[index];
+    struct prs_map *map = hash->table[index];
 
     for ( ; map ; map = map->next) {
         if (code != map->code) continue;
@@ -117,7 +118,7 @@ static bool hash_Replace(struct cu_hash *hash,
     return true;
 }
 
-static bool buffer_GetLine(struct cu_buffer *input, Copper base)
+static bool buffer_GetLine(struct prs_buffer *input, Copper base)
 {
     if (input->cursor >= input->read) {
         int read = getline(&input->line, &input->allocated, input->file);
@@ -137,12 +138,12 @@ static bool buffer_GetLine(struct cu_buffer *input, Copper base)
 }
 
 static bool file_MoreData(Copper input) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return buffer_GetLine(&file->buffer, &file->base);
 }
 
 static bool file_FindNode(Copper input, CuName name, CuNode* target) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     if (hash_Find(file->nodes, name, (void**)target)) {
         return true;
     }
@@ -154,27 +155,27 @@ static bool noop_release(void* value) {
 }
 
 static bool file_FindPredicate(Copper input, CuName name, CuPredicate* target) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return hash_Find(file->predicates, name, (void**)target);
 }
 
 static bool file_FindEvent(Copper input, CuName name, CuEvent* target) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return hash_Find(file->events, name, (void**)target);
 }
 
 static bool file_AddName(Copper input, CuName name, CuNode value) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return hash_Replace(file->nodes, (void*)name, value, noop_release);
 }
 
 /* -- */
 
-extern bool file_SetPredicate(struct cu_file *file, CuName name, CuPredicate value) {
+extern bool file_SetPredicate(struct prs_file *file, CuName name, CuPredicate value) {
     return hash_Replace(file->predicates, (void*)name, value, noop_release);
 }
 
-extern bool file_SetEvent(struct cu_file *file, CuName name, CuEvent value) {
+extern bool file_SetEvent(struct prs_file *file, CuName name, CuEvent value) {
     return hash_Replace(file->events, (void*)name, value, noop_release);
 }
 
@@ -201,9 +202,9 @@ static unsigned compare_name(CuName lname, CuName rname) {
 }
 
 extern bool make_CuFile(FILE* file, const char* filename, Copper *target) {
-    struct cu_file *result = malloc(sizeof(struct cu_file));
+    struct prs_file *result = malloc(sizeof(struct prs_file));
 
-    memset(result, 0, sizeof(struct cu_file));
+    memset(result, 0, sizeof(struct prs_file));
 
     result->base.more      = file_MoreData;
     result->base.node      = file_FindNode;
@@ -267,7 +268,7 @@ static bool make_Any(SynType   type,
     return true;
 }
 
-static bool makeChunk(struct cu_file *file, SynType type, SynChunk *target) {
+static bool makeChunk(struct prs_file *file, SynType type, SynChunk *target) {
     SynChunk chunk = 0;
     CuData value;
 
@@ -296,11 +297,11 @@ static bool makeChunk(struct cu_file *file, SynType type, SynChunk *target) {
     return true;
 }
 
-static unsigned depth(struct cu_file *file) {
+static unsigned depth(struct prs_file *file) {
     if (!file) return 0;
 
-    struct cu_stack *stack = &file->stack;
-    struct cu_cell  *top   = stack->top;
+    struct prs_stack *stack = &file->stack;
+    struct prs_cell  *top   = stack->top;
 
     unsigned result = 0;
 
@@ -311,13 +312,13 @@ static unsigned depth(struct cu_file *file) {
     return result;
 }
 
-static bool push(struct cu_file *file, SynNode value) {
+static bool push(struct prs_file *file, SynNode value) {
     if (!file)      return false;
     if (!value.any) return false;
 
-    unsigned       fullsize = sizeof(struct cu_cell);
-    struct cu_stack *stack = &file->stack;
-    struct cu_cell  *top  = stack->free_list;
+    unsigned       fullsize = sizeof(struct prs_cell);
+    struct prs_stack *stack = &file->stack;
+    struct prs_cell  *top  = stack->free_list;
 
     if (top) {
         stack->free_list = top->next;
@@ -335,12 +336,12 @@ static bool push(struct cu_file *file, SynNode value) {
     return true;
 }
 
-static bool pop(struct cu_file *file, SynTarget target) {
+static bool pop(struct prs_file *file, SynTarget target) {
     if (!file)       return false;
     if (!target.any) return false;
 
-    struct cu_stack *stack = &file->stack;
-    struct cu_cell  *top   = stack->top;
+    struct prs_stack *stack = &file->stack;
+    struct prs_cell  *top   = stack->top;
 
     if (!top) return false;
 
@@ -353,17 +354,17 @@ static bool pop(struct cu_file *file, SynTarget target) {
     return true;
 }
 
-static bool empty(struct cu_file *file) {
+static bool empty(struct prs_file *file) {
     if (!file) return true;
 
-    struct cu_stack *stack = &file->stack;
+    struct prs_stack *stack = &file->stack;
 
     if (!stack->top) return true;
 
     return false;
 }
 
-static bool makeText(struct cu_file *file, SynType type) {
+static bool makeText(struct prs_file *file, SynType type) {
     SynText text = 0;
     CuData value;
 
@@ -380,7 +381,7 @@ static bool makeText(struct cu_file *file, SynType type) {
     return push(file, text);
 }
 
-static bool makeOperator(struct cu_file *file, SynType type) {
+static bool makeOperator(struct prs_file *file, SynType type) {
     SynOperator operator = 0;
     SynNode     value;
 
@@ -399,7 +400,7 @@ static bool makeOperator(struct cu_file *file, SynType type) {
     return true;
 }
 
-static bool makeTree(struct cu_file *file, SynType type) {
+static bool makeTree(struct prs_file *file, SynType type) {
     SynTree tree = 0;
     SynNode before;
     SynNode after;
@@ -423,7 +424,7 @@ static bool makeTree(struct cu_file *file, SynType type) {
 }
 
 extern bool checkRule(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
 
     CuData name;
 
@@ -447,7 +448,7 @@ extern bool checkRule(Copper input, CuCursor at) {
 }
 
 extern bool defineRule(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
 
     SynDefine rule;
     SynNode   value;
@@ -482,7 +483,7 @@ extern bool defineRule(Copper input, CuCursor at) {
 }
 
 extern bool makeEnd(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
 
     SynAny value = 0;
 
@@ -494,7 +495,7 @@ extern bool makeEnd(Copper input, CuCursor at) {
 }
 
 extern bool makeBegin(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
 
     SynAny value = 0;
 
@@ -507,7 +508,7 @@ extern bool makeBegin(Copper input, CuCursor at) {
 
 // nameless event
 extern bool makeThunk(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
 
     SynChunk thunk = 0;
 
@@ -518,17 +519,17 @@ extern bool makeThunk(Copper input, CuCursor at) {
 
 // namefull event
 extern bool makeApply(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return makeText(file, syn_apply);
 }
 
 extern bool makePredicate(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return makeText(file, syn_predicate);
 }
 
 extern bool makeDot(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     SynAny value = 0;
 
     if (!make_Any(syn_dot, &value)) return false;
@@ -539,67 +540,67 @@ extern bool makeDot(Copper input, CuCursor at) {
 }
 
 extern bool makeSet(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return makeText(file, syn_set);
 }
 
 extern bool makeString(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return makeText(file, syn_string);
 }
 
 extern bool makeCall(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return makeText(file, syn_call);
 }
 
 extern bool makePlus(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return makeOperator(file, syn_plus);
 }
 
 extern bool makeStar(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return makeOperator(file, syn_star);
 }
 
 extern bool makeQuestion(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return makeOperator(file, syn_question);
 }
 
 extern bool makeNot(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return makeOperator(file, syn_not);
 }
 
 extern bool makeCheck(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return makeOperator(file, syn_check);
 }
 
 extern bool makeSequence(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return makeTree(file, syn_sequence);
 }
 
 extern bool makeChoice(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return makeTree(file, syn_choice);
 }
 
 extern bool makeHeader(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return makeChunk(file, syn_header, 0);
 }
 
 extern bool makeInclude(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return makeChunk(file, syn_include, 0);
 }
 
 extern bool makeFooter(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
     return makeChunk(file, syn_footer, 0);
 }
 
@@ -1468,7 +1469,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
 }
 
 extern bool writeTree(Copper input, CuCursor at) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
 
     if (!empty(file)) {
         CU_ERROR("stack not empty ; %u\n", depth(file));
@@ -1479,7 +1480,7 @@ extern bool writeTree(Copper input, CuCursor at) {
 
 
 extern bool file_WriteTree(Copper input, FILE* output, const char* function) {
-    struct cu_file *file = (struct cu_file *)input;
+    struct prs_file *file = (struct prs_file *)input;
 
     fprintf(output, "/*-*- mode: c;-*-*/\n");
     fprintf(output, "/* A recursive-descent parser generated by copper %d.%d.%d */\n", COPPER_MAJOR, COPPER_MINOR, COPPER_LEVEL);

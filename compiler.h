@@ -240,7 +240,7 @@ struct syn_tree {
 
 /*------------------------------------------------------------*/
 
-struct cu_buffer {
+struct prs_buffer {
     FILE     *file;
     unsigned  cursor;
     ssize_t   read;
@@ -248,47 +248,47 @@ struct cu_buffer {
     char     *line;
 };
 
-struct cu_map {
+struct prs_map {
     unsigned       code;
     const void*    key;
     void*          value;
-    struct cu_map *next;
+    struct prs_map *next;
 };
 
 typedef unsigned long (*Hashcode)(const void*);
 typedef bool     (*Matchkey)(const void*, const void*);
 typedef bool     (*FreeValue)(void*);
 
-struct cu_hash {
+struct prs_hash {
     Hashcode encode;
     Matchkey compare;
     unsigned size;
-    struct cu_map *table[];
+    struct prs_map *table[];
 };
 
 // use for the node stack
-struct cu_cell {
+struct prs_cell {
     SynNode value;
-    struct cu_cell *next;
+    struct prs_cell *next;
 };
 
-struct cu_stack {
-    struct cu_cell *top;
-    struct cu_cell *free_list;
+struct prs_stack {
+    struct prs_cell *top;
+    struct prs_cell *free_list;
 };
 
-struct cu_file {
+struct prs_file {
     struct copper   base;
 
     // parsing context
     const char        *filename;
-    struct cu_buffer  buffer;
-    struct cu_hash   *nodes;
-    struct cu_hash   *predicates;
-    struct cu_hash   *events;
+    struct prs_buffer  buffer;
+    struct prs_hash   *nodes;
+    struct prs_hash   *predicates;
+    struct prs_hash   *events;
 
     // parsing state
-    struct cu_stack stack;
+    struct prs_stack stack;
 
     // parsing results
     SynDefine rules;
@@ -297,8 +297,8 @@ struct cu_file {
 
 extern bool make_CuFile(FILE* file, const char* filename, Copper *input);
 extern bool file_WriteTree(Copper input, FILE* output, const char* name);
-extern bool file_SetPredicate(struct cu_file *file, CuName name, CuPredicate value);
-extern bool file_SetEvent(struct cu_file *file, CuName name, CuEvent value);
+extern bool file_SetPredicate(struct prs_file *file, CuName name, CuPredicate value);
+extern bool file_SetEvent(struct prs_file *file, CuName name, CuEvent value);
 
 extern bool writeTree(Copper input, CuCursor at);
 

@@ -9,6 +9,7 @@
  **
  ***/
 #include "copper.h"
+#include "copper_inline.h"
 
 /* */
 #include <stdlib.h>
