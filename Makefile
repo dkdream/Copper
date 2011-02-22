@@ -83,8 +83,8 @@ compiler.o  : compiler.c
 DEPENDS += .depends/copper_o.d
 
 copper_o.o : copper_o.c.bootstrap copper.h
-copper.ovm : main_o.o copper_o.o $(CU_OBJS) libCopper.a
-	$(CC) $(CFLAGS) -o $@ main_o.o copper_o.o $(CU_OBJS) -L. -lCopper
+copper.ovm : main_o.o copper_o.o cu_engine_o.o $(CU_OBJS) libCopper.a
+	$(CC) $(CFLAGS) -o $@ main_o.o copper_o.o cu_engine_o.o $(CU_OBJS) -L. -lCopper
 
 main_o.o   : main.c compiler.h copper.h
 	$(CC) $(CFLAGS) -DSKIP_META -I. -c -o $@ $<
@@ -92,6 +92,9 @@ main_o.o   : main.c compiler.h copper.h
 copper_o.o : copper_o.c.bootstrap
 	@cp copper_o.c.bootstrap copper_o.c
 	$(CC) $(CFLAGS) -I. -c -o $@ copper_o.c
+
+cu_engine_o.o : main.c compiler.h copper.h cu_engine.c
+	$(CC) $(CFLAGS) -DOLD_VM -I. -c -o $@ cu_engine.c
 
 # -- -------------------------------------------------
 DEPENDS += .depends/main.d

@@ -964,7 +964,12 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool cu_text() {
+#if !defined(OLD_VM)
+        const CuString string = (const CuString) start->arg.string;
+        const CuChar    *text = string->text;
+#else
         const CuChar *text = (const CuChar *) start->arg.name;
+#endif
 
         for ( ; 0 != *text ; ++text) {
             CuChar chr = 0;

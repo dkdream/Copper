@@ -54,7 +54,23 @@ enum cu_operator {
     cu_Void        // -nothing-
 };
 
+enum cu_phase {
+    cu_One,
+    cu_Two,
+    cu_Three,
+    cu_Four
+};
+
+enum cu_signal {
+    cu_MoreText,
+    cu_Found,
+    cu_Lost,
+    cu_Error
+};
+
 typedef enum cu_operator CuOperator;
+typedef enum cu_phase    CuPhase;
+typedef enum cu_signal   CuSignal;
 
 enum cu_first_type {
     pft_opaque,      // %predicate, e !, dot
@@ -72,19 +88,19 @@ typedef struct cu_metafirst *CuMetaFirst;
 typedef struct cu_metaset   *CuMetaSet;
 
 /* parse node arguments */
-typedef unsigned char      CuChar;
+typedef unsigned char     CuChar;
 typedef struct cu_string *CuString;
 typedef struct cu_range  *CuRange;
 typedef struct cu_set    *CuSet;
-typedef const  char       *CuName;
+typedef const  char      *CuName;
 typedef struct cu_node   *CuNode;
 typedef struct cu_pair   *CuPair;
 /* parse event queue */
 typedef struct cu_thread *CuThread;
 typedef struct cu_queue  *CuQueue;
 /* parse node stack */
-typedef struct cu_thread *CuFrame;
-typedef struct cu_queue  *CuStack;
+typedef struct cu_frame *CuFrame;
+typedef struct cu_stack *CuStack;
 
 /* parsing cache node */
 typedef struct cu_point *CuPoint;
@@ -173,8 +189,10 @@ struct cu_queue {
 
 struct cu_frame {
     CuFrame     next;
+    CuNode      node;
+    CuPhase     phase;
+    bool        last;
     const char* rulename;
-    CuNode      start;
     unsigned    level;
     CuThread    mark;
     CuCursor    at;
@@ -210,7 +228,7 @@ struct cu_metaset {
 
 struct cu_metafirst {
     CuMetaFirst   next;
-    bool           done;
+    bool          done;
     CuNode        node;
     CuFirstType   type;
     CuMetaSet     first;
