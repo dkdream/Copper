@@ -1398,24 +1398,6 @@ static bool node_WriteTree(SynNode node, FILE* output)
         return true;
     }
 
-    inline bool do_thunk() {
-        fprintf(output,
-                "static struct cu_label  label_%.6x = { (&event_%.6x), \"event_%.6x\" };\n",
-                node.any->id,
-                node.any->id,
-                node.any->id);
-
-        if (!node_FirstSet(node, output, &first_sets)) return false;
-
-        fprintf(output,
-                "static struct cu_node   node_%.6x  = { %s cu_Thunk, (union cu_arg) (&label_%.6x) };\n",
-                node.any->id,
-                first_sets,
-                node.any->id);
-
-        return true;
-    }
-
     inline bool do_node() {
         switch (node.any->type) {
         case syn_apply:     return do_apply();

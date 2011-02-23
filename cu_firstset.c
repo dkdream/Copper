@@ -324,7 +324,6 @@ static bool meta_StartFirstSets(Copper input, CuNode node, CuMetaFirst *target)
     case cu_OneOrMore:   return do_AssertChild();
     case cu_Predicate:   return do_Opaque();
     case cu_Sequence:    return do_Sequence();
-    case cu_Thunk:       return do_Event();
     case cu_ZeroOrMore:  return do_TestChild();
     case cu_ZeroOrOne:   return do_TestChild();
     case cu_Void:
@@ -543,7 +542,6 @@ static bool meta_Recheck(Copper input, CuNode node, CuMetaFirst *target, bool *c
     case cu_OneOrMore:   return do_AssertChild();
     case cu_Predicate:   return do_Nothing();
     case cu_Sequence:    return do_Sequence();
-    case cu_Thunk:       return do_Nothing();
     case cu_ZeroOrMore:  return do_TestChild();
     case cu_ZeroOrOne:   return do_TestChild();
     case cu_Void:
@@ -689,7 +687,6 @@ static void meta_DebugSets(FILE *output, unsigned level, CuNode node)
     case cu_OneOrMore:   do_Child(); return;
     case cu_Predicate:   return;
     case cu_Sequence:    do_Childern(); return;
-    case cu_Thunk:       return;
     case cu_ZeroOrMore:  do_Child(); return;
     case cu_ZeroOrOne:   do_Child(); return;
     case cu_Void:
@@ -739,7 +736,6 @@ static bool meta_Clear(Copper input, CuNode node)
     case cu_OneOrMore:   return do_Child();
     case cu_Predicate:   return do_Nothing();
     case cu_Sequence:    return do_Childern();
-    case cu_Thunk:       return do_Nothing();
     case cu_ZeroOrMore:  return do_Child();
     case cu_ZeroOrOne:   return do_Child();
     case cu_Void:

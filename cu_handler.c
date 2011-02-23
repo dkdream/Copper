@@ -714,7 +714,6 @@ static bool process_vm(Copper input, const unsigned count, const char *data)
     case cu_OneOrMore:   goto do_OneOrMore;
     case cu_Predicate:   goto do_Predicate;
     case cu_Sequence:    goto do_Sequence;
-    case cu_Thunk:       goto do_Thunk;
     case cu_ZeroOrMore:  goto do_ZeroOrMore;
     case cu_ZeroOrOne:   goto do_ZeroOrOne;
     case cu_Void:        goto do_Void;
@@ -1019,12 +1018,6 @@ static bool process_vm(Copper input, const unsigned count, const char *data)
         if (frame->last) goto do_Match;
         reset();
         goto do_MisMatch;
-    }
-    goto do_PhaseError;
-
- do_Thunk: {     // {...} - an unnamed event
-        if (add_event(*(start->arg.label))) goto do_Match;
-        goto do_Error;
     }
     goto do_PhaseError;
 

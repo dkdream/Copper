@@ -11,16 +11,10 @@
 #define COPPER_LEVEL    0
 
 /* parsing structure */
-typedef struct copper* Copper;
-
-/* a location in the current input */
-struct cu_cursor {
-    unsigned line_number; // line number in the current file
-    unsigned char_offset; // char offset in the current line
-    unsigned text_inx;    // char offset in the current buffer (copper->data)
-};
-
+typedef struct copper*   Copper;
 typedef struct cu_cursor CuCursor;
+typedef enum   cu_signal CuSignal;
+typedef struct cu_frame* CuFrame;
 
 /* user define event actions */
 /* these are ONLY call after a sucessful parse completes */
@@ -30,7 +24,14 @@ typedef bool (*CuEvent)(Copper, CuCursor);
 // these are call during the parse to check if every can proceed
 // example of use:
 // name = < ([a-z][A-Z])+ > !%keyword
-typedef bool (*CuPredicate)(Copper); // user defined predicate
+typedef CuSignal (*CuPredicate)(Copper, CuFrame); // user defined predicate
+
+enum cu_signal {
+    cu_MoreText,
+    cu_Found,
+    cu_Lost,
+    cu_Error
+};
 
 enum cu_operator {
     cu_Apply,       // @name - an named event
@@ -48,7 +49,6 @@ enum cu_operator {
     cu_OneOrMore,   // e +
     cu_Predicate,   // %predicate
     cu_Sequence,    // e1 e2 ;
-    cu_Thunk,       // {...} - an unnamed event
     cu_ZeroOrMore,  // e *
     cu_ZeroOrOne,   // e ?
     cu_Void        // -nothing-
@@ -61,17 +61,6 @@ enum cu_phase {
     cu_Four
 };
 
-enum cu_signal {
-    cu_MoreText,
-    cu_Found,
-    cu_Lost,
-    cu_Error
-};
-
-typedef enum cu_operator CuOperator;
-typedef enum cu_phase    CuPhase;
-typedef enum cu_signal   CuSignal;
-
 enum cu_first_type {
     pft_opaque,      // %predicate, e !, dot
     pft_fixed,       // "...", 'chr, [...], begin-end
@@ -79,6 +68,8 @@ enum cu_first_type {
     pft_event        // @name, set state.begin, set state.end {...}
 };
 
+typedef enum cu_operator   CuOperator;
+typedef enum cu_phase      CuPhase;
 typedef enum cu_first_type CuFirstType;
 
 /* */
@@ -95,17 +86,32 @@ typedef struct cu_set    *CuSet;
 typedef const  char      *CuName;
 typedef struct cu_node   *CuNode;
 typedef struct cu_pair   *CuPair;
+
 /* parse event queue */
 typedef struct cu_thread *CuThread;
 typedef struct cu_queue  *CuQueue;
+
 /* parse node stack */
-typedef struct cu_frame *CuFrame;
 typedef struct cu_stack *CuStack;
 
 /* parsing cache node */
 typedef struct cu_point *CuPoint;
 typedef struct cu_cache *CuCache;
 typedef struct cu_tree  *CuTree;
+
+/* */
+typedef struct cu_text  CuText;
+typedef struct cu_data  CuData;
+typedef struct cu_state CuState;
+typedef struct cu_label CuLabel;
+typedef struct cu_slice CuSlice;
+
+/* a location in the current input */
+struct cu_cursor {
+    unsigned line_number; // line number in the current file
+    unsigned char_offset; // char offset in the current line
+    unsigned text_inx;    // char offset in the current buffer (copper->data)
+};
 
 struct cu_firstset {
     const unsigned char bitfield[32];
@@ -123,34 +129,45 @@ struct cu_text {
     char     *buffer;
 };
 
-typedef struct cu_text CuText;
-
+/* a sub-string of the data buffer */
 struct cu_data {
     unsigned    length;
     const char* start; // this is NOT a zero terminated string
 };
 
-typedef struct cu_data CuData;
-
+/* parsing node member (begin) */
+/* CuChar   letter (cu_MatchChar)*/
+/* CuString string (cu_MatchText) */
 struct cu_string {
     unsigned length;
     CuChar  text[];
 };
 
+/* CuRange range */
 struct cu_range {
     CuChar begin;
     CuChar end;
 };
 
+/* CuSet set (cu_MatchSet)*/
 struct cu_set {
     const char *label;
     const unsigned char bitfield[];
 };
 
+/* CuName name (cu_Apply, cu_MatchName, cu_Predicate) */
+/* CuNode node (cu_AssertTrue, cu_AssertFalse, cu_OneOrMore, cu_ZeroOrOne, cu_ZeroOrMore)*/
+/* CuPair pair (cu_Choice, cu_Sequence)*/
 struct cu_pair {
     CuNode left;
     CuNode right;
 };
+
+/* CuEvent event */
+#if 0
+/* CuLabel *label (cu_Thunk)*/
+#endif
+/* (end) parsing node member */
 
 struct cu_state {
     const char* rule;
@@ -158,15 +175,13 @@ struct cu_state {
     CuCursor   end;
 };
 
-typedef struct cu_state CuState;
-
+/* */
 struct cu_label {
     CuEvent  function;
     CuName   name;
 };
 
-typedef struct cu_label CuLabel;
-
+/* a member of the event queue */
 struct cu_thread {
     CuThread   next;
     const char* rule;
@@ -174,12 +189,11 @@ struct cu_thread {
     CuLabel    label;
 };
 
+/* a section of the event queue */
 struct cu_slice {
     CuThread begin;
     CuThread end;
 };
-
-typedef struct cu_slice CuSlice;
 
 struct cu_queue {
     CuThread free_list;
@@ -251,8 +265,10 @@ struct cu_node {
         CuName   name;
         CuNode   node;
         CuPair   pair;
+#if 0
         CuEvent  event;
         CuLabel *label;
+#endif
     } arg;
 };
 

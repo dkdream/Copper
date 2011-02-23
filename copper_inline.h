@@ -19,7 +19,6 @@ static inline const char* oper2name(const CuOperator oper) {
     case cu_OneOrMore:   return "cu_OneOrMore";   // e +
     case cu_Predicate:   return "cu_Predicate";   // %predicate
     case cu_Sequence:    return "cu_Sequence";    // e1 e2 ;
-    case cu_Thunk:       return "cu_Thunk";       // { } - an unnamed event
     case cu_ZeroOrMore:  return "cu_ZeroOrMore";  // e *
     case cu_ZeroOrOne:   return "cu_ZeroOrOne";   // e ?
     case cu_Void:        break; // -nothing-

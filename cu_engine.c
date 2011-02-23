@@ -504,12 +504,13 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool predicate(CuName name) {
+        CuFrame     frame = 0;
         CuPredicate test = 0;
         if (!input->predicate(input, name, &test)) {
             CU_ERROR("predicate %s not found\n", name);
             return false;
         }
-        return test(input);
+        return cu_Lost != test(input,frame);
     }
 
     inline bool set_cache(CuNode cnode) {
@@ -959,9 +960,6 @@ static bool copper_vm(const char* rulename,
 
         return true;
     }
-    inline bool cu_thunk() {
-        return add_event(*(start->arg.label));
-    }
 
     inline bool cu_text() {
 #if !defined(OLD_VM)
@@ -1027,7 +1025,6 @@ static bool copper_vm(const char* rulename,
         case cu_OneOrMore:   return cu_one_plus();
         case cu_Predicate:   return cu_predicate();
         case cu_Sequence:    return cu_and();
-        case cu_Thunk:       return cu_thunk();
         case cu_ZeroOrMore:  return cu_zero_plus();
         case cu_ZeroOrOne:   return cu_optional();
         case cu_Void:        return false;
