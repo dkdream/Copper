@@ -1,11 +1,8 @@
 # Copper Grammar for copper (vm)
 # Parser syntax
 
-grammar = ( - heading )?
-          ( - define-rule )+
+grammar = ( - define-rule )+
           end-of-file @writeTree
-
-heading = '%header' - thunk @makeHeader
 
 define-rule = identifier       @checkRule
               EQUAL expression @defineRule
@@ -31,7 +28,6 @@ primary    = identifier !EQUAL     @makeCall
            | DOT                   @makeDot
            | predicate             @makePredicate
            | event                 @makeApply
-           | thunk                 @makeThunk
            | BEGIN                 @makeBegin
            | END                   @makeEnd
 
@@ -57,11 +53,6 @@ char       = '\\' [abefnrtv'"\[\]\\]
            | '\\' [0-3][0-7][0-7]
            | '\\' [0-7][0-7]?
            | !'\\' !end-of-line .
-
-thunk      = '{' < braces* > '}' - 
-
-braces     = '{' braces* '}'
-           |  !'}' .
 
 EQUAL     = '=' -
 COLON     = ':' -

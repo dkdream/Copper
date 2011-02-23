@@ -24,7 +24,6 @@ typedef struct syn_any      *SynAny;
 typedef struct syn_define   *SynDefine;
 typedef struct syn_char     *SynChar;
 typedef struct syn_text     *SynText;
-typedef struct syn_chunk    *SynChunk;
 typedef struct syn_operator *SynOperator;
 typedef struct syn_tree     *SynTree;
 /* */
@@ -35,7 +34,6 @@ union syn_node {
     SynDefine   define;
     SynChar     character;
     SynText     text;
-    SynChunk    chunk;
     SynOperator operator;
     SynTree     tree;
 } __attribute__ ((__transparent_union__));
@@ -47,12 +45,10 @@ union syn_target {
     SynDefine   *define;
     SynChar     *character;
     SynText     *text;
-    SynChunk    *chunk;
     SynOperator *operator;
     SynTree     *tree;
     SynNode     *node;
 } __attribute__ ((__transparent_union__));
-
 
 typedef union syn_target SynTarget;
 
@@ -65,9 +61,6 @@ typedef enum syn_type {
     syn_choice,    // - e1 e2 |
     syn_dot,       // - .
     syn_end,       // - set state.end
-    syn_footer,    // - %footer ...
-    syn_header,    // - %header  {...}
-    syn_include,   // - %include "..." or  %include <...>
     syn_not,       // - e !
     syn_plus,      // - e +
     syn_predicate, // - %predicate
@@ -77,7 +70,6 @@ typedef enum syn_type {
     syn_set,       // - [...]
     syn_star,      // - e *
     syn_string,    // - "..."
-    syn_thunk,     // - {...}
     //-------
     syn_void
 } SynType;
@@ -87,7 +79,6 @@ typedef enum syn_kind {
     syn_any,
     syn_define,
     syn_text,
-    syn_chunk,
     syn_operator,
     syn_tree
 } SynKind;
@@ -102,9 +93,6 @@ static inline SynKind type2kind(SynType type) {
     case syn_choice:    return syn_tree;      // - e1 e2 |
     case syn_dot:       return syn_any;       // - .
     case syn_end:       return syn_any;       // - set state.end
-    case syn_footer:    return syn_chunk;     // - %footer ...
-    case syn_header:    return syn_chunk;     // - %header {...}
-    case syn_include:   return syn_chunk;     // - %include "..." or  %include <...>
     case syn_not:       return syn_operator;  // - e !
     case syn_plus:      return syn_operator;  // - e +
     case syn_predicate: return syn_text;      // - %predicate
@@ -114,7 +102,6 @@ static inline SynKind type2kind(SynType type) {
     case syn_set:       return syn_text;      // - [...]
     case syn_star:      return syn_operator;  // - e *
     case syn_string:    return syn_text;      // - "..." or '...'
-    case syn_thunk:     return syn_chunk;     // - {...}
         /* */
     case syn_void: break;
     }
@@ -131,9 +118,6 @@ static inline const char* type2name(SynType type) {
     case syn_choice:    return "syn_choice";
     case syn_dot:       return "syn_dot";
     case syn_end:       return "syn_end";
-    case syn_footer:    return "syn_footer";
-    case syn_header:    return "syn_header";
-    case syn_include:   return "syn_include";
     case syn_not:       return "syn_not";
     case syn_plus:      return "syn_plus";
     case syn_predicate: return "syn_predicate";
@@ -143,7 +127,6 @@ static inline const char* type2name(SynType type) {
     case syn_set:       return "syn_set";
     case syn_star:      return "syn_star";
     case syn_string:    return "syn_string";
-    case syn_thunk:     return "syn_thunk";
         /* */
     case syn_void: break;
     }
@@ -201,6 +184,7 @@ struct syn_text {
     CuData  value;
 };
 
+#if 0
 // use for
 // - %header {...}
 // - %include "..." or  %include <...>
@@ -213,6 +197,7 @@ struct syn_chunk {
     SynChunk next;
     CuData  value;
 };
+#endif
 
 // use for
 // - e !
@@ -292,7 +277,7 @@ struct prs_file {
 
     // parsing results
     SynDefine rules;
-    SynChunk  chunks;
+    //SynChunk  chunks;
 };
 
 extern bool make_CuFile(FILE* file, const char* filename, Copper *input);
@@ -307,7 +292,6 @@ extern bool defineRule(Copper input, CuCursor at);
 
 extern bool makeEnd(Copper input, CuCursor at);
 extern bool makeBegin(Copper input, CuCursor at);
-extern bool makeThunk(Copper input, CuCursor at);
 extern bool makeApply(Copper input, CuCursor at);
 extern bool makePredicate(Copper input, CuCursor at);
 extern bool makeDot(Copper input, CuCursor at);
@@ -322,8 +306,5 @@ extern bool makeCheck(Copper input, CuCursor at);
 extern bool makeSequence(Copper input, CuCursor at);
 extern bool makeChoice(Copper input, CuCursor at);
 extern bool defineRule(Copper input, CuCursor at);
-extern bool makeHeader(Copper input, CuCursor at);
-extern bool makeInclude(Copper input, CuCursor at);
-extern bool makeFooter(Copper input, CuCursor at);
 
 #endif

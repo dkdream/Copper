@@ -251,7 +251,6 @@ static bool make_Any(SynType   type,
     case syn_any:      fullsize = sizeof(struct syn_any);      break;
     case syn_define:   fullsize = sizeof(struct syn_define);   break;
     case syn_text:     fullsize = sizeof(struct syn_text);     break;
-    case syn_chunk:    fullsize = sizeof(struct syn_chunk);    break;
     case syn_operator: fullsize = sizeof(struct syn_operator); break;
     case syn_tree:     fullsize = sizeof(struct syn_tree);     break;
     }
@@ -264,35 +263,6 @@ static bool make_Any(SynType   type,
     result->id   = next_id++;
 
     *(target.any) = result;
-
-    return true;
-}
-
-static bool makeChunk(struct prs_file *file, SynType type, SynChunk *target) {
-    SynChunk chunk = 0;
-    CuData value;
-
-    if (syn_chunk != type2kind(type)) return false;
-
-    if (!cu_MarkedText((Copper) file, &value)) return false;
-
-    if (!make_Any(type, &chunk)) return false;
-
-    CU_DEBUG(1, "make %s\n", type2name(type));
-
-    if (!file->chunks) {
-        file->chunks = chunk;
-    } else {
-        SynChunk last = file->chunks;
-        for ( ; last->next ; last = last->next) ;
-        last->next = chunk;
-    }
-
-    chunk->value = value;
-
-    if (target) {
-        *target = chunk;
-    }
 
     return true;
 }
@@ -506,17 +476,6 @@ extern bool makeBegin(Copper input, CuCursor at) {
     return true;
 }
 
-// nameless event
-extern bool makeThunk(Copper input, CuCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
-
-    SynChunk thunk = 0;
-
-    if (!makeChunk(file, syn_thunk, &thunk)) return false;
-
-    return push(file, thunk);
-}
-
 // namefull event
 extern bool makeApply(Copper input, CuCursor at) {
     struct prs_file *file = (struct prs_file *)input;
@@ -588,22 +547,6 @@ extern bool makeChoice(Copper input, CuCursor at) {
     struct prs_file *file = (struct prs_file *)input;
     return makeTree(file, syn_choice);
 }
-
-extern bool makeHeader(Copper input, CuCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
-    return makeChunk(file, syn_header, 0);
-}
-
-extern bool makeInclude(Copper input, CuCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
-    return makeChunk(file, syn_include, 0);
-}
-
-extern bool makeFooter(Copper input, CuCursor at) {
-    struct prs_file *file = (struct prs_file *)input;
-    return makeChunk(file, syn_footer, 0);
-}
-
 
 static void data_Write(CuData data, FILE* output);
 static void char_Write(unsigned char value, FILE* output);
@@ -959,9 +902,6 @@ static bool node_ComputeSets(SynNode node)
     case syn_choice:    return do_choice();   // - e1 e2 |
     case syn_dot:       return do_opaque();   // - dot
     case syn_end:       return do_event();    // - set state.end
-    case syn_footer:    return do_event();    // - %footer ...
-    case syn_header:    return do_event();    // - %header {...}
-    case syn_include:   return do_event();    // - %include "..." or  %include <...>
     case syn_not:       return do_not();      // - e !
     case syn_plus:      return do_check();    // - e +
     case syn_predicate: return do_opaque();   // - %predicate
@@ -971,7 +911,6 @@ static bool node_ComputeSets(SynNode node)
     case syn_set:       return do_set();      // - [...]
     case syn_star:      return do_question(); // - e *
     case syn_string:    return do_string();   // - "..."
-    case syn_thunk:     return do_event();    // - {...}
         /* */
     case syn_void:
         break;
@@ -1120,7 +1059,6 @@ static bool node_WriteSets(SynNode node, FILE* output)
 
     case syn_any:   break;
     case syn_text:  break;
-    case syn_chunk: break;
     }
 
     SynFirst first = node.any->first;
@@ -1488,9 +1426,6 @@ static bool node_WriteTree(SynNode node, FILE* output)
         case syn_choice:    return do_choice();
         case syn_dot:       return do_dot();
         case syn_end:       return do_end();
-        case syn_footer:    return do_footer();
-        case syn_header:    return do_header();
-        case syn_include:   return do_include();
         case syn_not:       return do_not();
         case syn_plus:      return do_plus();
         case syn_predicate: return do_predicate();
@@ -1500,7 +1435,6 @@ static bool node_WriteTree(SynNode node, FILE* output)
         case syn_set:       return do_set();
         case syn_star:      return do_star();
         case syn_string:    return do_string();
-        case syn_thunk:     return do_thunk();
             /* */
         case syn_void: break;
         }
@@ -1530,29 +1464,6 @@ extern bool file_WriteTree(Copper input, FILE* output, const char* function) {
     fprintf(output, "/* ================================================== */\n");
     fprintf(output, "#include <copper.h>\n");
     fprintf(output, "/* ================================================== */\n");
-
-    SynChunk chunk = file->chunks;
-    for ( ; chunk ; chunk = chunk->next ) {
-        switch (chunk->type) {
-        default: break;
-        case syn_header:
-            fprintf(output, "%s\n", convert(chunk->value));
-            break;
-        case syn_include:
-            fprintf(output, "#include %s\n", convert(chunk->value));
-            break;
-
-        case syn_thunk:
-            fprintf(output, "static bool event_%.6x(Copper input, CuCursor cursor) {\n"
-                    "    %s\n"
-                    "    return true;"
-                    "\n}"
-                    "\n",
-                    chunk->id,
-                    convert(chunk->value));
-            break;
-        }
-    }
     fprintf(output, "\n");
 
     SynDefine rule = file->rules;
@@ -1579,16 +1490,6 @@ extern bool file_WriteTree(Copper input, FILE* output, const char* function) {
     fprintf(output, "    return true;\n");
     fprintf(output, "}\n");
     fprintf(output, "\n");
-
-    chunk = file->chunks;
-    for ( ; chunk ; chunk = chunk->next ) {
-        switch (chunk->type) {
-        default: break;
-        case syn_footer:
-            fprintf(output, "%s\n", convert(chunk->value));
-            break;
-        }
-    }
 
     return true;
 }
