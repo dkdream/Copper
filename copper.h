@@ -162,11 +162,6 @@ struct cu_pair {
     CuNode left;
     CuNode right;
 };
-
-/* CuEvent event */
-#if 0
-/* CuLabel *label (cu_Thunk)*/
-#endif
 /* (end) parsing node member */
 
 struct cu_state {
@@ -177,8 +172,8 @@ struct cu_state {
 
 /* */
 struct cu_label {
-    CuEvent  function;
-    CuName   name;
+    CuEvent function;
+    CuName  name;
 };
 
 /* a member of the event queue */
