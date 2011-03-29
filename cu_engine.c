@@ -510,7 +510,7 @@ static bool copper_vm(const char* rulename,
             CU_ERROR("predicate %s not found\n", name);
             return false;
         }
-        return cu_Lost != test(input,frame);
+        return cu_NoPath != test(input,frame);
     }
 
     inline bool set_cache(CuNode cnode) {

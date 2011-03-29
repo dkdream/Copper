@@ -27,7 +27,7 @@ DEPENDS  = $(LIB_SRCS:%.c=.depends/%.d)
 
 default : copper.vm
 
-all : copper.vm
+all : copper.vm copper_n.vm
 
 full : do.stage.two 
 
@@ -105,6 +105,12 @@ main.o   : main.c
 
 copper.vm : main.o copper.o $(CU_OBJS) libCopper.a
 	$(CC) $(CFLAGS) -o $@ main.o copper.o $(CU_OBJS) -L. -lCopper
+
+# -- -------------------------------------------------
+main_n.o   : main_n.c
+
+copper_n.vm : main_n.o copper.o $(CU_OBJS) libCopper.a
+	$(CC) $(CFLAGS) -o $@ main_n.o copper.o $(CU_OBJS) -L. -lCopper
 
 # -- -------------------------------------------------
 

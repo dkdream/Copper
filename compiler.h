@@ -290,6 +290,10 @@ extern bool writeTree(Copper input, CuCursor at);
 extern bool checkRule(Copper input, CuCursor at);
 extern bool defineRule(Copper input, CuCursor at);
 
+extern bool make_Hash(Hashcode, Matchkey, unsigned, struct prs_hash **);
+extern bool hash_Find(struct prs_hash *hash, const void* key, void** target);
+extern bool hash_Replace(struct prs_hash *hash, const void* key, void* value, FreeValue release);
+
 extern bool makeEnd(Copper input, CuCursor at);
 extern bool makeBegin(Copper input, CuCursor at);
 extern bool makeApply(Copper input, CuCursor at);

@@ -32,5 +32,6 @@ copper.ovm
 copper.vm
 copper_o.c
 libCopper.a
+copper_n.vm
 
 

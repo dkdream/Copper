@@ -386,9 +386,7 @@ static bool cache_Clear(CuCache cache) {
     return true;
 }
 
-static void cu_append(Copper input,
-                      const unsigned count,
-                      const char *src)
+static void cu_append(Copper input, const CuData text)
 {
     struct cu_text *data = &input->data;
 
@@ -398,11 +396,11 @@ static void cu_append(Copper input,
 
         int space = length - point;
 
-        if (space > count) return;
+        if (space > text.length) return;
 
-        unsigned newsize = (0 < length) ? length : (count << 1) ;
+        unsigned newsize = (0 < length) ? length : (text.length << 1) ;
 
-        while ((newsize - point) < count) {
+        while ((newsize - point) < text.length) {
             newsize = newsize << 1;
         }
 
@@ -422,9 +420,9 @@ static void cu_append(Copper input,
     inline void append() {
         char *dest = data->buffer + data->limit;
 
-        memcpy(dest, src, count);
+        memcpy(dest, text.start, text.length);
 
-        data->limit   += count;
+        data->limit   += text.length;
         data->buffer[data->limit] = 0;
     }
 
@@ -432,11 +430,11 @@ static void cu_append(Copper input,
     append();
 }
 
-static bool process_vm(Copper input, const unsigned count, const char *data)
+extern CuSignal cu_Event(Copper input, const CuData data)
 {
     assert(0 != input);
-    assert(1 >  count);
-    assert(0 != data);
+    assert(1 >  data.length);
+    assert(0 != data.start);
     assert(0 != input->stack);
     assert(0 != input->stack->top);
     assert(0 != input->queue);
@@ -445,9 +443,9 @@ static bool process_vm(Copper input, const unsigned count, const char *data)
     CuQueue queue = input->queue;
     CuCache cache = input->cache;
 
-    cu_append(input, count, data);
+    cu_append(input, data);
 
-    bool end_of_file = (count < 1);
+    bool end_of_file = (data.length < 1);
 
     unsigned point         = input->cursor.text_inx;
     unsigned limit         = input->data.limit;
@@ -988,11 +986,10 @@ static bool process_vm(Copper input, const unsigned count, const char *data)
     goto do_PhaseError;
 
  do_Predicate: { // %predicate
+        // a predicate dosent consume input but may look ahead
+        // a predicate dosent have phases
         CuPredicate test;
-
         if (!predicate(start->arg.name, &test)) goto do_Error;
-
-
     }
     goto do_PhaseError;
 
@@ -1061,12 +1058,12 @@ static bool process_vm(Copper input, const unsigned count, const char *data)
     goto do_PhaseError;
 
  do_MoreTokens:
-    return false;
+    return cu_NeedData;
 
  do_Match: {
         CuFrame next = frame->next;
 
-        if (!next) return true;
+        if (!next) return cu_FoundPath; // mismatch
 
         // set the results
         next->last = true;
@@ -1092,7 +1089,7 @@ static bool process_vm(Copper input, const unsigned count, const char *data)
  do_MisMatch_nocache: {
         CuFrame next = frame->next;
 
-        if (!next) return true;
+        if (!next) return cu_NoPath; // mismatch
 
         // set the results
         next->last = false;
@@ -1113,10 +1110,10 @@ static bool process_vm(Copper input, const unsigned count, const char *data)
     goto do_Continue;
 
  do_Error: // process error (like malloc)
-    return false;
+    return cu_Error;
 
  do_PhaseError: // program error (bug in code)
-    return false;
+    return cu_Error;
 }
 
 

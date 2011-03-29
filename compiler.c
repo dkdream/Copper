@@ -45,7 +45,7 @@ static bool make_Map(unsigned code,
     return true;
 }
 
-static bool make_Hash(Hashcode encode,
+extern bool make_Hash(Hashcode encode,
                       Matchkey compare,
                       unsigned size,
                       struct prs_hash **target)
@@ -64,7 +64,7 @@ static bool make_Hash(Hashcode encode,
     return true;
 }
 
-static bool hash_Find(struct prs_hash *hash,
+extern bool hash_Find(struct prs_hash *hash,
                       const void* key,
                       void** target)
 {
@@ -85,7 +85,7 @@ static bool hash_Find(struct prs_hash *hash,
     return false;
 }
 
-static bool hash_Replace(struct prs_hash *hash,
+extern bool hash_Replace(struct prs_hash *hash,
                          const void* key,
                          void* value,
                          FreeValue release)
@@ -203,6 +203,8 @@ static unsigned compare_name(CuName lname, CuName rname) {
 
 extern bool make_CuFile(FILE* file, const char* filename, Copper *target) {
     struct prs_file *result = malloc(sizeof(struct prs_file));
+
+    if (!result) return false;
 
     memset(result, 0, sizeof(struct prs_file));
 
