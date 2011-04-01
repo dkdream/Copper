@@ -15,10 +15,11 @@
 
 extern void cu_SyntaxError(FILE* error,
                            Copper cu_input,
-                           const char* filename)
+                           const char* filename,
+                           MoreData fetch_more)
 {
     inline bool more() {
-        return cu_input->more(cu_input);
+        return fetch_more(cu_input);
     }
 
     unsigned  lineNumber = cu_input->reach.line_number + 1;

@@ -225,75 +225,12 @@ struct syn_tree {
 
 /*------------------------------------------------------------*/
 
-struct prs_buffer {
-    FILE     *file;
-    unsigned  cursor;
-    ssize_t   read;
-    size_t    allocated;
-    char     *line;
-};
-
-struct prs_map {
-    unsigned       code;
-    const void*    key;
-    void*          value;
-    struct prs_map *next;
-};
-
-typedef unsigned long (*Hashcode)(const void*);
-typedef bool     (*Matchkey)(const void*, const void*);
-typedef bool     (*FreeValue)(void*);
-
-struct prs_hash {
-    Hashcode encode;
-    Matchkey compare;
-    unsigned size;
-    struct prs_map *table[];
-};
-
-// use for the node stack
-struct prs_cell {
-    SynNode value;
-    struct prs_cell *next;
-};
-
-struct prs_stack {
-    struct prs_cell *top;
-    struct prs_cell *free_list;
-};
-
-struct prs_file {
-    struct copper   base;
-
-    // parsing context
-    const char        *filename;
-    struct prs_buffer  buffer;
-    struct prs_hash   *nodes;
-    struct prs_hash   *predicates;
-    struct prs_hash   *events;
-
-    // parsing state
-    struct prs_stack stack;
-
-    // parsing results
-    SynDefine rules;
-    //SynChunk  chunks;
-};
-
-extern bool make_CuFile(FILE* file, const char* filename, Copper *input);
+extern bool file_ParserInit(Copper input);
 extern bool file_WriteTree(Copper input, FILE* output, const char* name);
-extern bool file_SetPredicate(struct prs_file *file, CuName name, CuPredicate value);
-extern bool file_SetEvent(struct prs_file *file, CuName name, CuEvent value);
 
 extern bool writeTree(Copper input, CuCursor at);
-
 extern bool checkRule(Copper input, CuCursor at);
 extern bool defineRule(Copper input, CuCursor at);
-
-extern bool make_Hash(Hashcode, Matchkey, unsigned, struct prs_hash **);
-extern bool hash_Find(struct prs_hash *hash, const void* key, void** target);
-extern bool hash_Replace(struct prs_hash *hash, const void* key, void* value, FreeValue release);
-
 extern bool makeEnd(Copper input, CuCursor at);
 extern bool makeBegin(Copper input, CuCursor at);
 extern bool makeApply(Copper input, CuCursor at);

@@ -27,7 +27,9 @@ DEPENDS  = $(LIB_SRCS:%.c=.depends/%.d)
 
 default : copper.vm
 
-all : copper.vm copper_n.vm
+all : copper.vm 
+
+other : copper_n.vm
 
 full : do.stage.two 
 

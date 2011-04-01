@@ -421,10 +421,12 @@ static bool cache_Clear(CuCache cache) {
 static bool copper_vm(const char* rulename,
                       CuNode start,
                       unsigned level,
-                      Copper input)
+                      Copper input,
+                      MoreData fetch_more)
 {
     assert(0 != input);
     assert(0 != start);
+    assert(0 != fetch_more);
 
     CuQueue queue = input->queue;
     assert(0 != queue);
@@ -464,7 +466,7 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool more() {
-        return input->more(input);
+        return fetch_more(input);
     }
 
     inline bool next() {
@@ -723,11 +725,11 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool cu_and() {
-        if (!copper_vm(rulename, start->arg.pair->left, level, input))  {
+        if (!copper_vm(rulename, start->arg.pair->left, level, input, fetch_more))  {
             reset();
             return false;
         }
-        if (!copper_vm(rulename, start->arg.pair->right, level, input)) {
+        if (!copper_vm(rulename, start->arg.pair->right, level, input, fetch_more)) {
             reset();
             return false;
         }
@@ -736,11 +738,11 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool cu_choice() {
-        if (copper_vm(rulename, start->arg.pair->left, level, input)) {
+        if (copper_vm(rulename, start->arg.pair->left, level, input, fetch_more)) {
             return true;
         }
         reset();
-        if (copper_vm(rulename, start->arg.pair->right, level, input)) {
+        if (copper_vm(rulename, start->arg.pair->right, level, input, fetch_more)) {
             return true;
         }
         reset();
@@ -748,7 +750,7 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool cu_zero_plus() {
-        while (copper_vm(rulename, start->arg.node, level, input)) {
+        while (copper_vm(rulename, start->arg.node, level, input, fetch_more)) {
             if (!cursorMoved()) break;
             hold();
         }
@@ -758,7 +760,7 @@ static bool copper_vm(const char* rulename,
 
     inline bool cu_one_plus() {
         bool result = false;
-        while (copper_vm(rulename, start->arg.node, level, input)) {
+        while (copper_vm(rulename, start->arg.node, level, input, fetch_more)) {
             result = true;
             hold();
         }
@@ -767,7 +769,7 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool cu_optional() {
-        if (copper_vm(rulename, start->arg.node, level, input)) {
+        if (copper_vm(rulename, start->arg.node, level, input, fetch_more)) {
             return true;
         }
         reset();
@@ -775,7 +777,7 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool cu_assert_true() {
-        if (copper_vm(rulename, start->arg.node, level, input)) {
+        if (copper_vm(rulename, start->arg.node, level, input, fetch_more)) {
             reset();
             return true;
         }
@@ -784,7 +786,7 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool cu_assert_false() {
-        if (copper_vm(rulename, start->arg.node, level, input)) {
+        if (copper_vm(rulename, start->arg.node, level, input, fetch_more)) {
             reset();
             return false;
         }
@@ -901,7 +903,7 @@ static bool copper_vm(const char* rulename,
                            at.char_offset);
 
         // note the same name maybe call from two or more uncached nodes
-        result = copper_vm(name, value, level+1, input);
+        result = copper_vm(name, value, level+1, input, fetch_more);
 
         indent(2); CU_DEBUG(1, "rule \"%s\" at (%u,%u) to (%u,%u) result %s\n",
                             name,
@@ -1087,7 +1089,7 @@ extern bool cu_InputInit(Copper input, unsigned cacheSize) {
     return true;
 }
 
-extern bool cu_Parse(const char* name, Copper input) {
+extern bool cu_Parse(const char* name, Copper input, MoreData more) {
     assert(0 != input);
 
     CuNode start = 0;
@@ -1107,7 +1109,7 @@ extern bool cu_Parse(const char* name, Copper input) {
 
     CU_DEBUG(2, "rule \"%s\" begin\n", name);
 
-    bool result = copper_vm(name, start, 1, input);
+    bool result = copper_vm(name, start, 1, input, more);
 
     CU_DEBUG(2, "rule \"%s\" result %s\n",
              name, (result ? "passed" : "failed"));

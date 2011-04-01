@@ -282,7 +282,6 @@ typedef bool (*FindEvent)(Copper, CuName, CuEvent*);          // find the CuEven
 
 struct copper {
     /* call-backs */
-    MoreData      more;      // add more text to the data buffer
     FindNode      node;      // find the CuNode for rule name
     AddName       attach;    // add CuNode as rule name
     FindPredicate predicate; // find CuPredicate by name
@@ -308,11 +307,11 @@ extern bool     cu_InputInit(Copper input, unsigned cacheSize); // initials the 
 extern bool     cu_AddName(Copper input, CuName, CuNode);
 extern bool     cu_FillMetadata(Copper input);
 extern CuSignal cu_Event(Copper input, const CuData data);
-extern bool     cu_Parse(const char* name, Copper input);
+extern bool     cu_Parse(const char* name, Copper input, MoreData more);
 extern bool     cu_AppendData(Copper input, const unsigned count, const char *src);
 extern bool     cu_RunQueue(Copper input);
 extern bool     cu_MarkedText(Copper input, CuData *target);
-extern void     cu_SyntaxError(FILE* error, Copper cu_input, const char* filename);
+extern void     cu_SyntaxError(FILE* error, Copper cu_input, const char* filename, MoreData more);
 
 extern unsigned cu_global_debug;
 extern void     cu_debug(const char *filename, unsigned int linenum, const char *format, ...);
