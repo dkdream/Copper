@@ -9,6 +9,7 @@
  **
  ***/
 #include "compiler.h"
+#include "copper.h"
 #include "copper_inline.h"
 
 /* */
@@ -16,6 +17,183 @@
 #include <error.h>
 #include <stdarg.h>
 #include <assert.h>
+
+
+/* */
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <error.h>
+
+/* */
+typedef struct syn_any      *SynAny;
+typedef struct syn_define   *SynDefine;
+typedef struct syn_char     *SynChar;
+typedef struct syn_text     *SynText;
+typedef struct syn_operator *SynOperator;
+typedef struct syn_tree     *SynTree;
+/* */
+typedef struct syn_first *SynFirst;
+
+union syn_node {
+    SynAny      any;
+    SynDefine   define;
+    SynChar     character;
+    SynText     text;
+    SynOperator operator;
+    SynTree     tree;
+} __attribute__ ((__transparent_union__));
+
+typedef union syn_node SynNode;
+
+union syn_target {
+    SynAny      *any;
+    SynDefine   *define;
+    SynChar     *character;
+    SynText     *text;
+    SynOperator *operator;
+    SynTree     *tree;
+    SynNode     *node;
+} __attribute__ ((__transparent_union__));
+
+typedef union syn_target SynTarget;
+
+typedef enum syn_type {
+    syn_apply,     // - @name
+    syn_begin,     // - set state.begin
+    syn_call,      // - name
+    syn_char,      // - 'chr
+    syn_check,     // - e &
+    syn_choice,    // - e1 e2 |
+    syn_dot,       // - .
+    syn_end,       // - set state.end
+    syn_not,       // - e !
+    syn_plus,      // - e +
+    syn_predicate, // - %predicate
+    syn_question,  // - e ?
+    syn_rule,      // - identifier = ....
+    syn_sequence,  // - e1 e2 ;
+    syn_set,       // - [...]
+    syn_star,      // - e *
+    syn_string,    // - "..."
+    //-------
+    syn_void
+} SynType;
+
+typedef enum syn_kind {
+    syn_unknown = 0,
+    syn_any,
+    syn_define,
+    syn_text,
+    syn_operator,
+    syn_tree
+} SynKind;
+
+struct syn_first {
+    CuFirstType   type;
+    unsigned char *bitfield;
+    unsigned       count;
+    CuData        name[];
+};
+
+// use for
+// - .
+// - set state.begin
+// - set state.end
+// and as a generic node
+struct syn_any {
+    SynType  type;
+    unsigned id;
+    SynFirst first;
+};
+
+// use for
+// - identifier = ....
+struct syn_define {
+    SynType   type;
+    unsigned id;
+    SynFirst  first;
+    SynDefine next;
+    CuData   name;
+    SynNode   value;
+};
+
+// use for
+// - 'chr
+struct syn_char {
+    SynType  type;
+    unsigned id;
+    SynFirst first;
+    unsigned char value;
+};
+
+// use for
+// - @name
+// - [...]
+// - "..."
+// - '...'
+// - %predicate
+struct syn_text {
+    SynType  type;
+    unsigned id;
+    SynFirst first;
+    CuData  value;
+};
+
+#if 0
+// use for
+// - %header {...}
+// - %include "..." or  %include <...>
+// - {...}
+// - %footer ...
+struct syn_chunk {
+    SynType  type;
+    unsigned id;
+    SynFirst first;
+    SynChunk next;
+    CuData  value;
+};
+#endif
+
+// use for
+// - e !
+// - e &
+// - e +
+// - e *
+// - e ?
+struct syn_operator {
+    SynType  type;
+    unsigned id;
+    SynFirst first;
+    SynNode  value;
+};
+
+// use for
+// - e1 e2 /
+// - e1 e2 ;
+struct syn_tree {
+    SynType  type;
+    unsigned id;
+    SynFirst first;
+    SynNode  before;
+    SynNode  after;
+};
+
+/* */
+// use for the name to object hashtables
+struct prs_map {
+    unsigned       code;
+    const void*    key;
+    void*          value;
+    struct prs_map *next;
+};
+
+typedef bool (*FreeValue)(void*);
+
+struct prs_hash {
+    unsigned size;
+    struct prs_map *table[];
+};
 
 /* */
 // use for the node stack
@@ -29,14 +207,187 @@ struct prs_stack {
     struct prs_cell *free_list;
 };
 
-static char buffer[4096];
+extern bool copper_graph(Copper parser);
+
+static char             buffer[4096];
+static struct prs_hash *copper_nodes      = 0;
+static struct prs_hash *copper_predicates = 0;
+static struct prs_hash *copper_events     = 0;
 static struct prs_stack file_stack = { 0, 0 };
 static SynDefine        file_rules = 0;
+
+static inline SynKind type2kind(SynType type) {
+    switch (type) {
+    case syn_apply:     return syn_text;      // - @name
+    case syn_begin:     return syn_any;       // - set state.begin
+    case syn_call:      return syn_text;      // - name
+    case syn_char:      return syn_char;      // - 'chr
+    case syn_check:     return syn_operator;  // - e &
+    case syn_choice:    return syn_tree;      // - e1 e2 |
+    case syn_dot:       return syn_any;       // - .
+    case syn_end:       return syn_any;       // - set state.end
+    case syn_not:       return syn_operator;  // - e !
+    case syn_plus:      return syn_operator;  // - e +
+    case syn_predicate: return syn_text;      // - %predicate
+    case syn_question:  return syn_operator;  // - e ?
+    case syn_rule:      return syn_define;    // - identifier = ....
+    case syn_sequence:  return syn_tree;      // - e1 e2 ;
+    case syn_set:       return syn_text;      // - [...]
+    case syn_star:      return syn_operator;  // - e *
+    case syn_string:    return syn_text;      // - "..." or '...'
+        /* */
+    case syn_void: break;
+    }
+    return syn_unknown;
+}
+
+static inline const char* type2name(SynType type) {
+    switch (type) {
+    case syn_apply:     return "syn_apply";
+    case syn_begin:     return "syn_begin";
+    case syn_call:      return "syn_call";
+    case syn_char:      return "syn_char";
+    case syn_check:     return "syn_check";
+    case syn_choice:    return "syn_choice";
+    case syn_dot:       return "syn_dot";
+    case syn_end:       return "syn_end";
+    case syn_not:       return "syn_not";
+    case syn_plus:      return "syn_plus";
+    case syn_predicate: return "syn_predicate";
+    case syn_question:  return "syn_question";
+    case syn_rule:      return "syn_rule";
+    case syn_sequence:  return "syn_sequence";
+    case syn_set:       return "syn_set";
+    case syn_star:      return "syn_star";
+    case syn_string:    return "syn_string";
+        /* */
+    case syn_void: break;
+    }
+    return "syn-unknown";
+}
 
 static const char* convert(CuData name) {
     strncpy(buffer, name.start, name.length);
     buffer[name.length] = 0;
     return buffer;
+}
+
+static bool make_Map(unsigned code,
+                     const void* key,
+                     void* value,
+                     struct prs_map *next,
+                     struct prs_map **target)
+{
+    struct prs_map *result = malloc(sizeof(struct prs_map));
+
+    result->code  = code;
+    result->key   = key;
+    result->value = value;
+    result->next  = next;
+
+    *target = result;
+    return true;
+}
+
+static bool make_Hash(unsigned size, struct prs_hash **target)
+{
+    unsigned fullsize = (sizeof(struct prs_hash)
+                         + (size * sizeof(struct prs_map *)));
+
+    struct prs_hash* result = malloc(fullsize);
+    memset(result, 0, fullsize);
+
+    result->size    = size;
+
+    *target = result;
+    return true;
+}
+
+static unsigned long encode_name(const void* name) {
+    const char *cursor = name;
+
+    unsigned long result = 5381;
+
+    for ( ; *cursor ; ++cursor ) {
+        int val = *cursor;
+        result = ((result << 5) + result) + val;
+    }
+
+    return result;
+}
+
+static unsigned compare_name(const void* lname, const void* rname) {
+    const char *left  = lname;
+    const char *right = rname;
+
+    int result = strcmp(left, right);
+
+    return (0 == result);
+}
+
+static bool hash_Find(struct prs_hash *hash,
+                      const void* key,
+                      void** target)
+{
+    if (!key) return false;
+
+    unsigned code  = encode_name(key);
+    unsigned index = code % hash->size;
+
+    struct prs_map *map = hash->table[index];
+
+    for ( ; map ; map = map->next) {
+        if (code != map->code) continue;
+        if (!compare_name(key, map->key)) continue;
+        *target = map->value;
+        return true;
+    }
+
+    return false;
+}
+
+static bool hash_Replace(struct prs_hash *hash,
+                         const void* key,
+                         void* value)
+{
+    if (!key)     return false;
+    if (!value)   return false;
+
+    unsigned long code  = encode_name(key);
+    unsigned      index = code % hash->size;
+
+    struct prs_map *map = hash->table[index];
+
+    for ( ; map ; map = map->next) {
+        if (code != map->code) continue;
+        if (!compare_name(key, map->key)) continue;
+        map->value = value;
+        return true;
+    }
+
+    if (!make_Map(code, key, value, hash->table[index], &map)) {
+        return false;
+    }
+
+    hash->table[index] = map;
+
+    return true;
+}
+
+static bool copper_FindNode(Copper input, CuName name, CuNode* target) {
+    return hash_Find(copper_nodes, name, (void**)target);
+}
+
+static bool copper_SetNode(Copper input, CuName name, CuNode value) {
+    return hash_Replace(copper_nodes, (void*)name, value);
+}
+
+static bool copper_FindPredicate(Copper input, CuName name, CuPredicate* target) {
+    return hash_Find(copper_predicates, name, (void**)target);
+}
+
+static bool copper_FindEvent(Copper input, CuName name, CuEvent* target) {
+    return hash_Find(copper_events, name, (void**)target);
 }
 
 static bool make_Any(SynType type, SynTarget target)
@@ -193,7 +544,7 @@ static bool makeTree(Copper file, SynType type) {
     return push(file, tree);
 }
 
-extern bool checkRule(Copper file, CuCursor at) {
+static bool checkRule(Copper file, CuCursor at) {
     CuData name;
 
     if (!cu_MarkedText(file, &name)) return false;
@@ -215,7 +566,7 @@ extern bool checkRule(Copper file, CuCursor at) {
     return push(file, rule);
 }
 
-extern bool defineRule(Copper file, CuCursor at) {
+static bool defineRule(Copper file, CuCursor at) {
     SynDefine rule;
     SynNode   value;
 
@@ -248,7 +599,7 @@ extern bool defineRule(Copper file, CuCursor at) {
     return true;
 }
 
-extern bool makeEnd(Copper file, CuCursor at) {
+static bool makeEnd(Copper file, CuCursor at) {
     SynAny value = 0;
 
     if (!make_Any(syn_end, &value)) return false;
@@ -258,7 +609,7 @@ extern bool makeEnd(Copper file, CuCursor at) {
     return true;
 }
 
-extern bool makeBegin(Copper file, CuCursor at) {
+static bool makeBegin(Copper file, CuCursor at) {
     SynAny value = 0;
 
     if (!make_Any(syn_begin, &value)) return false;
@@ -269,15 +620,15 @@ extern bool makeBegin(Copper file, CuCursor at) {
 }
 
 // namefull event
-extern bool makeApply(Copper file, CuCursor at) {
+static bool makeApply(Copper file, CuCursor at) {
     return makeText(file, syn_apply);
 }
 
-extern bool makePredicate(Copper file, CuCursor at) {
+static bool makePredicate(Copper file, CuCursor at) {
     return makeText(file, syn_predicate);
 }
 
-extern bool makeDot(Copper file, CuCursor at) {
+static bool makeDot(Copper file, CuCursor at) {
     SynAny value = 0;
 
     if (!make_Any(syn_dot, &value)) return false;
@@ -287,43 +638,43 @@ extern bool makeDot(Copper file, CuCursor at) {
     return true;
 }
 
-extern bool makeSet(Copper file, CuCursor at) {
+static bool makeSet(Copper file, CuCursor at) {
     return makeText(file, syn_set);
 }
 
-extern bool makeString(Copper file, CuCursor at) {
+static bool makeString(Copper file, CuCursor at) {
     return makeText(file, syn_string);
 }
 
-extern bool makeCall(Copper file, CuCursor at) {
+static bool makeCall(Copper file, CuCursor at) {
     return makeText(file, syn_call);
 }
 
-extern bool makePlus(Copper file, CuCursor at) {
+static bool makePlus(Copper file, CuCursor at) {
     return makeOperator(file, syn_plus);
 }
 
-extern bool makeStar(Copper file, CuCursor at) {
+static bool makeStar(Copper file, CuCursor at) {
     return makeOperator(file, syn_star);
 }
 
-extern bool makeQuestion(Copper file, CuCursor at) {
+static bool makeQuestion(Copper file, CuCursor at) {
     return makeOperator(file, syn_question);
 }
 
-extern bool makeNot(Copper file, CuCursor at) {
+static bool makeNot(Copper file, CuCursor at) {
     return makeOperator(file, syn_not);
 }
 
-extern bool makeCheck(Copper file, CuCursor at) {
+static bool makeCheck(Copper file, CuCursor at) {
     return makeOperator(file, syn_check);
 }
 
-extern bool makeSequence(Copper file, CuCursor at) {
+static bool makeSequence(Copper file, CuCursor at) {
     return makeTree(file, syn_sequence);
 }
 
-extern bool makeChoice(Copper file, CuCursor at) {
+static bool makeChoice(Copper file, CuCursor at) {
     return makeTree(file, syn_choice);
 }
 
@@ -1205,7 +1556,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
     return do_node();
 }
 
-extern bool writeTree(Copper file, CuCursor at) {
+static bool writeTree(Copper file, CuCursor at) {
     if (!empty(file)) {
         CU_ERROR("stack not empty ; %u\n", depth(file));
     }
@@ -1213,6 +1564,40 @@ extern bool writeTree(Copper file, CuCursor at) {
 }
 
 extern bool file_ParserInit(Copper file) {
+
+    file->node      = copper_FindNode;
+    file->attach    = copper_SetNode;
+    file->predicate = copper_FindPredicate;
+    file->event     = copper_FindEvent;
+
+    cu_InputInit(file, 1024);
+
+    make_Hash(100, &copper_nodes);
+    make_Hash(100, &copper_predicates);
+    make_Hash(100, &copper_events);
+
+    hash_Replace(copper_events, "writeTree", writeTree);
+    hash_Replace(copper_events, "checkRule", checkRule);
+    hash_Replace(copper_events, "defineRule", defineRule);
+    hash_Replace(copper_events, "makeEnd", makeEnd);
+    hash_Replace(copper_events, "makeBegin", makeBegin);
+    hash_Replace(copper_events, "makeApply", makeApply);
+    hash_Replace(copper_events, "makePredicate", makePredicate);
+    hash_Replace(copper_events, "makeDot", makeDot);
+    hash_Replace(copper_events, "makeSet", makeSet);
+    hash_Replace(copper_events, "makeString", makeString);
+    hash_Replace(copper_events, "makeCall", makeCall);
+    hash_Replace(copper_events, "makePlus", makePlus);
+    hash_Replace(copper_events, "makeStar", makeStar);
+    hash_Replace(copper_events, "makeQuestion", makeQuestion);
+    hash_Replace(copper_events, "makeNot", makeNot);
+    hash_Replace(copper_events, "makeCheck", makeCheck);
+    hash_Replace(copper_events, "makeSequence", makeSequence);
+    hash_Replace(copper_events, "makeChoice", makeChoice);
+    hash_Replace(copper_events, "defineRule", defineRule);
+
+    copper_graph(file);
+
     return true;
 }
 

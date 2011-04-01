@@ -20,10 +20,15 @@ typedef struct cu_frame* CuFrame;
 /* these are ONLY call after a sucessful parse completes */
 typedef bool (*CuEvent)(Copper, CuCursor);
 
-// if a predicate ALWAY return true then is it an action
-// these are call during the parse to check if every can proceed
-// example of use:
-// name = < ([a-z][A-Z])+ > !%keyword
+/**
+   if a predicate ALWAY return true then it is (like) an action
+   these are called during the parse to check if we  can proceed
+   predicates can not consume input they can only check it
+   example of use:
+        name = !%keyword < ([a-z][A-Z])+ >
+   note: the lookup ahead set for this rule is [a-z][A-Z]
+         because a predicate is treated as transparent (just like actions)
+**/
 typedef CuSignal (*CuPredicate)(Copper, CuFrame); // user defined predicate
 
 enum cu_signal {

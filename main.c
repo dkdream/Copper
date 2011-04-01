@@ -23,139 +23,9 @@ struct prs_buffer {
     char     *line;
 };
 
-struct prs_map {
-    unsigned       code;
-    const void*    key;
-    void*          value;
-    struct prs_map *next;
-};
-
-typedef bool (*FreeValue)(void*);
-
-struct prs_hash {
-    unsigned size;
-    struct prs_map *table[];
-};
-
 static char* program_name = 0;
 static Copper     file_parser = 0;
 struct prs_buffer file_buffer;
-static struct prs_hash *copper_nodes      = 0;
-static struct prs_hash *copper_predicates = 0;
-static struct prs_hash *copper_events     = 0;
-
-extern bool copper_graph(Copper parser);
-
-static bool make_Map(unsigned code,
-                     const void* key,
-                     void* value,
-                     struct prs_map *next,
-                     struct prs_map **target)
-{
-    struct prs_map *result = malloc(sizeof(struct prs_map));
-
-    result->code  = code;
-    result->key   = key;
-    result->value = value;
-    result->next  = next;
-
-    *target = result;
-    return true;
-}
-
-static bool make_Hash(unsigned size, struct prs_hash **target)
-{
-    unsigned fullsize = (sizeof(struct prs_hash)
-                         + (size * sizeof(struct prs_map *)));
-
-    struct prs_hash* result = malloc(fullsize);
-    memset(result, 0, fullsize);
-
-    result->size    = size;
-
-    *target = result;
-    return true;
-}
-
-static bool noop_release(void* value) {
-    return true;
-}
-
-static unsigned long encode_name(const void* name) {
-    const char *cursor = name;
-
-    unsigned long result = 5381;
-
-    for ( ; *cursor ; ++cursor ) {
-        int val = *cursor;
-        result = ((result << 5) + result) + val;
-    }
-
-    return result;
-}
-
-static unsigned compare_name(const void* lname, const void* rname) {
-    const char *left  = lname;
-    const char *right = rname;
-
-    int result = strcmp(left, right);
-
-    return (0 == result);
-}
-
-static bool hash_Find(struct prs_hash *hash,
-                      const void* key,
-                      void** target)
-{
-    if (!key) return false;
-
-    unsigned code  = encode_name(key);
-    unsigned index = code % hash->size;
-
-    struct prs_map *map = hash->table[index];
-
-    for ( ; map ; map = map->next) {
-        if (code != map->code) continue;
-        if (!compare_name(key, map->key)) continue;
-        *target = map->value;
-        return true;
-    }
-
-    return false;
-}
-
-static bool hash_Replace(struct prs_hash *hash,
-                         const void* key,
-                         void* value,
-                         FreeValue release)
-{
-    if (!key)     return false;
-    if (!value)   return false;
-    if (!release) return false;
-
-    unsigned long code  = encode_name(key);
-    unsigned      index = code % hash->size;
-
-    struct prs_map *map = hash->table[index];
-
-    for ( ; map ; map = map->next) {
-        if (code != map->code) continue;
-        if (!compare_name(key, map->key)) continue;
-        if (release(map->value)) {
-            return false;
-        }
-        map->value = value;
-        return true;
-    }
-
-    if (!make_Map(code, key, value, hash->table[index], &map)) {
-        return false;
-    }
-
-    hash->table[index] = map;
-
-    return true;
-}
 
 static bool buffer_GetLine(Copper base)
 {
@@ -182,30 +52,6 @@ static bool copper_MoreData(Copper input) {
     return buffer_GetLine(input);
 }
 
-static bool copper_FindNode(Copper input, CuName name, CuNode* target) {
-    return hash_Find(copper_nodes, name, (void**)target);
-}
-
-static bool copper_SetNode(Copper input, CuName name, CuNode value) {
-    return hash_Replace(copper_nodes, (void*)name, value, noop_release);
-}
-
-static bool copper_FindPredicate(Copper input, CuName name, CuPredicate* target) {
-    return hash_Find(copper_predicates, name, (void**)target);
-}
-
-static bool copper_SetPredicate(Copper input, CuName name, CuPredicate value) {
-    return hash_Replace(copper_predicates, (void*)name, value, noop_release);
-}
-
-static bool copper_FindEvent(Copper input, CuName name, CuEvent* target) {
-    return hash_Find(copper_events, name, (void**)target);
-}
-
-static bool copper_SetEvent(Copper input, CuName name, CuEvent value) {
-    return hash_Replace(copper_events, (void*)name, value, noop_release);
-}
-
 static bool make_Copper(FILE* file, const char* filename) {
 
     file_parser = malloc(sizeof(struct copper));
@@ -215,44 +61,8 @@ static bool make_Copper(FILE* file, const char* filename) {
     memset(file_parser,  0, sizeof(struct copper));
     memset(&file_buffer, 0, sizeof(struct prs_buffer));
 
-    file_parser->node      = copper_FindNode;
-    file_parser->attach    = copper_SetNode;
-    file_parser->predicate = copper_FindPredicate;
-    file_parser->event     = copper_FindEvent;
-
-    cu_InputInit(file_parser, 1024);
-
-    /* */
-    file_buffer.file = file;
-
-    make_Hash(100, &copper_nodes);
-    make_Hash(100, &copper_predicates);
-    make_Hash(100, &copper_events);
-
     file_ParserInit(file_parser);
-
-    copper_SetEvent(file_parser, "writeTree", writeTree);
-    copper_SetEvent(file_parser, "checkRule", checkRule);
-    copper_SetEvent(file_parser, "defineRule", defineRule);
-    copper_SetEvent(file_parser, "makeEnd", makeEnd);
-    copper_SetEvent(file_parser, "makeBegin", makeBegin);
-    copper_SetEvent(file_parser, "makeApply", makeApply);
-    copper_SetEvent(file_parser, "makePredicate", makePredicate);
-    copper_SetEvent(file_parser, "makeDot", makeDot);
-    copper_SetEvent(file_parser, "makeSet", makeSet);
-    copper_SetEvent(file_parser, "makeString", makeString);
-    copper_SetEvent(file_parser, "makeCall", makeCall);
-    copper_SetEvent(file_parser, "makePlus", makePlus);
-    copper_SetEvent(file_parser, "makeStar", makeStar);
-    copper_SetEvent(file_parser, "makeQuestion", makeQuestion);
-    copper_SetEvent(file_parser, "makeNot", makeNot);
-    copper_SetEvent(file_parser, "makeCheck", makeCheck);
-    copper_SetEvent(file_parser, "makeSequence", makeSequence);
-    copper_SetEvent(file_parser, "makeChoice", makeChoice);
-    copper_SetEvent(file_parser, "defineRule", defineRule);
-
-    CU_DEBUG(1, "adding parser graph\n");
-    copper_graph(file_parser);
+    file_buffer.file = file;
 
 #ifndef SKIP_META
     CU_DEBUG(1, "filling parser metadata\n");
