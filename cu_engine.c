@@ -442,6 +442,14 @@ static bool copper_vm(const char* rulename,
         return buffer;
     }
 
+    inline bool recurse_0(const char* name, CuNode next) {
+        return copper_vm(name, next, level, input, fetch_more);
+    }
+
+    inline bool recurse_1(const char* name, CuNode next) {
+        return copper_vm(name, next, level+1, input, fetch_more);
+    }
+
     inline void hold() {
         mark = queue->end;
         at   = input->cursor;
@@ -725,11 +733,11 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool cu_and() {
-        if (!copper_vm(rulename, start->arg.pair->left, level, input, fetch_more))  {
+        if (!recurse_0(rulename, start->arg.pair->left))  {
             reset();
             return false;
         }
-        if (!copper_vm(rulename, start->arg.pair->right, level, input, fetch_more)) {
+        if (!recurse_0(rulename, start->arg.pair->right)) {
             reset();
             return false;
         }
@@ -738,11 +746,11 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool cu_choice() {
-        if (copper_vm(rulename, start->arg.pair->left, level, input, fetch_more)) {
+        if (recurse_0(rulename, start->arg.pair->left)) {
             return true;
         }
         reset();
-        if (copper_vm(rulename, start->arg.pair->right, level, input, fetch_more)) {
+        if (recurse_0(rulename, start->arg.pair->right)) {
             return true;
         }
         reset();
@@ -750,7 +758,7 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool cu_zero_plus() {
-        while (copper_vm(rulename, start->arg.node, level, input, fetch_more)) {
+        while (recurse_0(rulename, start->arg.node)) {
             if (!cursorMoved()) break;
             hold();
         }
@@ -760,7 +768,7 @@ static bool copper_vm(const char* rulename,
 
     inline bool cu_one_plus() {
         bool result = false;
-        while (copper_vm(rulename, start->arg.node, level, input, fetch_more)) {
+        while (recurse_0(rulename, start->arg.node)) {
             result = true;
             hold();
         }
@@ -769,7 +777,7 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool cu_optional() {
-        if (copper_vm(rulename, start->arg.node, level, input, fetch_more)) {
+        if (recurse_0(rulename, start->arg.node)) {
             return true;
         }
         reset();
@@ -777,7 +785,7 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool cu_assert_true() {
-        if (copper_vm(rulename, start->arg.node, level, input, fetch_more)) {
+        if (recurse_0(rulename, start->arg.node)) {
             reset();
             return true;
         }
@@ -786,7 +794,7 @@ static bool copper_vm(const char* rulename,
     }
 
     inline bool cu_assert_false() {
-        if (copper_vm(rulename, start->arg.node, level, input, fetch_more)) {
+        if (recurse_0(rulename, start->arg.node)) {
             reset();
             return false;
         }
@@ -903,7 +911,7 @@ static bool copper_vm(const char* rulename,
                            at.char_offset);
 
         // note the same name maybe call from two or more uncached nodes
-        result = copper_vm(name, value, level+1, input, fetch_more);
+        result = recurse_1(name, value);
 
         indent(2); CU_DEBUG(1, "rule \"%s\" at (%u,%u) to (%u,%u) result %s\n",
                             name,
