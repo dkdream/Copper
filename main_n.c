@@ -8,6 +8,7 @@
 #include "compiler.h"
 #include "copper_inline.h"
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <getopt.h>
 #include <libgen.h>
@@ -22,10 +23,10 @@ struct prs_buffer {
     size_t    allocated;
     char     *line;
 };
+typedef struct prs_buffer PrsBuffer;
+
 
 static char*  program_name = 0;
-static struct prs_buffer buffer;
-static CuData data;
 static Copper file_parser = 0;
 
 static void help() {
@@ -35,7 +36,7 @@ static void help() {
     exit(1);
 }
 
-static bool copper_GetLine(struct prs_buffer *input, CuData *target)
+static bool copper_GetLine(PrsBuffer *input, CuData *target)
 {
     if (!target) return false;
 
@@ -72,6 +73,8 @@ static bool make_Copper() {
     if (!cu_FillMetadata(file_parser)) return false;
 #endif
 
+    if (!cu_Start("grammar", file_parser)) return false;
+
     return true;
 }
 
@@ -84,6 +87,8 @@ int main(int argc, char **argv)
     const char* outfile  = 0;
     const char* funcname = 0;
     int     option_index = 0;
+    CuData          data = { 0, 0 };
+    PrsBuffer     buffer = { 0, 0, 0, 0, 0 };
 
     cu_global_debug = 0;
 
@@ -159,7 +164,10 @@ int main(int argc, char **argv)
     CU_DEBUG(1, "parsing infile %s\n", infile);
 
     for ( ; ; ) {
-        copper_GetLine(&buffer, &data);
+        if (!copper_GetLine(&buffer, &data)) {
+            CU_ERROR("no more data\n");
+            break;
+        }
 
         switch(cu_Event(file_parser, data)) {
         case cu_NeedData:

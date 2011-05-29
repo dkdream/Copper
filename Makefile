@@ -20,12 +20,12 @@ CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
 OFLAGS = -Wall
 ARFLAGS = rcu
 
-LIB_SRCS = $(wildcard cu_*.c)
+LIB_SRCS = cu_error.c cu_firstset.c cu_handler.c
 LIB_OBJS = $(LIB_SRCS:%.c=%.o)
 CU_OBJS  = compiler.o
 DEPENDS  = $(LIB_SRCS:%.c=.depends/%.d)
 
-default : copper.vm
+default : all other
 
 all : copper.vm 
 
@@ -105,8 +105,8 @@ copper.c : copper.cu ./copper.ovm ; ./copper.ovm --name copper_graph --output $@
 copper.o : copper.c
 main.o   : main.c
 
-copper.vm : main.o copper.o $(CU_OBJS) libCopper.a
-	$(CC) $(CFLAGS) -o $@ main.o copper.o $(CU_OBJS) -L. -lCopper
+copper.vm : main.o copper.o cu_engine.o $(CU_OBJS) libCopper.a
+	$(CC) $(CFLAGS) -o $@ main.o copper.o cu_engine.o $(CU_OBJS) -L. -lCopper
 
 # -- -------------------------------------------------
 main_n.o   : main_n.c

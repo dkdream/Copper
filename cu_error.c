@@ -15,24 +15,13 @@
 
 extern void cu_SyntaxError(FILE* error,
                            Copper cu_input,
-                           const char* filename,
-                           MoreData fetch_more)
+                           const char* filename)
 {
-    inline bool more() {
-        return fetch_more(cu_input);
-    }
-
     unsigned  lineNumber = cu_input->reach.line_number + 1;
     unsigned  charOffset = cu_input->reach.text_inx;
     unsigned       limit = cu_input->data.limit;
 
     fprintf(stderr, "%s:%d: %s", filename, lineNumber, "syntax error");
-
-    if (charOffset > limit) {
-        if (more()) {
-            limit = cu_input->data.limit;
-        }
-    }
 
     if (charOffset >= limit) {
         fprintf(error, "\n");

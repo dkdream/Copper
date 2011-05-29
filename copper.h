@@ -311,12 +311,11 @@ struct copper {
 extern bool     cu_InputInit(Copper input, unsigned cacheSize); // initials the copper parser
 extern bool     cu_AddName(Copper input, CuName, CuNode);
 extern bool     cu_FillMetadata(Copper input);
+extern bool     cu_Start(const char* name, Copper input);
 extern CuSignal cu_Event(Copper input, const CuData data);
-extern bool     cu_Parse(const char* name, Copper input, MoreData more);
-extern bool     cu_AppendData(Copper input, const unsigned count, const char *src);
-extern bool     cu_RunQueue(Copper input);
 extern bool     cu_MarkedText(Copper input, CuData *target);
-extern void     cu_SyntaxError(FILE* error, Copper cu_input, const char* filename, MoreData more);
+extern bool     cu_RunQueue(Copper input);
+extern void     cu_SyntaxError(FILE* error, Copper cu_input, const char* filename);
 
 extern unsigned cu_global_debug;
 extern void     cu_debug(const char *filename, unsigned int linenum, const char *format, ...);

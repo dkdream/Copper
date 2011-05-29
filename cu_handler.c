@@ -182,6 +182,41 @@ static bool queue_Clear(CuQueue queue) {
     return queue_FreeList(queue, node);
 }
 
+static bool make_Frame(CuFrame next, CuFrame *target) {
+    struct cu_frame *result = malloc(sizeof(struct cu_frame));
+
+    memset(result, 0, sizeof(struct cu_frame));
+
+    result->next = next;
+
+    *target = result;
+
+    return true;
+}
+
+static bool make_Stack(CuStack *target) {
+    struct cu_stack *result = malloc(sizeof(struct cu_stack));
+
+    memset(result, 0, sizeof(struct cu_stack));
+
+    int inx = 10;
+    for(; inx-- ;) {
+        if (!make_Frame(result->free_list, &(result->free_list))) return false;
+    }
+
+    *target = result;
+
+    return true;
+}
+
+static bool stack_Extend(CuStack target) {
+    int inx=10;
+    for(; inx-- ;) {
+        if (!make_Frame(target->free_list, &(target->free_list))) return false;
+    }
+    return true;
+}
+
 static bool mark_begin(Copper input, CuCursor at) {
     if (!input) return false;
     input->context.begin = at;
@@ -433,7 +468,6 @@ static void cu_append(Copper input, const CuData text)
 extern CuSignal cu_Event(Copper input, const CuData data)
 {
     assert(0 != input);
-    assert(1 >  data.length);
     assert(0 != data.start);
     assert(0 != input->stack);
     assert(0 != input->stack->top);
@@ -490,20 +524,79 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     /************* debugging (end) *******************/
 
     // push a new rule node
-    inline bool push(const char* rulename, CuNode start) {
-        return false;
+    inline bool push_rule(const char* rulename, CuNode node, CuPhase phase) {
+        if (!stack->free_list) {
+            if (!stack_Extend(stack)) return false;
+        }
+
+        CuFrame next = stack->free_list;
+
+        stack->free_list = next->next;
+
+        next->next     = frame;
+        next->node     = node;
+        next->phase    = cu_One;
+        next->last     = false;
+        next->rulename = rulename;         // set the rulename
+        next->level    = frame->level + 1; // increase the indent level
+        next->mark     = queue->end;
+        next->at       = input->cursor;
+
+        // shift to next phase;
+        frame->phase = phase;
+
+        stack->top = next;
+        frame      = next;
+        start      = node;
+
+        return true;
     }
 
     // push a new internal node
-    inline bool stage(CuNode start, CuPhase phase) {
-        frame->mark = queue->end;
-        frame->at   = input->cursor;
-
-        if (frame->at.text_inx > input->reach.text_inx) {
-            input->reach = frame->at;
+    inline bool push_node(CuNode node, CuPhase phase) {
+        if (!stack->free_list) {
+            if (!stack_Extend(stack)) return false;
         }
 
-        return false;
+        CuFrame next = stack->free_list;
+
+        stack->free_list = next->next;
+
+        next->next     = frame;
+        next->node     = node;
+        next->phase    = cu_One;
+        next->last     = false;
+        next->rulename = frame->rulename; // keep the current rulename
+        next->level    = frame->level;    // keep the current indent level
+        next->mark     = queue->end;
+        next->at       = input->cursor;
+
+        // shift to next phase;
+        frame->phase = phase;
+
+        stack->top = next; // push the stack
+        frame      = next; // set the current frame
+        start      = node; // set the current node
+
+        return true;
+    }
+
+    inline bool pop(bool matched) {
+        CuFrame next = frame->next;
+
+        // add the last top to the free list
+        frame->next = stack->free_list;
+        stack->free_list = frame;
+
+        // are we done?
+        if (!next) return false;
+
+        next->last = matched; // set the results
+        stack->top = next;    // pop the stack
+        frame = next;         // set the current frame
+        start = frame->node;  // set the current node
+
+        return true;
     }
 
     inline bool cursorMoved() {
@@ -516,7 +609,14 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         } else {
             if (!queue_TrimTo(queue, frame->mark)) return false;
         }
+
         input->cursor = frame->at;
+
+        point         = input->cursor.text_inx;
+        end_of_tokens = (point >= limit);
+        lookahead     = limit - point;
+        token         = input->data.buffer[point];
+
         return true;
     }
 
@@ -534,6 +634,10 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         end_of_tokens = (point >= limit);
         lookahead     = limit - point;
         token         = input->data.buffer[point];
+
+        if (point > input->reach.text_inx) {
+            input->reach = input->cursor;
+        }
     }
 
     inline bool node(CuName name, CuNode* target) {
@@ -678,6 +782,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     }
 
  do_Continue:
+
     CU_ON_DEBUG(3, {
             indent(3); CU_DEBUG(3, "check (%s) %s",
                                 node_label(start),
@@ -729,7 +834,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
  do_AssertFalse: // e !
     switch (frame->phase) {
     case cu_One:
-        stage(start->arg.node, cu_Two);
+        if (!push_node(start->arg.node, cu_Two)) goto do_Error;
         goto do_Continue;
 
     case cu_Two:
@@ -746,7 +851,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
  do_AssertTrue:  // e &
     switch (frame->phase) {
     case cu_One:
-        stage(start->arg.node, cu_Two);
+        if (!push_node(start->arg.node, cu_Two)) goto do_Error;
         goto do_Continue;
 
     case cu_Two:
@@ -769,7 +874,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
  do_Choice:      // e1 e2 /
     switch (frame->phase) {
     case cu_One:
-        stage(start->arg.pair->left, cu_Two);
+        if (!push_node(start->arg.pair->left, cu_Two)) goto do_Error;
         goto do_Continue;
 
     case cu_Two:
@@ -778,7 +883,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         frame->phase = cu_Three;
 
     case cu_Three:
-        stage(start->arg.pair->right, cu_Four);
+        if (!push_node(start->arg.pair->right, cu_Four)) goto do_Error;
         goto do_Continue;
 
     case cu_Four:
@@ -852,8 +957,8 @@ extern CuSignal cu_Event(Copper input, const CuData data)
                                 name,
                                 frame->at.line_number + 1,
                                 frame->at.char_offset);
-            frame->phase = cu_Two;
-            if (!push(name, value)) goto do_Error;
+
+            if (!push_rule(name, value, cu_Two)) goto do_Error;
             goto do_Continue;
 
         case cu_Two:
@@ -891,7 +996,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
                             frame->at.char_offset);
 
         if (token < start->arg.range->begin) goto do_MisMatch;
-        if (token > start->arg.range->end)  goto do_MisMatch;
+        if (token > start->arg.range->end)   goto do_MisMatch;
 
         consume();
 
@@ -959,10 +1064,10 @@ extern CuSignal cu_Event(Copper input, const CuData data)
  do_OneOrMore:   // e +
     switch (frame->phase) {
     case cu_One:
-        stage(start->arg.node, cu_Two);
+        if (!push_node(start->arg.node, cu_Two)) goto do_Error;
         goto do_Continue;
 
-    case cu_Two:
+    case cu_Two: // have we match the first one?
         if (frame->last) {
             frame->phase = cu_Three;
         } else {
@@ -971,10 +1076,10 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         }
 
     case cu_Three:
-        stage(start->arg.node, cu_Four);
+        if (!push_node(start->arg.node, cu_Four)) goto do_Error;
         goto do_Continue;
 
-    case cu_Four:
+    case cu_Four: // have we match the next one?
         if (frame->last) {
             frame->phase = cu_Three;
             goto do_OneOrMore;
@@ -996,10 +1101,10 @@ extern CuSignal cu_Event(Copper input, const CuData data)
  do_Sequence:    // e1 e2 ;
     switch (frame->phase) {
     case cu_One:
-        stage(start->arg.pair->left, cu_Two);
+        if (!push_node(start->arg.pair->left, cu_Two)) goto do_Error;
         goto do_Continue;
 
-    case cu_Two:
+    case cu_Two: // have we match the first one?
         if (frame->last) {
             frame->phase = cu_Three;
         } else {
@@ -1008,10 +1113,10 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         }
 
     case cu_Three:
-        stage(start->arg.pair->right, cu_Four);
+        if (!push_node(start->arg.pair->right, cu_Four)) goto do_Error;
         goto do_Continue;
 
-    case cu_Four:
+    case cu_Four: // have we match the next one?
         if (frame->last) goto do_Match;
         reset();
         goto do_MisMatch;
@@ -1021,13 +1126,13 @@ extern CuSignal cu_Event(Copper input, const CuData data)
  do_ZeroOrMore:  // e *
     switch (frame->phase) {
     case cu_One:
-        stage(start->arg.node, cu_Two);
+        if (!push_node(start->arg.node, cu_Two)) goto do_Error;
         goto do_Continue;
 
     case cu_Two:
         if (frame->last) {
             if (!cursorMoved()) goto do_Match;
-            frame->phase = cu_One;
+            if (!push_node(start->arg.node, cu_Two)) goto do_Error;
             goto do_Continue;
         } else {
             reset();
@@ -1040,7 +1145,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
  do_ZeroOrOne:   // e ?
     switch (frame->phase) {
     case cu_One:
-        stage(start->arg.node, cu_Two);
+        if (!push_node(start->arg.node, cu_Two)) goto do_Error;
         goto do_Continue;
 
     case cu_Two:
@@ -1063,23 +1168,17 @@ extern CuSignal cu_Event(Copper input, const CuData data)
  do_Match: {
         CuFrame next = frame->next;
 
+        // are we done?
         if (!next) return cu_FoundPath; // mismatch
-
-        // set the results
-        next->last = true;
-
-        // pop the stack
-        stack->top = next;
 
         // add the last top to the free list
         frame->next = stack->free_list;
         stack->free_list = frame;
 
-        // set the current frame
-        frame = next;
-
-        // set the current node
-        start = frame->node;
+        next->last = true;   // set the results
+        stack->top = next;   // pop the stack
+        frame = next;        // set the current frame
+        start = frame->node; // set the current node
     }
     goto do_Continue;
 
@@ -1089,23 +1188,17 @@ extern CuSignal cu_Event(Copper input, const CuData data)
  do_MisMatch_nocache: {
         CuFrame next = frame->next;
 
+        // are we done?
         if (!next) return cu_NoPath; // mismatch
-
-        // set the results
-        next->last = false;
-
-        // pop the stack
-        stack->top = next;
 
         // add the last top to the free list
         frame->next = stack->free_list;
         stack->free_list = frame;
 
-        // set the current frame
-        frame = next;
-
-        // set the current node
-        start = frame->node;
+        next->last = false;  // set the results
+        stack->top = next;   // pop the stack
+        frame = next;        // set the current frame
+        start = frame->node; // set the current node
     }
     goto do_Continue;
 
@@ -1114,6 +1207,149 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
  do_PhaseError: // program error (bug in code)
     return cu_Error;
+
+    (void)cache_Remove;
 }
 
+/*************************************************************************************
+ *************************************************************************************
+ *************************************************************************************
+ *************************************************************************************/
+
+extern bool cu_InputInit(Copper input, unsigned cacheSize) {
+    assert(0 != input);
+
+    CU_DEBUG(3, "making stack\n");
+    if (!make_Stack(&(input->stack))) return false;
+
+    CU_DEBUG(3, "making queue\n");
+    if (!make_Queue(&(input->queue))) return false;
+
+    CuQueue queue = input->queue;
+    assert(0 != queue);
+
+    CU_DEBUG(3, "making cache\n");
+    if (!make_Cache(cacheSize, &(input->cache))) return false;
+
+    CuCache cache = input->cache;
+    assert(0 != cache);
+    assert(cacheSize == cache->size);
+
+    CU_DEBUG(3, "InputInit done (queue %x) (cache %x)\n", (unsigned) queue, (unsigned) cache);
+
+    return true;
+}
+
+extern bool cu_Start(const char* name, Copper input) {
+    assert(0 != input);
+
+    CuNode start = 0;
+
+    assert(0 != input->node);
+
+    CU_DEBUG(3, "requesting start node %s\n", name);
+    if (!input->node(input, name, &start)) return false;
+
+    assert(0 != start);
+    assert(0 != input->queue);
+    assert(0 != input->cache);
+    assert(0 != input->stack);
+
+    CU_DEBUG(3, "clearing queue %x\n", (unsigned) input->queue);
+    if (!queue_Clear(input->queue)) return false;
+
+    CU_DEBUG(3, "clearing cache %x\n", (unsigned) input->cache);
+    if (!cache_Clear(input->cache)) return false;
+
+    CU_DEBUG(2, "start rule \"%s\"\n", name);
+
+    CuStack stack = input->stack;
+
+    while (stack->top) {
+        CuFrame top = stack->top;
+        stack->top  = top->next;
+        top->next   = stack->free_list;
+        stack->free_list = top;
+    }
+
+    if (!stack->free_list) {
+        if (!stack_Extend(stack)) return false;
+    }
+
+    CuFrame next = stack->free_list;
+
+    stack->free_list = next->next;
+
+    next->next     = (CuFrame) 0;
+    next->node     = start;
+    next->phase    = cu_One;
+    next->last     = false;
+    next->rulename = name;         // set the rulename
+    next->level    = 0;
+    next->mark     = 0;
+    next->at       = input->cursor;
+
+    return true;
+}
+
+extern bool cu_RunQueue(Copper input) {
+    if (!input) return false;
+    return queue_Run(input->queue, input);
+}
+
+extern bool cu_MarkedText(Copper input, CuData *target) {
+    if (!input)  return false;
+    if (!target) return false;
+
+    unsigned text_begin = input->context.begin.text_inx;
+    unsigned text_end   = input->context.end.text_inx;
+
+    if (text_begin > text_end) return false;
+
+    if (text_begin == text_end) {
+        target->length = 0;
+        target->start  = 0;
+        return true;
+    }
+
+    if (text_begin > input->data.limit) return false;
+    if (text_end   > input->data.limit) return false;
+
+    target->length = text_end - text_begin;
+    target->start  = input->data.buffer + text_begin;
+
+    return true;
+}
+
+unsigned cu_global_debug = 0;
+
+extern void cu_debug(const char *filename,
+                     unsigned int linenum,
+                     const char *format,
+                     ...)
+{
+    va_list ap; va_start (ap, format);
+
+    //    printf("file %s line %u :: ", filename, linenum);
+    vprintf(format, ap);
+    fflush(stdout);
+}
+
+extern void cu_error(const char *filename,
+                     unsigned int linenum,
+                     const char *format,
+                     ...)
+{
+    va_list ap; va_start (ap, format);
+
+    printf("file %s line %u :: ", filename, linenum);
+    vprintf(format, ap);
+    exit(1);
+}
+
+extern void cu_error_part(const char *format, ...)
+{
+    va_list ap; va_start (ap, format);
+    vprintf(format, ap);
+}
 

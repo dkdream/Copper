@@ -15,6 +15,10 @@
 #include <ctype.h>
 #include <string.h>
 
+extern bool cu_Parse(const char* name, Copper input, MoreData more);
+extern bool cu_AppendData(Copper input, const unsigned count, const char *src);
+
+
 struct prs_buffer {
     FILE     *file;
     unsigned  cursor;
@@ -163,7 +167,7 @@ int main(int argc, char **argv)
     CU_DEBUG(1, "parsing infile %s\n", infile);
 
     if (!cu_Parse("grammar", file_parser, copper_MoreData)) {
-        cu_SyntaxError(stderr, file_parser, infile, copper_MoreData);
+        cu_SyntaxError(stderr, file_parser, infile);
     }
 
     CU_DEBUG(1, "running events\n");
