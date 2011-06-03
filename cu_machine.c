@@ -802,7 +802,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
                 }
 
                 if (cu_MatchChar == start->oper) {
-                    CU_DEBUG(3, " match(\'%s\)", char2string(start->arg.letter));
+                    CU_DEBUG(3, " match(\'%s\')", char2string(start->arg.letter));
                 }
 
                 if (cu_MatchRange == start->oper) {
@@ -853,6 +853,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
  do_AssertFalse: // e !
     switch (frame->phase) {
+    default: break;
     case cu_One:
         if (!push_node(start->arg.node, cu_Two)) goto do_Error;
         goto do_Continue;
@@ -866,6 +867,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
  do_AssertTrue:  // e &
     switch (frame->phase) {
+    default: break;
     case cu_One:
         if (!push_node(start->arg.node, cu_Two)) goto do_Error;
         goto do_Continue;
@@ -933,6 +935,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         CuNode value;
 
         switch (frame->phase) {
+        default: break;
         case cu_One:
             if (!node(name, &value)) goto do_Error;
             if (!push_rule(name, value, cu_Two)) goto do_Error;
@@ -1051,6 +1054,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
  do_ZeroOrMore:  // e *
     switch (frame->phase) {
+    default: break;
     case cu_One:
         if (!push_node(start->arg.node, cu_Two)) goto do_Error;
         goto do_Continue;
@@ -1069,6 +1073,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
  do_ZeroOrOne:   // e ?
     switch (frame->phase) {
+    default: break;
     case cu_One:
         if (!push_node(start->arg.node, cu_Two)) goto do_Error;
         goto do_Continue;
