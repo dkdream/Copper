@@ -843,10 +843,10 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         goto do_Continue;
 
     case cu_Two:
-        reset();
         if (frame->last) {
             goto do_MisMatch;
         } else {
+            reset();
             goto do_Match;
         }
     default: break;
@@ -860,11 +860,11 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         goto do_Continue;
 
     case cu_Two:
-        reset();
-        if (frame->last) {
-            goto do_Match;
-        } else {
+        if (!frame->last) {
             goto do_MisMatch;
+        } else {
+            reset();
+            goto do_Match;
         }
     default: break;
     }
@@ -884,7 +884,6 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
     case cu_Two:
         if (frame->last) goto do_Match;
-        reset();
         frame->phase = cu_Three;
 
     case cu_Three:
@@ -893,7 +892,6 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
     case cu_Four:
         if (frame->last) goto do_Match;
-        reset();
         goto do_MisMatch;
     }
     goto do_PhaseError;
@@ -1051,12 +1049,10 @@ extern CuSignal cu_Event(Copper input, const CuData data)
             goto do_MoreTokens;
         }
 
-        const CuCursor hold = input->cursor;
-        const CuChar  *text = string->text;
+        const CuChar *text = string->text;
 
         for ( ; 0 != *text ; ++text) {
             if (token != *text) {
-                input->cursor = hold;
                 goto do_MisMatch;
             }
             consume();
@@ -1077,7 +1073,6 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         if (frame->last) {
             frame->phase = cu_Three;
         } else {
-            reset();
             goto do_MisMatch;
         }
 
@@ -1092,7 +1087,6 @@ extern CuSignal cu_Event(Copper input, const CuData data)
             frame->phase = cu_Three;
             goto do_Continue;
         } else {
-            reset();
             goto do_Match;
         }
     }
@@ -1113,13 +1107,9 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         goto do_Continue;
 
     case cu_Two: // have we match the first one?
-        if (frame->last) {
-            frame->phase = cu_Three;
-            goto do_Continue;
-        } else {
-            reset();
-            goto do_MisMatch;
-        }
+        if (!frame->last) goto do_MisMatch;
+        frame->phase = cu_Three;
+        goto do_Continue;
 
     case cu_Three:
         if (!push_node(start->arg.pair->right, cu_Four)) goto do_Error;
@@ -1127,7 +1117,6 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
     case cu_Four: // have we match the next one?
         if (frame->last) goto do_Match;
-        reset();
         goto do_MisMatch;
     }
     goto do_PhaseError;
@@ -1197,7 +1186,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         CuFrame next = frame->next;
 
         // are we done?
-        if (!next) return cu_FoundPath; // mismatch
+        if (!next) return cu_FoundPath;
 
         // add the last top to the free list
         frame->next = stack->free_list;
@@ -1229,6 +1218,8 @@ extern CuSignal cu_Event(Copper input, const CuData data)
                          frame->at.line_number + 1,
                          frame->at.char_offset);
             });
+
+        reset();
 
         CuFrame next = frame->next;
 
