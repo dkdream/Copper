@@ -20,12 +20,11 @@ CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
 OFLAGS = -Wall
 ARFLAGS = rcu
 
-LIB_SRCS = cu_error.c cu_firstset.c cu_handler.c
+LIB_SRCS = cu_error.c cu_firstset.c cu_machine.c
 LIB_OBJS = $(LIB_SRCS:%.c=%.o)
-CU_OBJS  = compiler.o
 DEPENDS  = $(LIB_SRCS:%.c=.depends/%.d)
 
-default : all other
+default : all
 
 all : copper.vm 
 
@@ -39,7 +38,9 @@ install :: $(INCDIR)/static_table.h
 install :: $(LIBDIR)/libCopper.a
 
 push : #-- put the new graph under version control
-	cp copper.c copper_o.c.bootstrap
+	cp copper.c     copper_o.c.bootstrap
+	cp main.c       main_o.c.bootstrap
+	cp cu_machine.c cu_machine_o.c.bootstrap
 
 checkpoint : ; git checkpoint
 
@@ -49,7 +50,6 @@ test : $(COPPER.test) ; $(MAKE) --directory=tests
 
 err_test: copper.vm
 	./copper.ovm --name test --file test_error.cu
-
 
 $(BINDIR) : ; [ -d $@ ] || mkdir -p $@
 $(INCDIR) : ; [ -d $@ ] || mkdir -p $@
@@ -78,25 +78,26 @@ libCopper.a : $(LIB_OBJS)
 	$(AR) $(ARFLAGS) $@ $(LIB_OBJS)
 	$(RANLIB) $@
 
-compiler.o  : compiler.c
+compiler.o : compiler.c
 
 # -- --------------------------------------- bootstrap
 
 DEPENDS += .depends/copper_o.d
 
-copper_o.o : copper_o.c.bootstrap copper.h
-copper.ovm : main_o.o copper_o.o cu_engine_o.o $(CU_OBJS) libCopper.a
-	$(CC) $(CFLAGS) -o $@ main_o.o copper_o.o cu_engine_o.o $(CU_OBJS) -L. -lCopper
+copper.ovm : main_o.o copper_o.o cu_machine_o.o compiler.o libCopper.a
+	$(CC) $(CFLAGS) -o $@ main_o.o copper_o.o cu_machine_o.o compiler.o -L. -lCopper
 
-main_o.o   : main.c compiler.h copper.h
-	$(CC) $(CFLAGS) -DSKIP_META -I. -c -o $@ $<
+main_o.o   : compiler.h copper.h main_o.c.bootstrap
+	@cp main_o.c.bootstrap main_o.c
+	$(CC) $(CFLAGS) -DSKIP_META -I. -c -o $@ main_o.c
 
-copper_o.o : copper_o.c.bootstrap
+copper_o.o : copper.h copper_o.c.bootstrap
 	@cp copper_o.c.bootstrap copper_o.c
 	$(CC) $(CFLAGS) -I. -c -o $@ copper_o.c
 
-cu_engine_o.o : main.c compiler.h copper.h cu_engine.c
-	$(CC) $(CFLAGS) -DOLD_VM -I. -c -o $@ cu_engine.c
+cu_machine_o.o : copper.h copper_inline.h cu_machine_o.c.bootstrap
+	@cp cu_machine_o.c.bootstrap cu_machine_o.c
+	$(CC) $(CFLAGS) -DOLD_VM -I. -c -o $@ cu_machine_o.c
 
 # -- -------------------------------------------------
 DEPENDS += .depends/main.d
@@ -105,14 +106,15 @@ copper.c : copper.cu ./copper.ovm ; ./copper.ovm --name copper_graph --output $@
 copper.o : copper.c
 main.o   : main.c
 
-copper.vm : main.o copper.o cu_engine.o $(CU_OBJS) libCopper.a
-	$(CC) $(CFLAGS) -o $@ main.o copper.o cu_engine.o $(CU_OBJS) -L. -lCopper
+copper.vm : main.o copper.o compiler.o libCopper.a
+	$(CC) $(CFLAGS) -o $@ main.o copper.o compiler.o -L. -lCopper
 
 # -- -------------------------------------------------
+
 main_n.o   : main_n.c
 
-copper_n.vm : main_n.o copper.o $(CU_OBJS) libCopper.a
-	$(CC) $(CFLAGS) -o $@ main_n.o copper.o $(CU_OBJS) -L. -lCopper
+copper_n.vm : main_n.o copper.o compiler.o libCopper.a
+	$(CC) $(CFLAGS) -o $@ main_n.o copper.o compiler.o -L. -lCopper
 
 # -- -------------------------------------------------
 
@@ -128,8 +130,8 @@ stage.$(STAGE).c : copper.cu $(COPPER.test)
 
 stage.$(STAGE).o : stage.$(STAGE).c
 
-stage.$(STAGE) : main.o stage.$(STAGE).o $(CU_OBJS) libCopper.a
-	$(CC) $(CFLAGS) -o $@ main.o stage.$(STAGE).o $(CU_OBJS) -L. -lCopper
+stage.$(STAGE) : main.o stage.$(STAGE).o compiler.o libCopper.a
+	$(CC) $(CFLAGS) -o $@ main.o stage.$(STAGE).o compiler.o -L. -lCopper
 
 compare : $(COPPER.test) stage.$(STAGE)
 	@./compare_graphs.sh $(COPPER.test) stage.$(STAGE)
@@ -154,7 +156,7 @@ clean : clear
 	echo $(MAKE) --directory=examples --no-print-directory $@
 
 scrub spotless : clean
-	rm -rf copper.ovm copper_o.c
+	rm -rf copper.ovm copper_o.c cu_machine_o.c main_o.c
 	$(MAKE) --directory=examples --no-print-directory $@
 
 

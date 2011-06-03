@@ -8,16 +8,13 @@
 #include "compiler.h"
 #include "copper_inline.h"
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <getopt.h>
 #include <libgen.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-
-extern bool cu_Parse(const char* name, Copper input, MoreData more);
-extern bool cu_AppendData(Copper input, const unsigned count, const char *src);
-
 
 struct prs_buffer {
     FILE     *file;
@@ -26,55 +23,11 @@ struct prs_buffer {
     size_t    allocated;
     char     *line;
 };
+typedef struct prs_buffer PrsBuffer;
 
-static char* program_name = 0;
-static Copper     file_parser = 0;
-struct prs_buffer file_buffer;
 
-static bool buffer_GetLine(Copper base)
-{
-    struct prs_buffer *input = &file_buffer;
-
-    if (input->cursor >= input->read) {
-        int read = getline(&input->line, &input->allocated, input->file);
-        if (read < 0) return false;
-        input->cursor = 0;
-        input->read   = read;
-    }
-
-    unsigned  count = input->read - input->cursor;
-    const char *src = input->line + input->cursor;
-
-    if (!cu_AppendData(base, count, src)) return false;
-
-    input->cursor += count;
-
-    return true;
-}
-
-static bool copper_MoreData(Copper input) {
-    return buffer_GetLine(input);
-}
-
-static bool make_Copper(FILE* file, const char* filename) {
-
-    file_parser = malloc(sizeof(struct copper));
-
-    if (!file_parser) return false;
-
-    memset(file_parser,  0, sizeof(struct copper));
-    memset(&file_buffer, 0, sizeof(struct prs_buffer));
-
-    file_ParserInit(file_parser);
-    file_buffer.file = file;
-
-#ifndef SKIP_META
-    CU_DEBUG(1, "filling parser metadata\n");
-    cu_FillMetadata(file_parser);
-#endif
-
-    return true;
-}
+static char*  program_name = 0;
+static Copper file_parser = 0;
 
 static void help() {
     fprintf(stderr, "copper [-verbose]+ --name c_func_name [--output outfile] [--file infile]\n");
@@ -82,6 +35,57 @@ static void help() {
     fprintf(stderr, "copper [-h]\n");
     exit(1);
 }
+
+static bool copper_GetLine(PrsBuffer *input, CuData *target)
+{
+    if (!target) return false;
+
+    target->length = 0;
+    target->start  = 0;
+
+    if (!input) return false;
+
+    if (input->cursor >= input->read) {
+        int read = getline(&input->line, &input->allocated, input->file);
+        if (read < 0) {
+            if (ferror(input->file)) return false;
+            target->length = 0;
+            target->start  = 0;
+            CU_DEBUG(1, "data eof\n");
+            return true;
+        }
+        input->cursor = 0;
+        input->read   = read;
+    }
+
+    target->length = input->read - input->cursor;
+    target->start  = input->line + input->cursor;
+    input->cursor += target->length;
+
+    CU_DEBUG(1, "data count=%d\n", target->length);
+
+    return true;
+}
+
+static bool make_Copper() {
+    file_parser = malloc(sizeof(struct copper));
+
+    if (!file_parser) return false;
+
+    memset(file_parser, 0, sizeof(struct copper));
+
+    if (!file_ParserInit(file_parser)) return false;
+
+#ifndef SKIP_META
+    CU_DEBUG(1, "filling parser metadata\n");
+    if (!cu_FillMetadata(file_parser)) return false;
+#endif
+
+    if (!cu_Start("grammar", file_parser)) return false;
+
+    return true;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -91,9 +95,10 @@ int main(int argc, char **argv)
     const char* outfile  = 0;
     const char* funcname = 0;
     int     option_index = 0;
+    CuData          data = { 0, 0 };
+    PrsBuffer     buffer = { 0, 0, 0, 0, 0 };
 
     cu_global_debug = 0;
-
 
     static struct option long_options[] = {
         {"verbose", 0, 0, 'v'},
@@ -147,32 +152,53 @@ int main(int argc, char **argv)
         CU_ERROR("a function name MUST be defined\n");
     }
 
-    FILE* input;
+    memset(&buffer, 0, sizeof(struct prs_buffer));
 
     if (!infile) {
-        input  = stdin;
+        buffer.file = stdin;
         infile = "<stdin>";
     } else {
-        input = fopen(infile, "r");
-        if (!input) {
+        buffer.file = fopen(infile, "r");
+        if (!buffer.file) {
             CU_ERROR("unable to open input file %s\n", infile);
         }
     }
 
     CU_DEBUG(1, "creating file parser object\n");
-    if (!make_Copper(input, infile)) {
+    if (!make_Copper()) {
         CU_ERROR("unable create parser object for %s\n", infile);
     }
 
     CU_DEBUG(1, "parsing infile %s\n", infile);
 
-    if (!cu_Parse("grammar", file_parser, copper_MoreData)) {
-        cu_SyntaxError(stderr, file_parser, infile);
-    }
+    for ( ; ; ) {
+        if (!copper_GetLine(&buffer, &data)) {
+            CU_ERROR("no more data\n");
+            break;
+        }
 
-    CU_DEBUG(1, "running events\n");
-    if (!cu_RunQueue(file_parser)) {
-        CU_ERROR("event error\n");
+        switch(cu_Event(file_parser, data)) {
+        case cu_NeedData:
+            CU_DEBUG(1, "need data event\n");
+            continue;
+
+        case cu_FoundPath:
+            CU_DEBUG(1, "running events\n");
+            if (!cu_RunQueue(file_parser)) {
+                CU_ERROR("event error\n");
+            }
+            break;
+
+        case cu_NoPath:
+            //cu_SyntaxError(stderr, file_parser, infile);
+            break;
+
+        case cu_Error:
+            CU_ERROR("hard error\n");
+            break;
+        }
+
+        break;
     }
 
     FILE* output;
