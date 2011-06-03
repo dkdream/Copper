@@ -47,7 +47,13 @@ static bool copper_GetLine(PrsBuffer *input, CuData *target)
 
     if (input->cursor >= input->read) {
         int read = getline(&input->line, &input->allocated, input->file);
-        if (read < 0) return false;
+        if (read < 0) {
+            if (ferror(input->file)) return false;
+            target->length = 0;
+            target->start  = 0;
+            CU_DEBUG(1, "data eof\n");
+            return true;
+        }
         input->cursor = 0;
         input->read   = read;
     }
@@ -55,6 +61,8 @@ static bool copper_GetLine(PrsBuffer *input, CuData *target)
     target->length = input->read - input->cursor;
     target->start  = input->line + input->cursor;
     input->cursor += target->length;
+
+    CU_DEBUG(1, "data count=%d\n", target->length);
 
     return true;
 }
@@ -171,6 +179,7 @@ int main(int argc, char **argv)
 
         switch(cu_Event(file_parser, data)) {
         case cu_NeedData:
+            CU_DEBUG(1, "need data event\n");
             continue;
 
         case cu_FoundPath:

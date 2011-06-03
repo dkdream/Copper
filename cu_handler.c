@@ -468,7 +468,6 @@ static void cu_append(Copper input, const CuData text)
 extern CuSignal cu_Event(Copper input, const CuData data)
 {
     assert(0 != input);
-    assert(0 != data.start);
     assert(0 != input->stack);
     assert(0 != input->stack->top);
     assert(0 != input->queue);
@@ -477,9 +476,12 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     CuQueue queue = input->queue;
     CuCache cache = input->cache;
 
-    cu_append(input, data);
-
     bool end_of_file = (data.length < 1);
+
+    if (!end_of_file) {
+        assert(0 != data.start);
+        cu_append(input, data);
+    }
 
     unsigned point         = input->cursor.text_inx;
     unsigned limit         = input->data.limit;
@@ -784,8 +786,9 @@ extern CuSignal cu_Event(Copper input, const CuData data)
  do_Continue:
 
     CU_ON_DEBUG(3, {
-            indent(3); CU_DEBUG(3, "check (%s) %s",
+            indent(3); CU_DEBUG(3, "check (%s) [%d] %s",
                                 node_label(start),
+                                frame->phase,
                                 oper2name(start->oper));
 
             if (cu_MatchName == start->oper) {
@@ -797,9 +800,11 @@ extern CuSignal cu_Event(Copper input, const CuData data)
                      frame->at.char_offset);
         });
 
-    if (checkCache(start))    goto do_MisMatch_nocache;
-    if (checkFirstSet(start)) goto do_MisMatch;
-    if (checkMetadata(start)) goto do_MisMatch;
+    if (cu_One == frame->phase) {
+        if (checkCache(start))    goto do_MisMatch_nocache;
+        if (checkFirstSet(start)) goto do_MisMatch;
+        if (checkMetadata(start)) goto do_MisMatch;
+    }
 
     switch (start->oper) {
     case cu_Apply:       goto do_Apply;
@@ -1037,6 +1042,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
  do_MatchText:   // "..."
     if (end_of_tokens) {
         if (!end_of_file) goto do_MoreTokens;
+        goto do_MisMatch;
     } else {
         CuString string = start->arg.string;
 
@@ -1076,13 +1082,15 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         }
 
     case cu_Three:
+        if (!cursorMoved()) goto do_Match;
+        frame->at = input->cursor;
         if (!push_node(start->arg.node, cu_Four)) goto do_Error;
         goto do_Continue;
 
     case cu_Four: // have we match the next one?
         if (frame->last) {
             frame->phase = cu_Three;
-            goto do_OneOrMore;
+            goto do_Continue;
         } else {
             reset();
             goto do_Match;
@@ -1107,6 +1115,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     case cu_Two: // have we match the first one?
         if (frame->last) {
             frame->phase = cu_Three;
+            goto do_Continue;
         } else {
             reset();
             goto do_MisMatch;
@@ -1132,6 +1141,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     case cu_Two:
         if (frame->last) {
             if (!cursorMoved()) goto do_Match;
+            frame->at = input->cursor;
             if (!push_node(start->arg.node, cu_Two)) goto do_Error;
             goto do_Continue;
         } else {
@@ -1166,6 +1176,24 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     return cu_NeedData;
 
  do_Match: {
+        CU_ON_DEBUG(3, {
+                indent(3); CU_DEBUG(3, "pass  (%s) [%d] %s",
+                                    node_label(start),
+                                    frame->phase,
+                                    oper2name(start->oper));
+
+                if (cu_MatchName == start->oper) {
+                    const char *name = start->arg.name;
+                    CU_DEBUG(3, " %s", name);
+                }
+                CU_DEBUG(3, " at (%u,%u)",
+                         frame->at.line_number + 1,
+                         frame->at.char_offset);
+                CU_DEBUG(3, " to (%u,%u)\n",
+                         input->cursor.line_number + 1,
+                         input->cursor.char_offset);
+            });
+
         CuFrame next = frame->next;
 
         // are we done?
@@ -1186,6 +1214,22 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     if (!cache_Point(cache, start, point)) goto do_Error;
 
  do_MisMatch_nocache: {
+        CU_ON_DEBUG(3, {
+                indent(3); CU_DEBUG(3, "fail  (%s) [%d] %s",
+                                    node_label(start),
+                                    frame->phase,
+                                    oper2name(start->oper));
+
+                if (cu_MatchName == start->oper) {
+                    const char *name = start->arg.name;
+                    CU_DEBUG(3, " %s", name);
+                }
+
+                CU_DEBUG(3, " at (%u,%u)\n",
+                         frame->at.line_number + 1,
+                         frame->at.char_offset);
+            });
+
         CuFrame next = frame->next;
 
         // are we done?
@@ -1203,9 +1247,11 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     goto do_Continue;
 
  do_Error: // process error (like malloc)
+    indent(2);  CU_DEBUG(2, "ERROR\n");
     return cu_Error;
 
  do_PhaseError: // program error (bug in code)
+    indent(2);  CU_DEBUG(2, "PHASE-ERROR\n");
     return cu_Error;
 
     (void)cache_Remove;
@@ -1288,6 +1334,8 @@ extern bool cu_Start(const char* name, Copper input) {
     next->level    = 0;
     next->mark     = 0;
     next->at       = input->cursor;
+
+    stack->top = next;
 
     return true;
 }
