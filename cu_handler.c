@@ -785,25 +785,40 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
  do_Continue:
 
-    CU_ON_DEBUG(3, {
-            indent(3); CU_DEBUG(3, "check (%s) [%d] %s",
-                                node_label(start),
-                                frame->phase,
-                                oper2name(start->oper));
-
-            if (cu_MatchName == start->oper) {
-                const char *name = start->arg.name;
-                CU_DEBUG(3, " %s", name);
-            }
-            CU_DEBUG(3, " at (%u,%u)\n",
-                     frame->at.line_number + 1,
-                     frame->at.char_offset);
-        });
-
     if (cu_One == frame->phase) {
         if (checkCache(start))    goto do_MisMatch_nocache;
         if (checkFirstSet(start)) goto do_MisMatch;
         if (checkMetadata(start)) goto do_MisMatch;
+
+        CU_ON_DEBUG(3, {
+                indent(3); CU_DEBUG(3, "check (%s) [%d] %s",
+                                    node_label(start),
+                                    frame->phase,
+                                    oper2name(start->oper));
+
+                if (cu_MatchName == start->oper) {
+                    const char *name = start->arg.name;
+                    CU_DEBUG(3, " %s", name);
+                }
+
+                if (cu_MatchChar == start->oper) {
+                    CU_DEBUG(3, " match(\'%s\)", char2string(start->arg.letter));
+                }
+
+                if (cu_MatchRange == start->oper) {
+                    CU_DEBUG(3,  " between(\'%s\',\'%s\')",
+                             char2string(start->arg.range->begin),
+                             char2string(start->arg.range->end));
+                }
+
+                if (cu_MatchSet == start->oper) {
+                    CU_DEBUG(3,  " set(%s)", start->arg.set->label);
+                }
+
+                CU_DEBUG(3, " at (%u,%u)\n",
+                         frame->at.line_number + 1,
+                         frame->at.char_offset);
+            });
     }
 
     switch (start->oper) {
@@ -843,13 +858,9 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         goto do_Continue;
 
     case cu_Two:
-        if (frame->last) {
-            goto do_MisMatch;
-        } else {
-            reset();
-            goto do_Match;
-        }
-    default: break;
+        if (frame->last) goto do_MisMatch;
+        reset();
+        goto do_Match;
     }
     goto do_PhaseError;
 
@@ -860,13 +871,9 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         goto do_Continue;
 
     case cu_Two:
-        if (!frame->last) {
-            goto do_MisMatch;
-        } else {
-            reset();
-            goto do_Match;
-        }
-    default: break;
+        if (!frame->last) goto do_MisMatch;
+        reset();
+        goto do_Match;
     }
     goto do_PhaseError;
 
@@ -905,37 +912,21 @@ extern CuSignal cu_Event(Copper input, const CuData data)
  do_MatchChar:   // 'chr
     if (end_of_tokens) {
         if (!end_of_file) goto do_MoreTokens;
-
-        indent(2); CU_DEBUG(2, "match(\'%s\') to end-of-file at (%u,%u)\n",
-                            char2string(start->arg.letter),
-                            frame->at.line_number + 1,
-                            frame->at.char_offset);
         goto do_MisMatch;
-    } else {
-        indent(2); CU_DEBUG(2, "match(\'%s\') to cursor(\'%s\') at (%u,%u)\n",
-                            char2string(start->arg.letter),
-                            char2string(token),
-                            frame->at.line_number + 1,
-                            frame->at.char_offset);
-
-        if (token != start->arg.letter) goto do_MisMatch;
-
-        consume();
-
-        goto do_Match;
     }
-    goto do_PhaseError;
+
+    if (token != start->arg.letter) goto do_MisMatch;
+    consume();
+    goto do_Match;
+
 
  do_MatchDot:    // .
     if (end_of_tokens) {
         if (!end_of_file) goto do_MoreTokens;
         goto do_MisMatch;
-    } else {
-        consume();
-        goto do_Match;
     }
-    goto do_PhaseError;
-
+    consume();
+    goto do_Match;
 
  do_MatchName: {  // name
         const char *name = start->arg.name;
@@ -944,39 +935,13 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         switch (frame->phase) {
         case cu_One:
             if (!node(name, &value)) goto do_Error;
-
-            if (cache_Find(input->cache, value, frame->at.text_inx)) {
-                indent(2); CU_DEBUG(1, "rule \"%s\" at (%u,%u) (cached result failed\n",
-                                    name,
-                                    frame->at.line_number + 1,
-                                    frame->at.char_offset);
-                goto do_MisMatch;
-            }
-
-            if (checkFirstSet(value)) goto do_MisMatch;
-            if (checkMetadata(value)) goto do_MisMatch;
-
-            indent(2); CU_DEBUG(2, "rule \"%s\" at (%u,%u)\n",
-                                name,
-                                frame->at.line_number + 1,
-                                frame->at.char_offset);
-
             if (!push_rule(name, value, cu_Two)) goto do_Error;
             goto do_Continue;
 
         case cu_Two:
             // note the same name maybe call from two or more uncached nodes
-            indent(2); CU_DEBUG(1, "rule \"%s\" at (%u,%u) to (%u,%u) result %s\n",
-                                name,
-                                frame->at.line_number + 1,
-                                frame->at.char_offset,
-                                input->cursor.line_number + 1,
-                                input->cursor.char_offset,
-                                (frame->last ? "passed" : "failed"));
             if (frame->last) goto do_Match;
             goto do_MisMatch;
-
-        default: break;
         }
     }
     goto do_PhaseError;
@@ -984,46 +949,19 @@ extern CuSignal cu_Event(Copper input, const CuData data)
  do_MatchRange:  // begin-end
     if (end_of_tokens) {
         if (!end_of_file) goto do_MoreTokens;
-        indent(2); CU_DEBUG(2, "between(\'%s\',\'%s\') to end-of-file at (%u,%u)\n",
-                            char2string(start->arg.range->begin),
-                            char2string(start->arg.range->end),
-                            frame->at.line_number + 1,
-                            frame->at.char_offset);
         goto do_MisMatch;
-    } else {
-        indent(2); CU_DEBUG(2, "between(\'%s\',\'%s\') to cursor(\'%s\') at (%u,%u)\n",
-                            char2string(start->arg.range->begin),
-                            char2string(start->arg.range->end),
-                            char2string(token),
-                            frame->at.line_number + 1,
-                            frame->at.char_offset);
-
-        if (token < start->arg.range->begin) goto do_MisMatch;
-        if (token > start->arg.range->end)   goto do_MisMatch;
-
-        consume();
-
-        goto do_Match;
     }
-    goto do_PhaseError;
+
+    if (token < start->arg.range->begin) goto do_MisMatch;
+    if (token > start->arg.range->end)   goto do_MisMatch;
+
+    consume();
+    goto do_Match;
 
  do_MatchSet:    // [...]
     if (end_of_tokens) {
         if (!end_of_file) goto do_MoreTokens;
-
-        indent(2); CU_DEBUG(2, "set(%s) to end-of-file at (%u,%u)\n",
-                            start->arg.set->label,
-                            frame->at.line_number + 1,
-                            frame->at.char_offset);
-
-        goto do_MisMatch;
     } else {
-        indent(2); CU_DEBUG(2, "set(%s) to cursor(\'%s\') at (%u,%u)\n",
-                            start->arg.set->label,
-                            char2string(token),
-                            frame->at.line_number + 1,
-                            frame->at.char_offset);
-
         unsigned             binx = token;
         const unsigned char *bits = start->arg.set->bitfield;
 
@@ -1031,11 +969,8 @@ extern CuSignal cu_Event(Copper input, const CuData data)
             consume();
             goto do_Match;
         }
-
-        goto do_MisMatch;
     }
-    goto do_PhaseError;
-
+    goto do_MisMatch;
 
  do_MatchText:   // "..."
     if (end_of_tokens) {
@@ -1070,11 +1005,8 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         goto do_Continue;
 
     case cu_Two: // have we match the first one?
-        if (frame->last) {
-            frame->phase = cu_Three;
-        } else {
-            goto do_MisMatch;
-        }
+        if (!frame->last) goto do_MisMatch;
+        frame->phase = cu_Three;
 
     case cu_Three:
         if (!cursorMoved()) goto do_Match;
@@ -1083,12 +1015,9 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         goto do_Continue;
 
     case cu_Four: // have we match the next one?
-        if (frame->last) {
-            frame->phase = cu_Three;
-            goto do_Continue;
-        } else {
-            goto do_Match;
-        }
+        if (!frame->last) goto do_Match;
+        frame->phase = cu_Three;
+        goto do_OneOrMore;
     }
     goto do_PhaseError;
 
@@ -1109,7 +1038,6 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     case cu_Two: // have we match the first one?
         if (!frame->last) goto do_MisMatch;
         frame->phase = cu_Three;
-        goto do_Continue;
 
     case cu_Three:
         if (!push_node(start->arg.pair->right, cu_Four)) goto do_Error;
@@ -1128,16 +1056,14 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         goto do_Continue;
 
     case cu_Two:
-        if (frame->last) {
-            if (!cursorMoved()) goto do_Match;
-            frame->at = input->cursor;
-            if (!push_node(start->arg.node, cu_Two)) goto do_Error;
-            goto do_Continue;
-        } else {
+        if (!frame->last) {
             reset();
             goto do_Match;
         }
-    default: break;
+        if (!cursorMoved()) goto do_Match;
+        frame->at = input->cursor;
+        if (!push_node(start->arg.node, cu_Two)) goto do_Error;
+        goto do_Continue;
     }
     goto do_PhaseError;
 
@@ -1148,13 +1074,8 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         goto do_Continue;
 
     case cu_Two:
-        if (frame->last) {
-            goto do_Match;
-        } else {
-            reset();
-            goto do_Match;
-        }
-    default: break;
+        if (!frame->last) reset();
+        goto do_Match;
     }
     goto do_PhaseError;
 
