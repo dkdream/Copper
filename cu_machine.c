@@ -476,9 +476,9 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     CuQueue queue = input->queue;
     CuCache cache = input->cache;
 
-    bool end_of_file = (data.length < 1);
+    bool end_of_file = (data.length < 0);
 
-    if (!end_of_file) {
+    if (0 < data.length) {
         assert(0 != data.start);
         cu_append(input, data);
     }
@@ -486,17 +486,16 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     unsigned point         = input->cursor.text_inx;
     unsigned limit         = input->data.limit;
     bool     end_of_tokens = (point >= limit);
+
+    if (!end_of_file) {
+        if (end_of_tokens) return cu_NeedData;
+    }
+
     unsigned lookahead     = limit - point;
     CuChar   token         = input->data.buffer[point];
 
     CuFrame frame = stack->top;
     CuNode  start = frame->node;
-
-    //    const char* rulename = frame->rulename;
-    //    unsigned    level    = frame->level;
-
-    //    CuThread mark = 0;
-    //    CuCursor at;
 
     /************* for debugging (begin) *******************/
     char buffer[10];
@@ -508,10 +507,15 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
     inline void indent(unsigned debug) {
         CU_ON_DEBUG(debug,
-                    { unsigned inx = frame->level;
-                        for ( ; inx ; --inx) {
-                            CU_DEBUG(debug, " |");
+                    { unsigned inx = 0;
+                        for ( ; inx < frame->level; ++inx) {
+                            if (0 == (inx & 1)) {
+                                CU_DEBUG(debug, "  |");
+                            } else {
+                                CU_DEBUG(debug, "  :");
+                            }
                         }
+                        CU_DEBUG(debug, "_");
                     });
     }
 
@@ -797,8 +801,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
                                     oper2name(start->oper));
 
                 if (cu_MatchName == start->oper) {
-                    const char *name = start->arg.name;
-                    CU_DEBUG(3, " %s", name);
+                    CU_DEBUG(3, " %s", start->arg.name);
                 }
 
                 if (cu_MatchChar == start->oper) {

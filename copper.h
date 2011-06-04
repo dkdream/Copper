@@ -136,7 +136,7 @@ struct cu_text {
 
 /* a sub-string of the data buffer */
 struct cu_data {
-    unsigned    length;
+    long       length; // -1 == eof, 0 == no data
     const char* start; // this is NOT a zero terminated string
 };
 
@@ -272,13 +272,9 @@ struct cu_node {
     } arg;
 };
 
-
-// do we need these ?
-//typedef void (*CuAction)(Copper);            // user defined parsing action
+typedef bool (*MoreData)(Copper);                             // add more text to the data buffer (old)
 
 /* parsing structure call back */
-typedef bool (*MoreData)(Copper);                             // add more text to the data buffer
-
 typedef bool (*FindNode)(Copper, CuName, CuNode*);            // find the CuNode labelled name
 typedef bool (*AddName)(Copper, CuName, CuNode);              // add a CuNode to label name
 

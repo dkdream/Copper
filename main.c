@@ -49,7 +49,7 @@ static bool copper_GetLine(PrsBuffer *input, CuData *target)
         int read = getline(&input->line, &input->allocated, input->file);
         if (read < 0) {
             if (ferror(input->file)) return false;
-            target->length = 0;
+            target->length = -1;
             target->start  = 0;
             CU_DEBUG(1, "data eof\n");
             return true;

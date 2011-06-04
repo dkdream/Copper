@@ -1,3 +1,4 @@
+TMP_DIR = /tmp
 PREFIX	= /tools/Copper
 BINDIR	= $(PREFIX)/bin
 INCDIR  = $(PREFIX)/include
@@ -18,7 +19,7 @@ RANLIB = ranlib
 
 CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
 OFLAGS = -Wall
-ARFLAGS = rcu
+ARFLAGS = qv
 
 LIB_SRCS = cu_error.c cu_firstset.c cu_machine.c
 LIB_OBJS = $(LIB_SRCS:%.c=%.o)
@@ -74,9 +75,12 @@ DEPENDS += .depends/compiler.d
 
 libCopper.a : copper.h
 libCopper.a : $(LIB_OBJS)
-	-$(RM) $@
-	$(AR) $(ARFLAGS) $@ $(LIB_OBJS)
-	$(RANLIB) $@
+	-@$(RM) $@ /tmp/$@
+	-@echo $(AR) $(ARFLAGS) $@ $(LIB_OBJS)
+	@$(AR) $(ARFLAGS) /tmp/$@ $(LIB_OBJS)
+	-@echo $(RANLIB) $@
+	@$(RANLIB) /tmp/$@
+	@cp /tmp/$@ $@
 
 compiler.o : compiler.c
 
