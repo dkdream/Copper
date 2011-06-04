@@ -320,12 +320,14 @@ static bool make_Cache(unsigned size, CuCache *target) {
     return true;
 }
 
-static bool cache_Point(CuCache cache, CuNode node, unsigned offset) {
+static bool cache_Point(CuCache cache, CuFrame frame) {
     if (!cache) return false;
 
-    unsigned code  = offset;
-    unsigned index = code  % cache->size;
-    CuPoint list  = cache->table[index];
+    CuNode   node   = frame->node;
+    unsigned offset = frame->at.text_inx;
+    unsigned code   = offset;
+    unsigned index  = code  % cache->size;
+    CuPoint  list   = cache->table[index];
 
     for ( ; list ; list = list->next) {
         if (node   != list->node)   continue;
@@ -503,6 +505,20 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         if (node->label) return node->label;
         sprintf(buffer, "%x__", (unsigned) node);
         return buffer;
+    }
+
+    inline void echo(unsigned debug, unsigned from, unsigned to) {
+        CU_ON_DEBUG(debug,
+                    {
+                        CU_DEBUG(debug, "\"");
+                        unsigned inx = from;
+                        for ( ; inx < limit; ++inx) {
+                            if (inx >= to) break;
+                            CU_DEBUG(debug, "%s", char2string(input->data.buffer[inx]));
+                        }
+
+                        CU_DEBUG(debug, "\"");
+                    });
     }
 
     inline void indent(unsigned debug) {
@@ -789,41 +805,46 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
  do_Continue:
 
+    CU_ON_DEBUG(3, {
+            indent(3); CU_DEBUG(3, "check (%s) [%d] %s",
+                                node_label(start),
+                                frame->phase,
+                                oper2name(start->oper));
+
+            if (cu_MatchName == start->oper) {
+                CU_DEBUG(3, " %s", start->arg.name);
+            }
+
+            if (cu_MatchChar == start->oper) {
+                CU_DEBUG(3, " match(\'%s\')", char2string(start->arg.letter));
+            }
+
+            if (cu_MatchRange == start->oper) {
+                CU_DEBUG(3,  " between(\'%s\',\'%s\')",
+                         char2string(start->arg.range->begin),
+                         char2string(start->arg.range->end));
+            }
+
+            if (cu_MatchSet == start->oper) {
+                CU_DEBUG(3,  " set(%s)", start->arg.set->label);
+            }
+
+            CU_DEBUG(3, " at (%u,%u) ",
+                     input->cursor.line_number + 1,
+                     input->cursor.char_offset);
+
+            echo(3, point, point + 10);
+
+            CU_DEBUG(3, "\n");
+        });
+
     if (cu_One == frame->phase) {
         if (checkCache(start))    goto do_MisMatch_nocache;
         if (checkFirstSet(start)) goto do_MisMatch;
         if (checkMetadata(start)) goto do_MisMatch;
-
-        CU_ON_DEBUG(3, {
-                indent(3); CU_DEBUG(3, "check (%s) [%d] %s",
-                                    node_label(start),
-                                    frame->phase,
-                                    oper2name(start->oper));
-
-                if (cu_MatchName == start->oper) {
-                    CU_DEBUG(3, " %s", start->arg.name);
-                }
-
-                if (cu_MatchChar == start->oper) {
-                    CU_DEBUG(3, " match(\'%s\')", char2string(start->arg.letter));
-                }
-
-                if (cu_MatchRange == start->oper) {
-                    CU_DEBUG(3,  " between(\'%s\',\'%s\')",
-                             char2string(start->arg.range->begin),
-                             char2string(start->arg.range->end));
-                }
-
-                if (cu_MatchSet == start->oper) {
-                    CU_DEBUG(3,  " set(%s)", start->arg.set->label);
-                }
-
-                CU_DEBUG(3, " at (%u,%u)\n",
-                         frame->at.line_number + 1,
-                         frame->at.char_offset);
-            });
     }
 
+ do_Switch:
     switch (start->oper) {
     case cu_Apply:       goto do_Apply;
     case cu_AssertFalse: goto do_AssertFalse;
@@ -1104,12 +1125,18 @@ extern CuSignal cu_Event(Copper input, const CuData data)
                     const char *name = start->arg.name;
                     CU_DEBUG(3, " %s", name);
                 }
+
                 CU_DEBUG(3, " at (%u,%u)",
                          frame->at.line_number + 1,
                          frame->at.char_offset);
-                CU_DEBUG(3, " to (%u,%u)\n",
+
+                CU_DEBUG(3, " to (%u,%u) ",
                          input->cursor.line_number + 1,
                          input->cursor.char_offset);
+
+                echo(3, frame->at.text_inx, input->cursor.text_inx);
+
+                CU_DEBUG(3, "\n");
             });
 
         CuFrame next = frame->next;
@@ -1129,7 +1156,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     goto do_Continue;
 
  do_MisMatch:
-    if (!cache_Point(cache, start, point)) goto do_Error;
+    if (!cache_Point(cache, frame)) goto do_Error;
 
  do_MisMatch_nocache: {
         CU_ON_DEBUG(3, {
@@ -1143,9 +1170,13 @@ extern CuSignal cu_Event(Copper input, const CuData data)
                     CU_DEBUG(3, " %s", name);
                 }
 
-                CU_DEBUG(3, " at (%u,%u)\n",
+                CU_DEBUG(3, " at (%u,%u) ",
                          frame->at.line_number + 1,
                          frame->at.char_offset);
+
+                echo(3, frame->at.text_inx, frame->at.text_inx + 10);
+
+                CU_DEBUG(3, "\n");
             });
 
         reset();
@@ -1164,7 +1195,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         frame = next;        // set the current frame
         start = frame->node; // set the current node
     }
-    goto do_Continue;
+    goto do_Switch;
 
  do_Error: // process error (like malloc)
     indent(2);  CU_DEBUG(2, "ERROR\n");
