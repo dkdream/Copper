@@ -172,14 +172,12 @@ int main(int argc, char **argv)
     CU_DEBUG(1, "parsing infile %s\n", infile);
 
     for ( ; ; ) {
-        if (!copper_GetLine(&buffer, &data)) {
-            CU_ERROR("no more data\n");
-            break;
-        }
-
         switch(cu_Event(file_parser, data)) {
         case cu_NeedData:
-            CU_DEBUG(1, "need data event\n");
+            if (!copper_GetLine(&buffer, &data)) {
+                CU_ERROR("no more data\n");
+                break;
+            }
             continue;
 
         case cu_FoundPath:

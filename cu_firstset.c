@@ -864,9 +864,9 @@ extern bool cu_FillMetadata(Copper input) {
         }
     }
 
-    CU_ON_DEBUG(1, { tree_DebugSets(input, root); });
+    CU_ON_DEBUG(7, { tree_DebugSets(input, root); });
 
-    CU_DEBUG(1, "filling metadata %x done\n", (unsigned) root);
+    CU_DEBUG(7, "filling metadata %x done\n", (unsigned) root);
 
     return true;
 

@@ -80,6 +80,20 @@ static bool queue_Event(CuQueue    queue,
     return true;
 }
 
+static unsigned queue_Count(CuQueue queue)
+{
+    if (!queue) return 0;
+
+    struct cu_thread *result = queue->begin;
+
+    unsigned count = 0;
+    for (; result ; ++count) {
+        result = result->next;
+    }
+
+    return count;
+}
+
 static bool queue_Run(CuQueue queue,
                       Copper input)
 {
@@ -134,6 +148,21 @@ static bool queue_FreeList(CuQueue queue,
         queue->free_list = list;
         list = next;
     }
+
+    return true;
+}
+
+static bool queue_WillAdjust(CuQueue  queue,
+                             CuThread to)
+{
+    if (!queue) return false;
+    if (!to) {
+        if (queue->begin) return true;
+        if (queue->end)   return true;
+        return false;
+    }
+
+    if (to == queue->end) return false;
 
     return true;
 }
@@ -625,7 +654,22 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         return point > frame->at.text_inx;
     }
 
+    inline bool mark() {
+         frame->mark = queue->end;
+         frame->at   = input->cursor;
+         return true;
+    }
+
     inline bool reset() {
+        bool adjust = queue_WillAdjust(queue, frame->mark);
+
+        if (adjust) {
+            indent(2);
+            CU_DEBUG(2, "reset at (%u,%u) ",
+                     frame->at.line_number + 1,
+                     frame->at.char_offset);
+        }
+
         if (!frame->mark) {
             if (!queue_Clear(queue)) return false;
         } else {
@@ -638,6 +682,13 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         end_of_tokens = (point >= limit);
         lookahead     = limit - point;
         token         = input->data.buffer[point];
+
+        if (adjust) {
+            CU_ON_DEBUG(2, {
+                    CU_DEBUG(2, "queue.size=%d\n",
+                             queue_Count(queue));
+                });
+        };
 
         return true;
     }
@@ -664,7 +715,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
     inline bool node(CuName name, CuNode* target) {
 
-        indent(2); CU_DEBUG(2, "fetching node %s at (%u,%u)\n",
+        indent(3); CU_DEBUG(3, "fetching node %s at (%u,%u)\n",
                             name,
                             frame->at.line_number + 1,
                             frame->at.char_offset);
@@ -678,7 +729,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     }
 
     inline bool predicate(CuName name, CuPredicate *test) {
-        indent(2); CU_DEBUG(2, "fetching predicate %s at (%u,%u)\n",
+        indent(3); CU_DEBUG(3, "fetching predicate %s at (%u,%u)\n",
                             name,
                             frame->at.line_number + 1,
                             frame->at.char_offset);
@@ -694,7 +745,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     inline bool event(CuLabel *label) {
         CuName name = label->name;
 
-        indent(2); CU_DEBUG(2, "fetching event %s at (%u,%u)\n",
+        indent(3); CU_DEBUG(3, "fetching event %s at (%u,%u)\n",
                             name,
                             frame->at.line_number + 1,
                             frame->at.char_offset);
@@ -708,11 +759,16 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     }
 
     inline bool add_event(CuLabel label) {
-        indent(2); CU_DEBUG(2, "event %s(%x) at (%u,%u)\n",
-                            label.name,
-                            (unsigned) label.function,
-                            frame->at.line_number + 1,
-                            frame->at.char_offset);
+        CU_ON_DEBUG(2,
+                    {
+                        indent(2);
+                        CU_DEBUG(2, "event %s(%x) at (%u,%u) queue.size=%d\n",
+                                 label.name,
+                                 (unsigned) label.function,
+                                 frame->at.line_number + 1,
+                                 frame->at.char_offset,
+                                 queue_Count(queue) + 1);
+                    });
 
         return queue_Event(queue,
                            frame->rulename,
@@ -742,7 +798,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
         if (list) {
             if (0 < list->count) {
-                indent(2); CU_DEBUG(2, "check (%s) at (%u,%u) first (bypass call nodes)\n",
+                indent(3); CU_DEBUG(3, "check (%s) at (%u,%u) first (bypass call nodes)\n",
                                     node_label(cnode),
                                     frame->at.line_number + 1,
                                     frame->at.char_offset);
@@ -1037,7 +1093,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
     case cu_Three:
         if (!cursorMoved()) goto do_Match;
-        frame->at = input->cursor;
+        mark();
         if (!push_node(start->arg.node, cu_Four)) goto do_Error;
         goto do_Continue;
 
@@ -1089,7 +1145,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
             goto do_Match;
         }
         if (!cursorMoved()) goto do_Match;
-        frame->at = input->cursor;
+        mark();
         if (!push_node(start->arg.node, cu_Two)) goto do_Error;
         goto do_Continue;
     }
