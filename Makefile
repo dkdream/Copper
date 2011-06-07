@@ -45,8 +45,6 @@ push : #-- put the new graph under version control
 
 checkpoint : ; git checkpoint
 
-examples : $(COPPER.test) ; $(MAKE) --directory=examples
-
 test : $(COPPER.test) ; $(MAKE) --directory=tests
 
 err_test: copper.vm
@@ -152,17 +150,13 @@ do.stage.two  : do.stage.one  ; @$(MAKE) --no-print-directory STAGE=two  COPPER.
 clear :
 	rm -f *~ *.o *.tmp
 	rm -f stage.*
-	$(MAKE) --directory=examples --no-print-directory $@
 
 clean : clear
 	rm -rf .depends
 	rm -f copper.c copper.vm libCopper.a
-	echo $(MAKE) --directory=examples --no-print-directory $@
 
 scrub spotless : clean
 	rm -rf copper.ovm copper_o.c cu_machine_o.c main_o.c
-	$(MAKE) --directory=examples --no-print-directory $@
-
 
 # --
 
@@ -172,7 +166,6 @@ scrub spotless : clean
 .PHONY :: clear
 .PHONY :: err_test
 .PHONY :: test
-.PHONY :: examples
 .PHONY :: push
 .PHONY :: checkpoint
 .PHONY :: install
