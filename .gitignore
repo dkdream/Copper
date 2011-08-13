@@ -20,4 +20,5 @@ libCopper.a
 main_o.c
 test.cu
 tests/test.cu
+copper_ver.h
 
