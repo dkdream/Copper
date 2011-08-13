@@ -83,7 +83,7 @@ libCopper.a : $(LIB_OBJS)
 	@$(RANLIB) /tmp/$@
 	@cp /tmp/$@ $@
 
-compiler.o : compiler.c copper_ver.h
+compiler.o : compiler.c
 
 # -- --------------------------------------- bootstrap
 
@@ -109,7 +109,7 @@ DEPENDS += .depends/main.d
 
 copper.c : copper.cu ./copper.ovm ; ./copper.ovm --name copper_graph --output $@ --file copper.cu
 copper.o : copper.c
-main.o   : main.c copper_ver.h
+main.o   : main.c
 
 copper.vm : main.o copper.o compiler.o libCopper.a
 	$(CC) $(CFLAGS) -o $@ main.o copper.o compiler.o -L. -lCopper
@@ -156,7 +156,7 @@ clear :
 
 clean : clear
 	rm -rf .depends
-	rm -f copper.c copper.vm libCopper.a
+	rm -f copper.c copper.vm libCopper.a copper_ver.h
 
 scrub spotless : clean
 	rm -rf copper.ovm copper_o.c cu_machine_o.c main_o.c

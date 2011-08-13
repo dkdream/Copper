@@ -1,34 +1,40 @@
 #!/bin/sh
 
-if [ $# -lt 2 ]
+if [ $# -lt 1 ]
 then
-   echo >&2 $(basename $0) tag version.file
+   echo >&2 $(basename $0) tag [version.file]
    exit 1
 fi
 
-Tag=$1
+Tag=$(echo $1 | sed -e 's/^[0-9]*//')
 Output=$2
+Width=$(echo $3 | sed -e 's/[^0-9]//g')
+Default=$4
+TagPattern=$5
 
-Default="pre_release"
+( [ ! -z "$Tag"        ]                       ) || Tag=$(basename $(pwd) | sed -e 's/$/_version/')
+( [ ! -z "$Width"      ] && [ 2 -lt "$Width" ] ) || Width=3
+( [ ! -z "$Default"    ]                       ) || Default="pre_release"
+( [ ! -z "$TagPattern" ]                       ) || TagPattern="v[0-9]*"
+
 Version=""
-Dirty=""
 
 LF='
 '
 
-
 # First check in we are in a git repos with an annotated tag
 if test -d .git -o -f .git
 then
-   Version=$(git describe --match "v[0-9]*" --abbrev=4 HEAD 2>/dev/null)
+   Version=$(git describe --match "${TagPattern}" --abbrev=${Width} HEAD 2>/dev/null | sed -e 's/-/./g')
    case "$Version" in
      *$LF*)
           Version="$Default" ;;
      v[0-9]*)
           git update-index -q --refresh
-          test -z "$(git diff-index --name-only HEAD --)" || Dirty=".dirty" ;;
    esac
-   Version=$(echo "$Version$Dirty" | sed -e 's/-/./g');
+   test -z "$(git diff-index --name-only HEAD --)" || {
+       Version="${Version}-dirty";
+   }
 fi
 
 if [ -z "$Version" ] 
@@ -36,16 +42,21 @@ then
     Version="$Default"
 fi
 
-Current=""
-
-if test -f $Output
+if [ $# -lt 2 ]
 then
-   Current=$(sed -e "s/^#define $Tag[ ]*//" -e 's/"//g' -e 's/[ ]*$//' <$Output)
+    echo >&2 "$Tag = $Version"
 else
-   Current="unset"
+    Current=""
+    
+    if test -f $Output
+    then
+        Current=$(sed -e "s/^#define $Tag[ ]*//" -e 's/"//g' -e 's/[ ]*$//' <$Output)
+    else
+        Current="unset"
+    fi
+    
+    test "$Version" = "$Current" || {
+        echo >&2 "$Tag = $Version"
+        echo "#define $Tag \"$Version\"" >$Output
+    }
 fi
-
-test "$Version" = "$Current" || {
-     echo >&2 "$Tag = $Version"
-     echo "#define $Tag \"$Version\"" >$Output
-}
