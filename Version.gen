@@ -9,7 +9,7 @@ fi
 Tag=$1
 Output=$2
 
-Default="v1.0.pre_release"
+Default="pre_release"
 Version=""
 Dirty=""
 
@@ -29,8 +29,11 @@ then
           test -z "$(git diff-index --name-only HEAD --)" || Dirty=".dirty" ;;
    esac
    Version=$(echo "$Version$Dirty" | sed -e 's/-/./g');
-else
-   Version="$Default"
+fi
+
+if [ -z "$Version" ] 
+then
+    Version="$Default"
 fi
 
 Current=""
