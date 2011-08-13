@@ -106,6 +106,7 @@ int main(int argc, char **argv)
         {"file",    1, 0, 'f'},
         {"output",  1, 0, 'o'},
         {"name",    1, 0, 'n'},
+        {"version", 0, 0,  1},
         {0, 0, 0, 0}
     };
 
@@ -135,6 +136,21 @@ int main(int argc, char **argv)
 
             case 'n':
                 funcname = optarg;
+                break;
+
+            case 1:
+                {
+                    printf("copper version %s\n", COPPER_VERSION);
+                    exit(0);
+                }
+                break;
+
+            case 0:
+                {
+                    const char* name = long_options[option_index].name;
+                    printf("option %s\n", name);
+                    exit(0);
+                }
                 break;
 
             default:

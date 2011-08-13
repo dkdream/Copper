@@ -6,10 +6,6 @@
 #include <stdbool.h>
 #include <error.h>
 
-#define COPPER_MAJOR    1
-#define COPPER_MINOR    1
-#define COPPER_LEVEL    0
-
 /* parsing structure */
 typedef struct copper*   Copper;
 typedef struct cu_cursor CuCursor;

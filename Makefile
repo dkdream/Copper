@@ -68,6 +68,9 @@ $(LIBDIR)/libCopper.a : $(LIBDIR) libCopper.a
 	cp -p libCopper.a $@
 
 
+copper_ver.h: FORCE
+	@./Version.gen COPPER_VERSION copper_ver.h
+
 # -- -------------------------------------------------
 DEPENDS += .depends/compiler.d
 
@@ -80,7 +83,7 @@ libCopper.a : $(LIB_OBJS)
 	@$(RANLIB) /tmp/$@
 	@cp /tmp/$@ $@
 
-compiler.o : compiler.c
+compiler.o : compiler.c copper_ver.h
 
 # -- --------------------------------------- bootstrap
 
@@ -91,7 +94,7 @@ copper.ovm : main_o.o copper_o.o cu_machine_o.o compiler.o libCopper.a
 
 main_o.o   : compiler.h copper.h main_o.c.bootstrap
 	@cp main_o.c.bootstrap main_o.c
-	$(CC) $(CFLAGS) -DSKIP_META -I. -c -o $@ main_o.c
+	$(CC) $(CFLAGS) -DSKIP_META -DSKIP_VERSION -I. -c -o $@ main_o.c
 
 copper_o.o : copper.h copper_o.c.bootstrap
 	@cp copper_o.c.bootstrap copper_o.c
@@ -106,7 +109,7 @@ DEPENDS += .depends/main.d
 
 copper.c : copper.cu ./copper.ovm ; ./copper.ovm --name copper_graph --output $@ --file copper.cu
 copper.o : copper.c
-main.o   : main.c
+main.o   : main.c copper_ver.h
 
 copper.vm : main.o copper.o compiler.o libCopper.a
 	$(CC) $(CFLAGS) -o $@ main.o copper.o compiler.o -L. -lCopper
@@ -174,6 +177,7 @@ scrub spotless : clean
 .PHONY :: default
 .PHONY :: compare
 .PHONY :: current.stage
+.PHONY :: FORCE
 
 ##
 ## rules
