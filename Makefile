@@ -67,7 +67,6 @@ $(INCDIR)/static_table.h : $(INCDIR) static_table.h
 $(LIBDIR)/libCopper.a : $(LIBDIR) libCopper.a
 	cp -p libCopper.a $@
 
-
 copper_ver.h: FORCE
 	@./Version.gen COPPER_VERSION copper_ver.h
 
