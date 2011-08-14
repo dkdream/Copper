@@ -32,6 +32,7 @@ then
      v[0-9]*)
           git update-index -q --refresh
    esac
+   [ ! -z "$Version" ] || Version="$Default"
    test -z "$(git diff-index --name-only HEAD --)" || {
        Version="${Version}-dirty";
    }
