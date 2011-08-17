@@ -38,9 +38,6 @@ typedef bool (*CuEvent)(Copper, CuCursor);
 
    a predicate can look as far ahead in the input as the use allows.
    (within or across files)
-
-   if a predicate ALWAY return true then it is (like) an action but
-   is executed during the parse phase.
 **/
 typedef CuSignal (*CuPredicate)(Copper, CuFrame); // user defined predicate
 
