@@ -36,8 +36,11 @@ typedef bool (*CuEvent)(Copper, CuCursor);
    in the example the lookup ahead set for this rule is [a-z][A-Z]
    because a predicate is treated as transparent (just like actions)
 
-   a predicate can look as far ahead in the input as the use allows.
+   a predicate can look as far ahead in the input as the user allows.
    (within or across files)
+
+   predicates should NOT have side-effects since they may be call more
+   than once per location.
 **/
 typedef CuSignal (*CuPredicate)(Copper, CuFrame); // user defined predicate
 
