@@ -94,40 +94,6 @@ static unsigned queue_Count(CuQueue queue)
     return count;
 }
 
-static bool queue_Run(CuQueue queue,
-                      Copper input)
-{
-    if (!queue)        return true;
-    if (!queue->begin) return true;
-    if (!input)        return false;
-
-    CuThread current = queue->begin;
-
-    queue->begin = 0;
-
-    unsigned index = 0;
-
-    for ( ; current ; ) {
-        CuLabel label = current->label;
-
-        input->context.rule = current->rule;
-
-        if (!label.function(input, current->at)) {
-            queue->begin = current;
-            return false;
-        }
-
-        index += 1;
-
-        CuThread next    = current->next;
-        current->next    = queue->free_list;
-        queue->free_list = current;
-        current = next;
-    }
-
-    return true;
-}
-
 static bool queue_FreeList(CuQueue queue,
                            CuThread list)
 {
@@ -147,6 +113,39 @@ static bool queue_FreeList(CuQueue queue,
         list->next = queue->free_list;
         queue->free_list = list;
         list = next;
+    }
+
+    return true;
+}
+
+static bool queue_Run(CuQueue queue,
+                      Copper input)
+{
+    if (!queue)        return true;
+    if (!queue->begin) return true;
+    if (!input)        return false;
+
+    CuThread current = queue->begin;
+
+    queue->begin = 0;
+
+    for ( ; current ; ) {
+        CuLabel label = current->label;
+
+        input->context.rule = current->rule;
+
+        if (!label.function(input, current->at)) {
+            queue_FreeList(queue, current);
+            return false;
+        }
+
+        CuThread next = current->next;
+
+        /* free this node */
+        current->next    = queue->free_list;
+        queue->free_list = current;
+
+        current = next;
     }
 
     return true;
@@ -175,7 +174,7 @@ static bool queue_TrimTo(CuQueue  queue,
         to = queue->begin;
         queue->begin = 0;
         queue->end   = 0;
-        return  queue_FreeList(queue, to);
+        return queue_FreeList(queue, to);
     }
 
     if (!queue->begin) return false;
@@ -186,7 +185,6 @@ static bool queue_TrimTo(CuQueue  queue,
 
     for ( ; current ; current = current->next ) {
         if (current == to) break;
-
     }
 
     if (!current) return false;

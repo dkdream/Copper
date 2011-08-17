@@ -9,6 +9,7 @@ TFLAGS := -f 'Time %E KTime %S UTime %U PFaults %F Swapped %W CSwitch %w Signals
 all test :
 	@echo >> Times.list
 	@date >> Times.list
+	@$(COPPER.test) --version >> Times.list
 	@make clear collect
 	@ls -l $(Test_files:%.cu=%.tmp)
 	@cat Times.list

@@ -12,18 +12,35 @@ typedef struct cu_cursor CuCursor;
 typedef enum   cu_signal CuSignal;
 typedef struct cu_frame* CuFrame;
 
-/* user define event actions */
-/* these are ONLY call after a sucessful parse completes */
+/**
+    user define event actions are ONLY call after a
+    path is found (cu_FoundPath) when parse completes
+    and the user calls cu_RunQueue. if the events are
+    use to construct a tree then the copper object must
+    be extended to include the nessary data structures.
+
+    if an event return false then the RunQueue stops on
+    that event.
+**/
 typedef bool (*CuEvent)(Copper, CuCursor);
 
 /**
-   if a predicate ALWAY return true then it is (like) an action
-   these are called during the parse to check if we  can proceed
-   predicates can not consume input they can only check it
+   a predicate is called during the cu_Event phase to check if we can
+   proceed.  they can be used to improve proformence or check dynamic
+   parts of the language.  predicates can not consume input they can
+   only check if its is valid.
+
    example of use:
         name = !%keyword < ([a-z][A-Z])+ >
-   note: the lookup ahead set for this rule is [a-z][A-Z]
-         because a predicate is treated as transparent (just like actions)
+
+   in the example the lookup ahead set for this rule is [a-z][A-Z]
+   because a predicate is treated as transparent (just like actions)
+
+   a predicate can look as far ahead in the input as the use allows.
+   (within or across files)
+
+   if a predicate ALWAY return true then it is (like) an action but
+   is executed during the parse phase.
 **/
 typedef CuSignal (*CuPredicate)(Copper, CuFrame); // user defined predicate
 
