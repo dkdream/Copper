@@ -1,0 +1,16 @@
+Copper is a PEG parser generator.
+copper converts a peg grammer file (.cu) into a c-file containning an AST.
+
+Coppers grammer is written in Copper and is parsed by the copper parsing engine.
+this acts as an example of how to use Copper as well as the main unit test.
+
+Highlights:
+  Parsing Expression Grammer base
+  Parsing engine is event base and not the driver (like yacc)
+  No need for a seperate lexer
+  Grammers are composible so (as long as rule definition dont conflict)
+
+Drawbacks:
+  Dose not support left-recursive grammers
+  Non-Packrack parser
+
