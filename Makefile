@@ -1,3 +1,4 @@
+
 TMP_DIR = /tmp
 PREFIX	= /tools/Copper
 BINDIR	= $(PREFIX)/bin
@@ -31,7 +32,7 @@ all : copper.vm
 
 other : copper_n.vm
 
-full : do.stage.two 
+test : do.stage.two 
 
 install :: $(BINDIR)/copper
 install :: $(INCDIR)/copper.h
@@ -45,7 +46,7 @@ push : #-- put the new graph under version control
 
 checkpoint : ; git checkpoint
 
-test : $(COPPER.test) ; $(MAKE) --directory=tests
+test.run : $(COPPER.test) ; $(MAKE) --directory=tests
 
 err_test: copper.vm
 	./copper.ovm --name test --file test_error.cu
@@ -171,7 +172,7 @@ scrub spotless : clean
 .PHONY :: push
 .PHONY :: checkpoint
 .PHONY :: install
-.PHONY :: full
+.PHONY :: test.run
 .PHONY :: all
 .PHONY :: default
 .PHONY :: compare
