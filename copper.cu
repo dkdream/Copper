@@ -6,7 +6,6 @@ grammar = ( - define-rule )+
 
 define-rule = identifier       @checkRule
               EQUAL expression @defineRule
-              SEMICOLON?
 
 expression  = sequence ( BAR expression @makeChoice )?
 
@@ -22,6 +21,7 @@ suffix     = primary (QUESTION @makeQuestion
                      )?
 
 primary    = identifier !EQUAL     @makeCall
+           | START expression SEMICOLON expression STOP @makeLoop
            | OPEN expression CLOSE
            | literal               @makeString
            | class                 @makeSet
@@ -33,12 +33,8 @@ primary    = identifier !EQUAL     @makeCall
 
 # Lexer syntax
 
-predicate  = !directive  '%' < [-a-zA-Z_][-a-zA-Z_0-9]* > -
-
+predicate  = '%' < [-a-zA-Z_][-a-zA-Z_0-9]* > -
 event      = '@' < [-a-zA-Z_][-a-zA-Z_0-9]* > -
-
-directive  = '%header'
-
 identifier = < [-a-zA-Z_][-a-zA-Z_0-9]* > -
 
 literal    = ['] < ( !['] char )* > ['] -
@@ -55,7 +51,6 @@ char       = '\\' [abefnrtv'"\[\]\\]
            | !'\\' !end-of-line .
 
 EQUAL     = '=' -
-COLON     = ':' -
 BAR       = '|' -
 AND       = '&' -
 NOT       = '!' -
@@ -67,7 +62,11 @@ CLOSE     = ')' -
 DOT       = '.' -
 BEGIN     = '<' -
 END       = '>' -
+START     = '{' -
+STOP      = '}' -
+
 SEMICOLON = ';' -
+COLON     = ':' -
 
 -           = (space | comment)*
 space       = ' ' | '\t' | '\r\n' | '\n' | '\r'

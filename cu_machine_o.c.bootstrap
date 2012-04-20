@@ -466,21 +466,22 @@ static bool cache_Clear(CuCache cache) {
     return true;
 }
 
-static void cu_append(Copper input, const CuData text)
+static void cu_append(Copper input, CuData *text)
 {
     struct cu_text *data = &input->data;
 
     inline void extend() {
         const unsigned point  = data->limit;
         const unsigned length = data->size;
+        const unsigned extend = text->length;
 
         int space = length - point;
 
-        if (space > text.length) return;
+        if (space > extend) return;
 
-        unsigned newsize = (0 < length) ? length : (text.length << 1) ;
+        unsigned newsize = (0 < length) ? length : (extend << 1) ;
 
-        while ((newsize - point) < text.length) {
+        while ((newsize - point) < extend) {
             newsize = newsize << 1;
         }
 
@@ -500,45 +501,35 @@ static void cu_append(Copper input, const CuData text)
     inline void append() {
         char *dest = data->buffer + data->limit;
 
-        memcpy(dest, text.start, text.length);
+        memcpy(dest, text->start, text->length);
 
-        data->limit   += text.length;
+        data->limit   += text->length;
         data->buffer[data->limit] = 0;
+        text->length = 0;
     }
 
     extend();
     append();
 }
 
-extern CuSignal cu_Event(Copper input, const CuData data)
+extern CuSignal cu_Event(Copper input, CuData *data)
 {
     assert(0 != input);
     assert(0 != input->stack);
     assert(0 != input->stack->top);
     assert(0 != input->queue);
+    assert(0 != data);
+
+    const bool end_of_file = (data->length < 0);
+
+    if (0 < data->length) {
+        assert(0 != data->start);
+        cu_append(input, data);
+    }
 
     CuStack stack = input->stack;
     CuQueue queue = input->queue;
     CuCache cache = input->cache;
-
-    bool end_of_file = (data.length < 0);
-
-    if (0 < data.length) {
-        assert(0 != data.start);
-        cu_append(input, data);
-    }
-
-    unsigned point         = input->cursor.text_inx;
-    unsigned limit         = input->data.limit;
-    bool     end_of_tokens = (point >= limit);
-
-    if (!end_of_file) {
-        if (end_of_tokens) return cu_NeedData;
-    }
-
-    unsigned lookahead     = limit - point;
-    CuChar   token         = input->data.buffer[point];
-
     CuFrame frame = stack->top;
     CuNode  start = frame->node;
 
@@ -553,6 +544,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     inline void echo(unsigned debug, unsigned from, unsigned to) {
         CU_ON_DEBUG(debug,
                     {
+                        const unsigned limit = input->data.limit;
                         CU_DEBUG(debug, "\"");
                         unsigned inx = from;
                         for ( ; inx < limit; ++inx) {
@@ -665,7 +657,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     }
 
     inline bool cursorMoved() {
-        return point > frame->at.text_inx;
+        return input->cursor.text_inx > frame->at.text_inx;
     }
 
     inline bool mark() {
@@ -692,11 +684,6 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
         input->cursor = frame->at;
 
-        point         = input->cursor.text_inx;
-        end_of_tokens = (point >= limit);
-        lookahead     = limit - point;
-        token         = input->data.buffer[point];
-
         if (adjust) {
             CU_ON_DEBUG(2, {
                     CU_DEBUG(2, "queue.size=%d\n",
@@ -707,7 +694,47 @@ extern CuSignal cu_Event(Copper input, const CuData data)
         return true;
     }
 
+    inline bool eot() {
+        const unsigned point = input->cursor.text_inx;
+        const unsigned limit = input->data.limit;
+        return (point >= limit);
+    }
+
+    inline bool lookahead(const unsigned count) {
+        const unsigned point     = input->cursor.text_inx;
+        const unsigned limit     = input->data.limit;
+        const unsigned lookahead = limit - point;
+        return (lookahead < count);
+    }
+
+    inline bool token(CuChar chr) {
+        const unsigned point = input->cursor.text_inx;
+        const CuChar   token = input->data.buffer[point];
+        return (token == chr);
+    }
+
+    inline bool token_range(CuChar from, CuChar to) {
+        const unsigned point = input->cursor.text_inx;
+        const CuChar   token = input->data.buffer[point];
+
+        if (token < from) return false;
+        if (token > to)   return false;
+        return true;
+    }
+
+    inline bool token_member(const unsigned char *bits) {
+        const unsigned point = input->cursor.text_inx;
+        const CuChar   token = input->data.buffer[point];
+        const unsigned  binx = token;
+
+        if (bits[binx >> 3] & (1 << (binx & 7))) return true;
+        return false;
+    }
+
     inline void consume() {
+        const unsigned point = input->cursor.text_inx;
+        const CuChar   token = input->data.buffer[point];
+
         if ('\n' == token) {
             input->cursor.line_number += 1;
             input->cursor.char_offset  = 0;
@@ -715,16 +742,24 @@ extern CuSignal cu_Event(Copper input, const CuData data)
             input->cursor.char_offset += 1;
         }
 
-        input->cursor.text_inx += 1;
+        input->cursor.text_inx = point + 1;
 
-        point         = input->cursor.text_inx;
-        end_of_tokens = (point >= limit);
-        lookahead     = limit - point;
-        token         = input->data.buffer[point];
-
-        if (point > input->reach.text_inx) {
+        if ((point + 1) > input->reach.text_inx) {
             input->reach = input->cursor;
         }
+    }
+
+    inline bool match_string(const CuChar *text) {
+        for ( ; 0 != *text ; ++text) {
+            const unsigned point = input->cursor.text_inx;
+            const CuChar     chr = *text;
+            const CuChar   token = input->data.buffer[point];
+
+            if (chr != token) return false;
+
+            consume();
+        }
+        return true;
     }
 
     inline bool node(CuName name, CuNode* target) {
@@ -793,12 +828,12 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     // return true if MisMatch
     // if the (node,inx) is in the cache then it is a mismatch
     inline bool checkCache(CuNode cnode) {
-        return cache_Find(cache, cnode, point);
+        return cache_Find(cache, cnode, input->cursor.text_inx);
     }
 
     // return true if MisMatch
     inline bool checkFirstSet(CuNode cnode) {
-        if (end_of_tokens) return false;
+        if (eot()) return false;
 
         if (cu_MatchName    == cnode->oper) return false;
         if (pft_opaque      == cnode->type) return false;
@@ -820,7 +855,8 @@ extern CuSignal cu_Event(Copper input, const CuData data)
             }
         }
 
-        unsigned             binx   = token;
+        const CuChar         token  = input->data.buffer[input->cursor.text_inx];
+        const unsigned       binx   = token;
         const unsigned char *bits   = first->bitfield;
         bool                 result = (bits[binx >> 3] & (1 << (binx & 7)));
 
@@ -840,7 +876,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
     // return true if MisMatch
     inline bool checkMetadata(CuNode cnode) {
-        if (end_of_tokens) return false;
+        if (eot()) return false;
 
         if (cu_MatchName == cnode->oper) return false;
 
@@ -857,7 +893,8 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
         if (!first) return false;
 
-        unsigned             binx   = token;
+        const CuChar         token  = input->data.buffer[input->cursor.text_inx];
+        const unsigned       binx   = token;
         const unsigned char *bits   = first->bitfield;
         bool                 result = (bits[binx >> 3] & (1 << (binx & 7)));
 
@@ -903,6 +940,8 @@ extern CuSignal cu_Event(Copper input, const CuData data)
                      input->cursor.line_number + 1,
                      input->cursor.char_offset);
 
+            const unsigned point = input->cursor.text_inx;
+
             echo(3, point, point + 10);
 
             CU_DEBUG(3, "\n");
@@ -922,6 +961,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     case cu_Begin:       goto do_Begin;
     case cu_Choice:      goto do_Choice;
     case cu_End:         goto do_End;
+    case cu_Loop:        goto do_Loop;
     case cu_MatchChar:   goto do_MatchChar;
     case cu_MatchDot:    goto do_MatchDot;
     case cu_MatchName:   goto do_MatchName;
@@ -973,14 +1013,19 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     }
     goto do_PhaseError;
 
- do_Begin: {     // set state.begin
-        if (add_event(begin_label)) goto do_Match;
+ do_Begin: {
+        // set state.begin
+        if (add_event(begin_label)) {
+            input->context.begin = frame->at;
+            goto do_Match;
+        }
         goto do_Error;
     }
     goto do_PhaseError;
 
- do_Choice:      // e1 e2 /
+ do_Choice:      // e1 / e2
     switch (frame->phase) {
+    default: break;
     case cu_One:
         if (!push_node(start->arg.pair->left, cu_Two)) goto do_Error;
         goto do_Continue;
@@ -999,28 +1044,54 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     }
     goto do_PhaseError;
 
- do_End: {       // set state.end
-        if (add_event(end_label)) goto do_Match;
+ do_End: {
+        // set state.end
+        if (add_event(end_label)) {
+            input->context.end = frame->at;
+            goto do_Match;
+        }
         goto do_Error;
     }
     goto do_PhaseError;
 
- do_MatchChar:   // 'chr
-    if (end_of_tokens) {
-        if (!end_of_file) goto do_MoreTokens;
-        goto do_MisMatch;
-    }
+ do_Loop:  // e1 ; e2
+    switch (frame->phase) {
+    case cu_One: // call(e1)
+        if (!push_node(start->arg.pair->left, cu_Two)) goto do_Error;
+        goto do_Continue;
 
-    if (token != start->arg.letter) goto do_MisMatch;
+    case cu_Two: // return(e1) have we match the first one (once)?
+        if (!frame->last) goto do_MisMatch;
+        frame->phase = cu_Three;
+
+    case cu_Three: // call(e2)
+        if (!push_node(start->arg.pair->right, cu_Four)) goto do_Error;
+        goto do_Continue;
+
+    case cu_Four: // return(e2) have we match the next one?
+        if (!frame->last) goto do_Match;
+        frame->phase = cu_Five;
+
+    case cu_Five: // call(e1)
+        if (!push_node(start->arg.pair->left, cu_Two)) goto do_Error;
+        goto do_Continue;
+
+    case cu_Six: // return(e1)  have we match the first one (again)?
+        if (!frame->last) goto do_MisMatch;
+        frame->phase = cu_Three;
+        goto do_Loop;
+    }
+    goto do_PhaseError;
+
+ do_MatchChar:   // 'chr
+    if (lookahead(1))  goto do_MoreTokens;
+    if (!token(start->arg.letter)) goto do_MisMatch;
     consume();
     goto do_Match;
 
 
  do_MatchDot:    // .
-    if (end_of_tokens) {
-        if (!end_of_file) goto do_MoreTokens;
-        goto do_MisMatch;
-    }
+    if (lookahead(1))  goto do_MoreTokens;
     consume();
     goto do_Match;
 
@@ -1044,51 +1115,30 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     goto do_PhaseError;
 
  do_MatchRange:  // begin-end
-    if (end_of_tokens) {
-        if (!end_of_file) goto do_MoreTokens;
+    if (lookahead(1)) goto do_MoreTokens;
+    if (!token_range(start->arg.range->begin,
+                     start->arg.range->end))
         goto do_MisMatch;
-    }
-
-    if (token < start->arg.range->begin) goto do_MisMatch;
-    if (token > start->arg.range->end)   goto do_MisMatch;
 
     consume();
     goto do_Match;
 
- do_MatchSet:    // [...]
-    if (end_of_tokens) {
-        if (!end_of_file) goto do_MoreTokens;
-    } else {
-        unsigned             binx = token;
-        const unsigned char *bits = start->arg.set->bitfield;
-
-        if (bits[binx >> 3] & (1 << (binx & 7))) {
-            consume();
-            goto do_Match;
+ do_MatchSet: {   // [...]
+        if (lookahead(1))  goto do_MoreTokens;
+        if (!token_member(start->arg.set->bitfield)) {
+            goto do_MisMatch;
         }
+        consume();
     }
-    goto do_MisMatch;
+    goto do_Match;
 
- do_MatchText:   // "..."
-    if (end_of_tokens) {
-        if (!end_of_file) goto do_MoreTokens;
-        goto do_MisMatch;
-    } else {
-        CuString string = start->arg.string;
 
-        if (lookahead < string->length) {
-            if (end_of_file) goto do_MisMatch;
-            goto do_MoreTokens;
-        }
+ do_MatchText: {  // "..."
+        const CuString string = start->arg.string;
 
-        const CuChar *text = string->text;
+        if (lookahead(string->length)) goto do_MoreTokens;
 
-        for ( ; 0 != *text ; ++text) {
-            if (token != *text) {
-                goto do_MisMatch;
-            }
-            consume();
-        }
+        if (!match_string(string->text)) goto do_Match;
 
         goto do_Match;
     }
@@ -1097,6 +1147,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
 
  do_OneOrMore:   // e +
     switch (frame->phase) {
+    default: break;
     case cu_One:
         if (!push_node(start->arg.node, cu_Two)) goto do_Error;
         goto do_Continue;
@@ -1119,15 +1170,33 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     goto do_PhaseError;
 
  do_Predicate: { // %predicate
+        input->context.rule = frame->rulename;
+
         // a predicate dosent consume input but may look ahead
         // a predicate dosent have phases
         CuPredicate test;
         if (!predicate(start->arg.name, &test)) goto do_Error;
+        switch (test(input, frame)) {
+        case cu_FoundPath:
+            reset();
+            goto do_Match;
+
+        case cu_NoPath:
+            reset();
+            goto do_MisMatch;
+
+        case cu_Error:
+            goto do_Error;
+
+        case cu_NeedData:
+            goto do_MoreTokens;
+        }
     }
     goto do_PhaseError;
 
- do_Sequence:    // e1 e2 ;
+ do_Sequence:    // e1 e2
     switch (frame->phase) {
+    default: break;
     case cu_One:
         if (!push_node(start->arg.pair->left, cu_Two)) goto do_Error;
         goto do_Continue;
@@ -1182,6 +1251,7 @@ extern CuSignal cu_Event(Copper input, const CuData data)
     goto do_PhaseError;
 
  do_MoreTokens:
+    if (end_of_file) goto do_MisMatch;
     return cu_NeedData;
 
  do_Match: {
@@ -1289,6 +1359,13 @@ extern bool cu_InputInit(Copper input, unsigned cacheSize) {
     CU_DEBUG(3, "making stack\n");
     if (!make_Stack(&(input->stack))) return false;
 
+    CU_DEBUG(3, "making buffer\n");
+    struct cu_text *data = &input->data;
+    const unsigned size = 1024;
+    data->buffer = malloc(size);
+    memset(data->buffer, 0, size);
+    data->size = size;
+
     CU_DEBUG(3, "making queue\n");
     if (!make_Queue(&(input->queue))) return false;
 
@@ -1331,6 +1408,8 @@ extern bool cu_Start(const char* name, Copper input) {
     CU_DEBUG(2, "start rule \"%s\"\n", name);
 
     CuStack stack = input->stack;
+
+    CU_DEBUG(3, "clearing parse stack %x\n", (unsigned) stack);
 
     while (stack->top) {
         CuFrame top = stack->top;

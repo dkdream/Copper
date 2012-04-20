@@ -24,8 +24,9 @@ static inline const char* oper2name(const CuOperator oper) {
     case cu_AssertFalse: return "cu_AssertFalse"; // e !
     case cu_AssertTrue:  return "cu_AssertTrue";  // e &
     case cu_Begin:       return "cu_Begin";       // set state.begin
-    case cu_Choice:      return "cu_Choice";      // e1 e2 /
+    case cu_Choice:      return "cu_Choice";      // e1 / e2
     case cu_End:         return "cu_End";         // set state.end
+    case cu_Loop:        return "cu_Loop";        // e1 ; e2
     case cu_MatchChar:   return "cu_MatchChar";   // 'chr
     case cu_MatchDot:    return "cu_MatchDot";    // dot
     case cu_MatchName:   return "cu_MatchName";   // name
@@ -34,7 +35,7 @@ static inline const char* oper2name(const CuOperator oper) {
     case cu_MatchText:   return "cu_MatchText";   // "..."
     case cu_OneOrMore:   return "cu_OneOrMore";   // e +
     case cu_Predicate:   return "cu_Predicate";   // %predicate
-    case cu_Sequence:    return "cu_Sequence";    // e1 e2 ;
+    case cu_Sequence:    return "cu_Sequence";    // e1 e2
     case cu_ZeroOrMore:  return "cu_ZeroOrMore";  // e *
     case cu_ZeroOrOne:   return "cu_ZeroOrOne";   // e ?
     case cu_Void:        break; // -nothing-

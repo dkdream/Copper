@@ -285,8 +285,39 @@ static bool meta_StartFirstSets(Copper input, CuNode node, CuMetaFirst *target)
         return true;
     }
 
-    // e1 e2 ;
+    // e1 e2
     inline bool do_Sequence() {
+        if (!allocate(true)) return false;
+
+        CuMetaFirst left;
+        CuMetaFirst right;
+
+        if (!meta_StartFirstSets(input, node->arg.pair->left,  &left)) {
+            CU_DEBUG(1, "meta_StartFirstSets checking left failed\n");
+            return false;
+        }
+        if (!meta_StartFirstSets(input, node->arg.pair->right, &right)) {
+            CU_DEBUG(1, "meta_StartFirstSets checking right failed\n");
+            return false;
+        }
+
+        result->type = inSequence(left->type, right->type);
+
+        merge(left);
+
+        if (pft_transparent == left->type) {
+            merge(right);
+        }
+
+        if (pft_event == left->type) {
+            merge(right);
+        }
+
+        return true;
+    }
+
+    // e1 ; e2
+    inline bool do_Loop() {
         if (!allocate(true)) return false;
 
         CuMetaFirst left;
@@ -331,6 +362,7 @@ static bool meta_StartFirstSets(Copper input, CuNode node, CuMetaFirst *target)
     case cu_Begin:       return do_Event();
     case cu_Choice:      return do_Choice();
     case cu_End:         return do_Event();
+    case cu_Loop:        return do_Loop();
     case cu_MatchChar:   return do_CopyNode();
     case cu_MatchDot:    return do_Opaque();
     case cu_MatchName:   return do_MatchName();
@@ -507,8 +539,35 @@ static bool meta_Recheck(Copper input, CuNode node, CuMetaFirst *target, bool *c
         return true;
     }
 
-    // e1 e2 ;
+    // e1 e2
     inline bool do_Sequence() {
+        hold();
+
+        CuMetaFirst left;
+        CuMetaFirst right;
+
+        if (!meta_Recheck(input, node->arg.pair->left,  &left,  changed)) return false;
+        if (!meta_Recheck(input, node->arg.pair->right, &right, changed)) return false;
+
+        result->type = inSequence(left->type, right->type);
+
+        merge(left);
+
+        if (pft_transparent == left->type) {
+            merge(right);
+        }
+
+        if (pft_event == left->type) {
+            merge(right);
+        }
+
+        result->done = match();
+
+        return true;
+    }
+
+    // e1 ; e2
+    inline bool do_Loop() {
         hold();
 
         CuMetaFirst left;
@@ -549,6 +608,7 @@ static bool meta_Recheck(Copper input, CuNode node, CuMetaFirst *target, bool *c
     case cu_Begin:       return do_Nothing();
     case cu_Choice:      return do_Choice();
     case cu_End:         return do_Nothing();
+    case cu_Loop:        return do_Loop();
     case cu_MatchChar:   return do_Nothing();
     case cu_MatchDot:    return do_Nothing();
     case cu_MatchName:   return do_MatchName();
@@ -694,6 +754,7 @@ static void meta_DebugSets(FILE *output, unsigned level, CuNode node)
     case cu_Begin:       return;
     case cu_Choice:      do_Childern(); return;
     case cu_End:         return;
+    case cu_Loop:        do_Childern(); return;
     case cu_MatchChar:   return;
     case cu_MatchDot:    return;
     case cu_MatchName:   return;
@@ -743,6 +804,7 @@ static bool meta_Clear(Copper input, CuNode node)
     case cu_Begin:       return do_Nothing();
     case cu_Choice:      return do_Childern();
     case cu_End:         return do_Nothing();
+    case cu_Loop:        return do_Childern();
     case cu_MatchChar:   return do_Nothing();
     case cu_MatchDot:    return do_Nothing();
     case cu_MatchName:   return do_Nothing();

@@ -72,8 +72,9 @@ enum cu_operator {
     cu_AssertFalse, // e !
     cu_AssertTrue,  // e &
     cu_Begin,       // set state.begin
-    cu_Choice,      // e1 e2 /
+    cu_Choice,      // e1 / e2
     cu_End,         // set state.end
+    cu_Loop,        // e1 ; e2
     cu_MatchChar,   // 'chr
     cu_MatchDot,    // .
     cu_MatchName,   // name
@@ -82,7 +83,7 @@ enum cu_operator {
     cu_MatchText,   // "..."
     cu_OneOrMore,   // e +
     cu_Predicate,   // %predicate
-    cu_Sequence,    // e1 e2 ;
+    cu_Sequence,    // e1 e2
     cu_ZeroOrMore,  // e *
     cu_ZeroOrOne,   // e ?
     cu_Void        // -nothing-
@@ -92,7 +93,9 @@ enum cu_phase {
     cu_One,
     cu_Two,
     cu_Three,
-    cu_Four
+    cu_Four,
+    cu_Five,
+    cu_Six
 };
 
 enum cu_first_type {
@@ -231,14 +234,14 @@ struct cu_queue {
 };
 
 struct cu_frame {
-    CuFrame     next;
-    CuNode      node;
-    CuPhase     phase;
-    bool        last;
-    const char* rulename;
-    unsigned    level;
-    CuThread    mark;
-    CuCursor    at;
+    CuFrame     next;     // link to context frame
+    CuNode      node;     // link to parse node
+    CuPhase     phase;    // current phase (for this node)
+    bool        last;     // did the last call succeed
+    const char* rulename; // was rule is this node a part of
+    unsigned    level;    // debug msg indent level
+    CuThread    mark;     // the begining of the matched text
+    CuCursor    at;       //
 };
 
 struct cu_stack {
@@ -294,10 +297,6 @@ struct cu_node {
         CuName   name;
         CuNode   node;
         CuPair   pair;
-#if 0
-        CuEvent  event;
-        CuLabel *label;
-#endif
     } arg;
 };
 
@@ -323,10 +322,6 @@ struct copper {
     CuCursor cursor; // the location in the current parse phase
     CuCursor reach;  // the maximum location reached in the current parse phase
 
-    /* parse phase markers */
-    unsigned begin_inx; // the char offset when the last begin event was added
-    unsigned end_inx;   // the char offset when the last end event was added
-
     CuCache cache;   // parser state cache (stores parse failures: (node, text_inx))
     CuTree  map;     // map rule name to first-set
     CuQueue queue;   // the current event queue
@@ -337,7 +332,7 @@ extern bool     cu_InputInit(Copper input, unsigned cacheSize); // initials the 
 extern bool     cu_AddName(Copper input, CuName, CuNode);
 extern bool     cu_FillMetadata(Copper input);
 extern bool     cu_Start(const char* name, Copper input);
-extern CuSignal cu_Event(Copper input, const CuData data);
+extern CuSignal cu_Event(Copper input, CuData *data);
 extern bool     cu_MarkedText(Copper input, CuData *target);
 extern bool     cu_RunQueue(Copper input);
 extern void     cu_SyntaxError(FILE* error, Copper cu_input, const char* filename);

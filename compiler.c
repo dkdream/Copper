@@ -84,12 +84,13 @@ typedef enum syn_type {
     syn_choice,    // - e1 e2 |
     syn_dot,       // - .
     syn_end,       // - set state.end
+    syn_loop,      // - { e1 ; e2 }
     syn_not,       // - e !
     syn_plus,      // - e +
     syn_predicate, // - %predicate
     syn_question,  // - e ?
     syn_rule,      // - identifier = ....
-    syn_sequence,  // - e1 e2 ;
+    syn_sequence,  // - e1 e2
     syn_set,       // - [...]
     syn_star,      // - e *
     syn_string,    // - "..."
@@ -157,21 +158,6 @@ struct syn_text {
     CuData  value;
 };
 
-#if 0
-// use for
-// - %header {...}
-// - %include "..." or  %include <...>
-// - {...}
-// - %footer ...
-struct syn_chunk {
-    SynType  type;
-    unsigned id;
-    SynFirst first;
-    SynChunk next;
-    CuData  value;
-};
-#endif
-
 // use for
 // - e !
 // - e &
@@ -187,7 +173,8 @@ struct syn_operator {
 
 // use for
 // - e1 e2 /
-// - e1 e2 ;
+// - e1 e2
+// - e1 ; e2
 struct syn_tree {
     SynType  type;
     unsigned id;
@@ -243,12 +230,13 @@ static inline SynKind type2kind(SynType type) {
     case syn_choice:    return syn_tree;      // - e1 e2 |
     case syn_dot:       return syn_any;       // - .
     case syn_end:       return syn_any;       // - set state.end
+    case syn_loop:      return syn_tree;      // - e1 e2
     case syn_not:       return syn_operator;  // - e !
     case syn_plus:      return syn_operator;  // - e +
     case syn_predicate: return syn_text;      // - %predicate
     case syn_question:  return syn_operator;  // - e ?
     case syn_rule:      return syn_define;    // - identifier = ....
-    case syn_sequence:  return syn_tree;      // - e1 e2 ;
+    case syn_sequence:  return syn_tree;      // - e1 e2
     case syn_set:       return syn_text;      // - [...]
     case syn_star:      return syn_operator;  // - e *
     case syn_string:    return syn_text;      // - "..." or '...'
@@ -268,6 +256,7 @@ static inline const char* type2name(SynType type) {
     case syn_choice:    return "syn_choice";
     case syn_dot:       return "syn_dot";
     case syn_end:       return "syn_end";
+    case syn_loop:      return "syn_loop";
     case syn_not:       return "syn_not";
     case syn_plus:      return "syn_plus";
     case syn_predicate: return "syn_predicate";
@@ -691,6 +680,10 @@ static bool makeSequence(Copper file, CuCursor at) {
     return makeTree(file, syn_sequence);
 }
 
+static bool makeLoop(Copper file, CuCursor at) {
+    return makeTree(file, syn_loop);
+}
+
 static bool makeChoice(Copper file, CuCursor at) {
     return makeTree(file, syn_choice);
 }
@@ -979,7 +972,7 @@ static bool node_ComputeSets(SynNode node)
         return true;
     }
 
-    // - e1 e2 /
+    // - e1 / e2
     inline bool do_choice() {
         if (!node_ComputeSets(node.tree->before))  return false;
         if (!node_ComputeSets(node.tree->after))   return false;
@@ -1002,7 +995,7 @@ static bool node_ComputeSets(SynNode node)
         return true;
     }
 
-    // - e1 e2 ;
+    // - e1 e2
     inline bool do_sequence() {
         if (!node_ComputeSets(node.tree->before))  return false;
         if (!node_ComputeSets(node.tree->after))   return false;
@@ -1013,10 +1006,41 @@ static bool node_ComputeSets(SynNode node)
         unsigned     total = before->count + after->count;
         bool         bits  = (0 != before->bitfield) || (0 != after->bitfield);
 
-        // T(ff;) = f, T(fo;) = f, T(ft;) = f, T(fe;) = f
-        // T(of;) = o, T(oo;) = o, T(ot;) = o, T(oe;) = o
-        // T(tf;) = f, T(to;) = o, T(tt;) = t, T(te;) = e
-        // T(ef;) = f, T(eo;) = o, T(et;) = e, T(ee;) = e
+        // T(ff) = f, T(fo) = f, T(ft) = f, T(fe) = f
+        // T(of) = o, T(oo) = o, T(ot) = o, T(oe) = o
+        // T(tf) = f, T(to) = o, T(tt) = t, T(te) = e
+        // T(ef) = f, T(eo) = o, T(et) = e, T(ee) = e
+
+        CuFirstType type = inSequence(before->type, after->type);
+
+        if (!allocate(type, bits, total)) return false;
+
+        merge(before->bitfield);
+
+        if (pft_fixed != before->type) {
+            merge(after->bitfield);
+        }
+
+        concat(before, after);
+
+        return true;
+    }
+
+    // - e1 ; e2
+    inline bool do_loop() {
+        if (!node_ComputeSets(node.tree->before))  return false;
+        if (!node_ComputeSets(node.tree->after))   return false;
+
+        SynFirst before = node.tree->before.any->first;
+        SynFirst after  = node.tree->after.any->first;
+
+        unsigned     total = before->count + after->count;
+        bool         bits  = (0 != before->bitfield) || (0 != after->bitfield);
+
+        // T(ff) = f, T(fo) = f, T(ft) = f, T(fe) = f
+        // T(of) = o, T(oo) = o, T(ot) = o, T(oe) = o
+        // T(tf) = f, T(to) = o, T(tt) = t, T(te) = e
+        // T(ef) = f, T(eo) = o, T(et) = e, T(ee) = e
 
         CuFirstType type = inSequence(before->type, after->type);
 
@@ -1046,15 +1070,16 @@ static bool node_ComputeSets(SynNode node)
     case syn_call:      return do_call();     // - name
     case syn_char:      return do_char();     // - 'chr
     case syn_check:     return do_check();    // - e &
-    case syn_choice:    return do_choice();   // - e1 e2 |
+    case syn_choice:    return do_choice();   // - e1 | e2
     case syn_dot:       return do_opaque();   // - dot
     case syn_end:       return do_event();    // - set state.end
+    case syn_loop:      return do_loop();     // - e1 ; e2
     case syn_not:       return do_not();      // - e !
     case syn_plus:      return do_check();    // - e +
     case syn_predicate: return do_opaque();   // - %predicate
     case syn_question:  return do_question(); // - e ?
     case syn_rule:      return do_rule();     // - identifier = ....
-    case syn_sequence:  return do_sequence(); // - e1 e2 ;
+    case syn_sequence:  return do_sequence(); // - e1 e2
     case syn_set:       return do_set();      // - [...]
     case syn_star:      return do_question(); // - e *
     case syn_string:    return do_string();   // - "..."
@@ -1353,6 +1378,28 @@ static bool node_WriteTree(SynNode node, FILE* output)
         return true;
     }
 
+    inline bool do_tree(const char* kind) {
+        if (!node_WriteTree(node.tree->before, output)) return false;
+        if (!node_WriteTree(node.tree->after, output))  return false;
+
+        fprintf(output,
+                "static struct cu_pair   pair_%.6x  = { &node_%.6x, &node_%.6x };\n",
+                node.any->id,
+                node.tree->before.any->id,
+                node.tree->after.any->id);
+
+        if (!node_FirstSet(node, output, &first_sets)) return false;
+
+        fprintf(output,
+                "static struct cu_node   node_%.6x  = { %s %s, (union cu_arg) (&pair_%.6x) };\n",
+                node.any->id,
+                first_sets,
+                kind,
+                node.any->id);
+
+        return true;
+    }
+
     inline bool do_choice() {
         if (!node_WriteTree(node.tree->before, output)) return false;
         if (!node_WriteTree(node.tree->after, output))  return false;
@@ -1555,6 +1602,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
         case syn_choice:    return do_choice();
         case syn_dot:       return do_dot();
         case syn_end:       return do_end();
+        case syn_loop:      return do_tree("cu_Loop");
         case syn_not:       return do_not();
         case syn_plus:      return do_plus();
         case syn_predicate: return do_predicate();
@@ -1612,6 +1660,7 @@ extern bool file_ParserInit(Copper file) {
     hash_Replace(copper_events, "makeSequence", makeSequence);
     hash_Replace(copper_events, "makeChoice", makeChoice);
     hash_Replace(copper_events, "defineRule", defineRule);
+    hash_Replace(copper_events, "makeLoop", makeLoop);
 
     copper_graph(file);
 

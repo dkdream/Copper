@@ -124,8 +124,8 @@ Value = Name_label
 
 ## Parts of Parameter  --------------------------------------------
 
-Parameter_asList = Open Parameter_asName ( Comma_kw Parameter_asName )+ ( Parameter_tail )? Close
-                 | Open Parameter_asName                                  Parameter_tail    Close
+Parameter_asList = Open { Parameter_asName ; Comma_kw } ( Parameter_tail )? Close
+                 | Open Parameter_asName Parameter_tail    Close
 
 Parameter_asName = Name_label ( TypeConstraint )?
 

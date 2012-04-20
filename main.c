@@ -78,8 +78,6 @@ static bool copper_GetLine(PrsBuffer *input, CuData *target)
     target->start  = input->line + input->cursor;
     input->cursor += target->length;
 
-    CU_DEBUG(1, "data count=%d\n", target->length);
-
     return true;
 }
 
@@ -204,7 +202,7 @@ int main(int argc, char **argv)
     CU_DEBUG(1, "parsing infile %s\n", infile);
 
     for ( ; ; ) {
-        switch(cu_Event(file_parser, data)) {
+        switch(cu_Event(file_parser, &data)) {
         case cu_NeedData:
             if (!copper_GetLine(&buffer, &data)) {
                 CU_ERROR("no more data\n");
@@ -220,8 +218,8 @@ int main(int argc, char **argv)
             break;
 
         case cu_NoPath:
-            //cu_SyntaxError(stderr, file_parser, infile);
-            break;
+            cu_SyntaxError(stderr, file_parser, infile);
+            return 1;
 
         case cu_Error:
             CU_ERROR("hard error\n");
