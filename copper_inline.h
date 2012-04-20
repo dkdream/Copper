@@ -57,6 +57,7 @@ static inline CuFirstType inWithout(const CuFirstType child)
 {
     // T(f!) = e, T(o&) = e, T(t!) = E, T(e!) = e
     return pft_event;
+    (void) child; // remove unused parameter warning
 }
 
 static inline CuFirstType inRequired(const CuFirstType child)

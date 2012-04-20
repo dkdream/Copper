@@ -44,9 +44,9 @@ extern void cu_SyntaxError(FILE* error,
         exit(1);
     }
 
-    char *buffer = cu_input->data.buffer;
-    int start    = charOffset;
-    int inx;
+    char   *buffer = cu_input->data.buffer;
+    unsigned start = charOffset;
+    unsigned inx;
 
     if ('\n' == buffer[start]) {
         --start;

@@ -382,18 +382,22 @@ static bool hash_Replace(struct prs_hash *hash,
 
 static bool copper_FindNode(Copper input, CuName name, CuNode* target) {
     return hash_Find(copper_nodes, name, (void**)target);
+    (void) input;
 }
 
 static bool copper_SetNode(Copper input, CuName name, CuNode value) {
     return hash_Replace(copper_nodes, (void*)name, value);
+    (void) input;
 }
 
 static bool copper_FindPredicate(Copper input, CuName name, CuPredicate* target) {
     return hash_Find(copper_predicates, name, (void**)target);
+    (void) input;
 }
 
 static bool copper_FindEvent(Copper input, CuName name, CuEvent* target) {
     return hash_Find(copper_events, name, (void**)target);
+    (void) input;
 }
 
 static bool make_Any(SynType type, SynTarget target)
@@ -570,6 +574,7 @@ static bool checkRule(Copper file, CuCursor at) {
     rule->name = name;
 
     return push(file, rule);
+    (void) at;
 }
 
 static bool defineRule(Copper file, CuCursor at) {
@@ -603,6 +608,7 @@ static bool defineRule(Copper file, CuCursor at) {
     rule->value.tree = tree;
 
     return true;
+    (void) at;
 }
 
 static bool makeEnd(Copper file, CuCursor at) {
@@ -613,6 +619,7 @@ static bool makeEnd(Copper file, CuCursor at) {
     if (!push(file, value)) return false;
 
     return true;
+    (void) at;
 }
 
 static bool makeBegin(Copper file, CuCursor at) {
@@ -623,15 +630,18 @@ static bool makeBegin(Copper file, CuCursor at) {
     if (!push(file, value)) return false;
 
     return true;
+    (void) at;
 }
 
 // namefull event
 static bool makeApply(Copper file, CuCursor at) {
     return makeText(file, syn_apply);
+    (void) at;
 }
 
 static bool makePredicate(Copper file, CuCursor at) {
     return makeText(file, syn_predicate);
+    (void) at;
 }
 
 static bool makeDot(Copper file, CuCursor at) {
@@ -642,50 +652,62 @@ static bool makeDot(Copper file, CuCursor at) {
     if (!push(file, value)) return false;
 
     return true;
+    (void) at;
 }
 
 static bool makeSet(Copper file, CuCursor at) {
     return makeText(file, syn_set);
+    (void) at;
 }
 
 static bool makeString(Copper file, CuCursor at) {
     return makeText(file, syn_string);
+    (void) at;
 }
 
 static bool makeCall(Copper file, CuCursor at) {
     return makeText(file, syn_call);
+    (void) at;
 }
 
 static bool makePlus(Copper file, CuCursor at) {
     return makeOperator(file, syn_plus);
+    (void) at;
 }
 
 static bool makeStar(Copper file, CuCursor at) {
     return makeOperator(file, syn_star);
+    (void) at;
 }
 
 static bool makeQuestion(Copper file, CuCursor at) {
     return makeOperator(file, syn_question);
+    (void) at;
 }
 
 static bool makeNot(Copper file, CuCursor at) {
     return makeOperator(file, syn_not);
+    (void) at;
 }
 
 static bool makeCheck(Copper file, CuCursor at) {
     return makeOperator(file, syn_check);
+    (void) at;
 }
 
 static bool makeSequence(Copper file, CuCursor at) {
     return makeTree(file, syn_sequence);
+    (void) at;
 }
 
 static bool makeLoop(Copper file, CuCursor at) {
     return makeTree(file, syn_loop);
+    (void) at;
 }
 
 static bool makeChoice(Copper file, CuCursor at) {
     return makeTree(file, syn_choice);
+    (void) at;
 }
 
 static void data_Write(CuData data, FILE* output);
@@ -1301,6 +1323,7 @@ static bool node_FirstSet(SynNode node, FILE* output, const char **target)
     *target = start;
 
     return true;
+    (void) output;
 }
 
 static bool node_WriteTree(SynNode node, FILE* output)
@@ -1309,13 +1332,26 @@ static bool node_WriteTree(SynNode node, FILE* output)
 
     const char *first_sets = "0,0,0,0";
 
-    inline bool do_apply() {
+    inline bool do_thunk(const char* kind) {
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node   node_%.6x  = { %s cu_Apply, (union cu_arg) ((CuName)",
+                "static struct cu_node   node_%.6x  = { %s %s, no_argument };\n",
                 node.any->id,
-                first_sets);
+                first_sets,
+                kind);
+
+        return true;
+    }
+
+    inline bool do_action(const char* kind) {
+        if (!node_FirstSet(node, output, &first_sets)) return false;
+
+        fprintf(output,
+                "static struct cu_node   node_%.6x  = { %s %s, (union cu_arg) ((CuName)",
+                node.any->id,
+                first_sets,
+                kind);
 
         data_Write(node.text->value, output);
 
@@ -1324,55 +1360,15 @@ static bool node_WriteTree(SynNode node, FILE* output)
         return true;
     }
 
-    inline bool do_begin() {
-        if (!node_FirstSet(node, output, &first_sets)) return false;
-
-        fprintf(output,
-                "static struct cu_node   node_%.6x  = { %s cu_Begin, };\n",
-                node.any->id,
-                first_sets);
-
-        return true;
-    }
-
-    inline bool do_call() {
-        if (!node_FirstSet(node, output, &first_sets)) return false;
-
-        fprintf(output,
-                "static struct cu_node   node_%.6x  = { %s cu_MatchName, (union cu_arg) ((CuName)",
-                node.any->id,
-                first_sets);
-
-        data_Write(node.text->value, output);
-
-        fprintf(output, ") };\n");
-
-        return true;
-    }
-
-    inline bool do_char() {
-        if (!node_FirstSet(node, output, &first_sets)) return false;
-
-        fprintf(output,
-                "static struct cu_node   node_%.6x  = { %s cu_MatchChar, (union cu_arg) ((CuChar)",
-                node.any->id,
-                first_sets);
-
-        char_Write(node.character->value, output);
-
-        fprintf(output, ") };\n");
-
-        return true;
-    }
-
-    inline bool do_check() {
+    inline bool do_branch(const char* kind) {
         if (!node_WriteTree(node.operator->value, output)) return false;
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node   node_%.6x  = { %s cu_AssertTrue, (union cu_arg) (&node_%.6x) };\n",
+                "static struct cu_node   node_%.6x  = { %s %s, (union cu_arg) (&node_%.6x) };\n",
                 node.any->id,
                 first_sets,
+                kind,
                 node.operator->value.any->id);
 
         return true;
@@ -1400,136 +1396,17 @@ static bool node_WriteTree(SynNode node, FILE* output)
         return true;
     }
 
-    inline bool do_choice() {
-        if (!node_WriteTree(node.tree->before, output)) return false;
-        if (!node_WriteTree(node.tree->after, output))  return false;
-
-        fprintf(output,
-                "static struct cu_pair   pair_%.6x  = { &node_%.6x, &node_%.6x };\n",
-                node.any->id,
-                node.tree->before.any->id,
-                node.tree->after.any->id);
-
+    inline bool do_char() {
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
         fprintf(output,
-                "static struct cu_node   node_%.6x  = { %s cu_Choice, (union cu_arg) (&pair_%.6x) };\n",
-                node.any->id,
-                first_sets,
-                node.any->id);
-
-        return true;
-    }
-
-    inline bool do_dot() {
-        if (!node_FirstSet(node, output, &first_sets)) return false;
-
-        fprintf(output,
-                "static struct cu_node   node_%.6x  = { %s cu_MatchDot };\n",
+                "static struct cu_node   node_%.6x  = { %s cu_MatchChar, (union cu_arg) ((CuChar)",
                 node.any->id,
                 first_sets);
 
-        return true;
-    }
-
-    inline bool do_end() {
-        if (!node_FirstSet(node, output, &first_sets)) return false;
-
-        fprintf(output,
-                "static struct cu_node   node_%.6x  = { %s cu_End, };\n",
-                node.any->id,
-                first_sets);
-
-        return true;
-    }
-
-    inline bool do_footer() {
-        return false;
-    }
-
-    inline bool do_header() {
-        return false;
-    }
-
-    inline bool do_include() {
-        return false;
-    }
-
-    inline bool do_not() {
-        if (!node_WriteTree(node.operator->value, output)) return false;
-        if (!node_FirstSet(node, output, &first_sets)) return false;
-
-        fprintf(output,
-                "static struct cu_node   node_%.6x  = { %s cu_AssertFalse, (union cu_arg) (&node_%.6x) };\n",
-                node.any->id,
-                first_sets,
-                node.operator->value.any->id);
-
-        return true;
-    }
-
-    inline bool do_plus() {
-        if (!node_WriteTree(node.operator->value, output)) return false;
-        if (!node_FirstSet(node, output, &first_sets)) return false;
-
-        fprintf(output,
-                "static struct cu_node   node_%.6x  = { %s cu_OneOrMore, (union cu_arg) (&node_%.6x) };\n",
-                node.any->id,
-                first_sets,
-                node.operator->value.any->id);
-
-        return true;
-    }
-
-    inline bool do_predicate() {
-        if (!node_FirstSet(node, output, &first_sets)) return false;
-
-        fprintf(output,
-                "static struct cu_node   node_%.6x  = { %s cu_Predicate, (union cu_arg) ((CuName)",
-                node.any->id,
-                first_sets);
-
-        data_Write(node.text->value, output);
+        char_Write(node.character->value, output);
 
         fprintf(output, ") };\n");
-
-        return true;
-    }
-
-    inline bool do_question() {
-        if (!node_WriteTree(node.operator->value, output)) return false;
-        if (!node_FirstSet(node, output, &first_sets)) return false;
-
-        fprintf(output,
-                "static struct cu_node   node_%.6x  = { %s cu_ZeroOrOne, (union cu_arg) (&node_%.6x) };\n",
-                node.any->id,
-                first_sets,
-                node.operator->value.any->id);
-
-        return true;
-    }
-
-    inline bool do_rule() {
-        return false;
-    }
-
-    inline bool do_sequence() {
-        if (!node_WriteTree(node.tree->before, output)) return false;
-        if (!node_WriteTree(node.tree->after, output))  return false;
-
-        fprintf(output,
-                "static struct cu_pair   pair_%.6x  = { &node_%.6x, &node_%.6x };\n",
-                node.any->id,
-                node.tree->before.any->id,
-                node.tree->after.any->id);
-
-        if (!node_FirstSet(node, output, &first_sets))  return false;
-
-        fprintf(output,
-                "static struct cu_node   node_%.6x  = { %s cu_Sequence, (union cu_arg) (&pair_%.6x) };\n",
-                node.any->id,
-                first_sets,
-                node.any->id);
 
         return true;
     }
@@ -1558,19 +1435,6 @@ static bool node_WriteTree(SynNode node, FILE* output)
         return true;
     }
 
-    inline bool do_star() {
-        if (!node_WriteTree(node.operator->value, output)) return false;
-        if (!node_FirstSet(node, output, &first_sets))     return false;
-
-        fprintf(output,
-                "static struct cu_node   node_%.6x  = { %s cu_ZeroOrMore, (union cu_arg) (&node_%.6x) };\n",
-                node.any->id,
-                first_sets,
-                node.operator->value.any->id);
-
-        return true;
-    }
-
     inline bool do_string() {
         if (!node_FirstSet(node, output, &first_sets)) return false;
 
@@ -1594,25 +1458,25 @@ static bool node_WriteTree(SynNode node, FILE* output)
 
     inline bool do_node() {
         switch (node.any->type) {
-        case syn_apply:     return do_apply();
-        case syn_begin:     return do_begin();
-        case syn_call:      return do_call();
+        case syn_apply:     return do_action("cu_Apply");
+        case syn_begin:     return do_thunk("cu_Begin");
+        case syn_call:      return do_action("cu_MatchName");
         case syn_char:      return do_char();
-        case syn_check:     return do_check();
-        case syn_choice:    return do_choice();
-        case syn_dot:       return do_dot();
-        case syn_end:       return do_end();
+        case syn_check:     return do_branch("cu_AssertTrue");
+        case syn_choice:    return do_tree("cu_Choice");
+        case syn_dot:       return do_thunk("cu_MatchDot");
+        case syn_end:       return do_thunk("cu_End");
         case syn_loop:      return do_tree("cu_Loop");
-        case syn_not:       return do_not();
-        case syn_plus:      return do_plus();
-        case syn_predicate: return do_predicate();
-        case syn_question:  return do_question();
-        case syn_rule:      return do_rule();
-        case syn_sequence:  return do_sequence();
+        case syn_not:       return do_branch("cu_AssertFalse");
+        case syn_plus:      return do_branch("cu_OneOrMore");
+        case syn_predicate: return do_action("cu_Predicate");
+        case syn_question:  return do_branch("cu_ZeroOrOne");
+        case syn_sequence:  return do_tree("cu_Sequence");
         case syn_set:       return do_set();
-        case syn_star:      return do_star();
+        case syn_star:      return do_branch("cu_ZeroOrMore");
         case syn_string:    return do_string();
             /* */
+        case syn_rule: break;
         case syn_void: break;
         }
         return false;
@@ -1626,6 +1490,7 @@ static bool writeTree(Copper file, CuCursor at) {
         CU_ERROR("stack not empty ; %u\n", depth(file));
     }
     return true;
+    (void) at;
 }
 
 extern bool file_ParserInit(Copper file) {
@@ -1675,6 +1540,8 @@ extern bool file_WriteTree(Copper file, FILE* output, const char* function) {
     fprintf(output, "#include <copper.h>\n");
     fprintf(output, "/* ================================================== */\n");
     fprintf(output, "\n");
+    fprintf(output, "\n");
+    fprintf(output, "#define no_argument ((union cu_arg) ((CuName)0))\n\n");
 
     SynDefine rule = file_rules;
     for ( ; rule ; rule = rule->next ) {
@@ -1702,5 +1569,6 @@ extern bool file_WriteTree(Copper file, FILE* output, const char* function) {
     fprintf(output, "\n");
 
     return true;
+    (void) file;
 }
 

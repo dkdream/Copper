@@ -18,6 +18,7 @@ along with Copper.  If not, see <http://www.gnu.org/licenses/>.
 #if !defined(_copper_vm_h_)
 #define _copper_vm_h_
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <error.h>
@@ -337,7 +338,7 @@ extern bool     cu_MarkedText(Copper input, CuData *target);
 extern bool     cu_RunQueue(Copper input);
 extern void     cu_SyntaxError(FILE* error, Copper cu_input, const char* filename);
 
-extern unsigned cu_global_debug;
+extern intptr_t cu_global_debug;
 extern void     cu_debug(const char *filename, unsigned int linenum, const char *format, ...);
 extern void     cu_error(const char *filename, unsigned int linenum, const char *format, ...);
 extern void     cu_error_part(const char *format, ...);

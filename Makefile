@@ -19,7 +19,7 @@ AR     = ar
 RANLIB = ranlib
 
 CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
-OFLAGS = -Wall
+OFLAGS = -Wall -W -mtune=i686
 ARFLAGS = qv
 
 LIB_SRCS = cu_error.c cu_firstset.c cu_machine.c

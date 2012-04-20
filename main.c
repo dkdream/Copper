@@ -33,11 +33,11 @@ along with Copper.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 
 struct prs_buffer {
-    FILE     *file;
-    unsigned  cursor;
-    ssize_t   read;
-    size_t    allocated;
-    char     *line;
+    FILE   *file;
+    size_t  cursor;
+    size_t  read;
+    size_t  allocated;
+    char   *line;
 };
 typedef struct prs_buffer PrsBuffer;
 
@@ -71,7 +71,7 @@ static bool copper_GetLine(PrsBuffer *input, CuData *target)
             return true;
         }
         input->cursor = 0;
-        input->read   = read;
+        input->read   = (unsigned) read;
     }
 
     target->length = input->read - input->cursor;

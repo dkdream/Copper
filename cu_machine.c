@@ -475,7 +475,7 @@ static void cu_append(Copper input, CuData *text)
         const unsigned length = data->size;
         const unsigned extend = text->length;
 
-        int space = length - point;
+        unsigned space = (point < length) ? length - point : 0;
 
         if (space > extend) return;
 
@@ -541,7 +541,7 @@ extern CuSignal cu_Event(Copper input, CuData *data)
         return buffer;
     }
 
-    inline void echo(unsigned debug, unsigned from, unsigned to) {
+    inline void echo(intptr_t debug, unsigned from, unsigned to) {
         CU_ON_DEBUG(debug,
                     {
                         const unsigned limit = input->data.limit;
@@ -556,7 +556,7 @@ extern CuSignal cu_Event(Copper input, CuData *data)
                     });
     }
 
-    inline void indent(unsigned debug) {
+    inline void indent(intptr_t debug) {
         CU_ON_DEBUG(debug,
                     { unsigned inx = 0;
                         for ( ; inx < frame->level; ++inx) {
@@ -570,7 +570,7 @@ extern CuSignal cu_Event(Copper input, CuData *data)
                     });
     }
 
-    inline void debug_charclass(unsigned debug, const unsigned char *bits) {
+    inline void debug_charclass(intptr_t debug, const unsigned char *bits) {
         CU_ON_DEBUG(debug,
                     { unsigned inx = 0;
                         for ( ; inx < 32;  ++inx) {
@@ -1469,7 +1469,7 @@ extern bool cu_MarkedText(Copper input, CuData *target) {
     return true;
 }
 
-unsigned cu_global_debug = 0;
+intptr_t cu_global_debug = 0;
 
 extern void cu_debug(const char *filename,
                      unsigned int linenum,
@@ -1481,6 +1481,9 @@ extern void cu_debug(const char *filename,
     //    printf("file %s line %u :: ", filename, linenum);
     vprintf(format, ap);
     fflush(stdout);
+
+    (void) filename;
+    (void) linenum;
 }
 
 extern void cu_error(const char *filename,
