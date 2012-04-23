@@ -301,8 +301,6 @@ struct cu_node {
     } arg;
 };
 
-typedef bool (*MoreData)(Copper);                             // add more text to the data buffer (old)
-
 /* parsing structure call back */
 typedef bool (*FindNode)(Copper, CuName, CuNode*);            // find the CuNode labelled name
 typedef bool (*AddName)(Copper, CuName, CuNode);              // add a CuNode to label name
