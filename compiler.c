@@ -77,6 +77,7 @@ typedef union syn_target SynTarget;
 
 typedef enum syn_type {
     syn_apply,     // - @name
+    syn_argument,  // - :[name]
     syn_begin,     // - set state.begin
     syn_call,      // - name
     syn_char,      // - 'chr
@@ -223,6 +224,7 @@ static SynDefine        file_rules = 0;
 static inline SynKind type2kind(SynType type) {
     switch (type) {
     case syn_apply:     return syn_text;      // - @name
+    case syn_argument:  return syn_text;      // - :[name]
     case syn_begin:     return syn_any;       // - set state.begin
     case syn_call:      return syn_text;      // - name
     case syn_char:      return syn_char;      // - 'chr
@@ -249,6 +251,7 @@ static inline SynKind type2kind(SynType type) {
 static inline const char* type2name(SynType type) {
     switch (type) {
     case syn_apply:     return "syn_apply";
+    case syn_argument:  return "syn_argument";
     case syn_begin:     return "syn_begin";
     case syn_call:      return "syn_call";
     case syn_char:      return "syn_char";
@@ -636,6 +639,11 @@ static bool makeBegin(Copper file, CuCursor at) {
 // namefull event
 static bool makeApply(Copper file, CuCursor at) {
     return makeText(file, syn_apply);
+    (void) at;
+}
+
+static bool makeArgument(Copper file, CuCursor at) {
+    return makeText(file, syn_argument);
     (void) at;
 }
 
@@ -1088,6 +1096,7 @@ static bool node_ComputeSets(SynNode node)
 
     switch (node.any->type) {
     case syn_apply:     return do_event();    // - @name
+    case syn_argument:  return do_opaque();   // - :[name]
     case syn_begin:     return do_event();    // - set state.begin
     case syn_call:      return do_call();     // - name
     case syn_char:      return do_char();     // - 'chr
@@ -1459,6 +1468,7 @@ static bool node_WriteTree(SynNode node, FILE* output)
     inline bool do_node() {
         switch (node.any->type) {
         case syn_apply:     return do_action("cu_Apply");
+        case syn_argument:  return do_action("cu_Argument");
         case syn_begin:     return do_thunk("cu_Begin");
         case syn_call:      return do_action("cu_MatchName");
         case syn_char:      return do_char();
@@ -1512,6 +1522,7 @@ extern bool file_ParserInit(Copper file) {
     hash_Replace(copper_events, "makeEnd", makeEnd);
     hash_Replace(copper_events, "makeBegin", makeBegin);
     hash_Replace(copper_events, "makeApply", makeApply);
+    hash_Replace(copper_events, "makeArgument", makeArgument);
     hash_Replace(copper_events, "makePredicate", makePredicate);
     hash_Replace(copper_events, "makeDot", makeDot);
     hash_Replace(copper_events, "makeSet", makeSet);
@@ -1524,7 +1535,7 @@ extern bool file_ParserInit(Copper file) {
     hash_Replace(copper_events, "makeCheck", makeCheck);
     hash_Replace(copper_events, "makeSequence", makeSequence);
     hash_Replace(copper_events, "makeChoice", makeChoice);
-    hash_Replace(copper_events, "defineRule", defineRule);
+    //    hash_Replace(copper_events, "defineRule", defineRule);
     hash_Replace(copper_events, "makeLoop", makeLoop);
 
     copper_graph(file);

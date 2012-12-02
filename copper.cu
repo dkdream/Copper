@@ -23,24 +23,25 @@ suffix     = primary (QUESTION @makeQuestion
 primary    = identifier !EQUAL     @makeCall
            | START expression SEMICOLON expression STOP @makeLoop
            | OPEN expression CLOSE
-           | literal               @makeString
-           | class                 @makeSet
-           | DOT                   @makeDot
-           | predicate             @makePredicate
-           | event                 @makeApply
-           | BEGIN                 @makeBegin
-           | END                   @makeEnd
+           | literal
+           | class
+           | DOT
+           | predicate ( argument )?
+           | event     ( argument )?
+           | BEGIN                 
+           | END
 
 # Lexer syntax
 
-predicate  = '%' < [-a-zA-Z_][-a-zA-Z_0-9]* > -
-event      = '@' < [-a-zA-Z_][-a-zA-Z_0-9]* > -
-identifier = < [-a-zA-Z_][-a-zA-Z_0-9]* > -
+predicate  = '%'  < [-a-zA-Z_][-a-zA-Z_0-9]* >     - @makePredicate
+event      = '@'  < [-a-zA-Z_][-a-zA-Z_0-9]* >     - @makeApply
+argument   = ':[' < [-a-zA-Z_][-a-zA-Z_0-9]* > ']' - @makeArgument
+identifier =      < [-a-zA-Z_][-a-zA-Z_0-9]* >     -
 
-literal    = ['] < ( !['] char )* > ['] -
-           | ["] < ( !["] char )* > ["] -
+literal    = ['] < ( !['] char )* > ['] - @makeString
+           | ["] < ( !["] char )* > ["] - @makeString
 
-class      = '[' < ( !']' range )* > ']' -
+class      = '[' < ( !']' range )* > ']' - @makeSet
 
 range      = char '-' char
            | char
@@ -54,19 +55,19 @@ EQUAL     = '=' -
 BAR       = '|' -
 AND       = '&' -
 NOT       = '!' -
-QUESTION  = '?' -
-STAR      = '*' -
+QUESTION  = '?' - 
+STAR      = '*' - 
 PLUS      = '+' -
 OPEN      = '(' -
 CLOSE     = ')' -
-DOT       = '.' -
-BEGIN     = '<' -
-END       = '>' -
+DOT       = '.' - @makeDot
+BEGIN     = '<' - @makeBegin
+END       = '>' - @makeEnd
+
 START     = '{' -
+SEMICOLON = ';' -
 STOP      = '}' -
 
-SEMICOLON = ';' -
-COLON     = ':' -
 
 -           = (space | comment)*
 space       = ' ' | '\t' | '\r\n' | '\n' | '\r'
