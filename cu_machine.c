@@ -268,6 +268,7 @@ static bool stack_Extend(CuStack target) {
 static bool mark_begin(Copper input, CuCursor at) {
     if (!input) return false;
     input->context.begin = at;
+    input->context.argument = (CuNode)0;
     return true;
 }
 
