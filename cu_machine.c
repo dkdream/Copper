@@ -684,8 +684,8 @@ extern CuSignal cu_Event(Copper input, CuData *data)
         bool adjust = queue_WillAdjust(queue, frame->mark);
 
         if (adjust) {
-            indent(2);
-            CU_DEBUG(2, "reset at (%u,%u) ",
+            indent(3);
+            CU_DEBUG(3, "reset at (%u,%u) ",
                      frame->at.line_number + 1,
                      frame->at.char_offset);
         }
@@ -699,8 +699,8 @@ extern CuSignal cu_Event(Copper input, CuData *data)
         input->cursor = frame->at;
 
         if (adjust) {
-            CU_ON_DEBUG(2, {
-                    CU_DEBUG(2, "queue.size=%d\n",
+            CU_ON_DEBUG(3, {
+                    CU_DEBUG(3, "queue.size=%d\n",
                              queue_Count(queue));
                 });
         };
@@ -822,10 +822,10 @@ extern CuSignal cu_Event(Copper input, CuData *data)
     }
 
     inline bool add_event(CuLabel label) {
-        CU_ON_DEBUG(2,
+        CU_ON_DEBUG(3,
                     {
-                        indent(2);
-                        CU_DEBUG(2, "event %s(%x) at (%u,%u) queue.size=%d\n",
+                        indent(3);
+                        CU_DEBUG(3, "event %s(%x) at (%u,%u) queue.size=%d\n",
                                  label.name,
                                  (unsigned) label.function,
                                  frame->at.line_number + 1,
@@ -929,42 +929,47 @@ extern CuSignal cu_Event(Copper input, CuData *data)
         return !result;
     }
 
- do_Continue:
+ do_Continue: {
+        int level = 3;
+        if (cu_MatchName == start->oper) {
+            level = 2;
+        }
 
-    CU_ON_DEBUG(3, {
-            indent(3); CU_DEBUG(3, "check (%s) [%d] %s",
-                                node_label(start),
-                                frame->phase,
-                                oper2name(start->oper));
+        CU_ON_DEBUG(level, {
+                indent(level); CU_DEBUG(level, "check (%s) [%d] %s",
+                                    node_label(start),
+                                    frame->phase,
+                                    oper2name(start->oper));
 
-            if (cu_MatchName == start->oper) {
-                CU_DEBUG(3, " %s", start->arg.name);
-            }
+                if (cu_MatchName == start->oper) {
+                    CU_DEBUG(level, " %s", start->arg.name);
+                }
 
-            if (cu_MatchChar == start->oper) {
-                CU_DEBUG(3, " match(\'%s\')", char2string(start->arg.letter));
-            }
+                if (cu_MatchChar == start->oper) {
+                    CU_DEBUG(level, " match(\'%s\')", char2string(start->arg.letter));
+                }
 
-            if (cu_MatchRange == start->oper) {
-                CU_DEBUG(3,  " between(\'%s\',\'%s\')",
-                         char2string(start->arg.range->begin),
-                         char2string(start->arg.range->end));
-            }
+                if (cu_MatchRange == start->oper) {
+                    CU_DEBUG(level,  " between(\'%s\',\'%s\')",
+                             char2string(start->arg.range->begin),
+                             char2string(start->arg.range->end));
+                }
 
-            if (cu_MatchSet == start->oper) {
-                CU_DEBUG(3,  " set(%s)", start->arg.set->label);
-            }
+                if (cu_MatchSet == start->oper) {
+                    CU_DEBUG(level,  " set(%s)", start->arg.set->label);
+                }
 
-            CU_DEBUG(3, " at (%u,%u) ",
-                     input->cursor.line_number + 1,
-                     input->cursor.char_offset);
+                CU_DEBUG(level, " at (%u,%u) ",
+                         input->cursor.line_number + 1,
+                         input->cursor.char_offset);
 
-            const unsigned point = input->cursor.text_inx;
+                const unsigned point = input->cursor.text_inx;
 
-            echo(3, point, point + 10);
+                echo(level, point, point + 10);
 
-            CU_DEBUG(3, "\n");
-        });
+                CU_DEBUG(level, "\n");
+            });
+    }
 
     if (cu_One == frame->phase) {
         if (checkCache(start))    goto do_MisMatch_nocache;
@@ -1284,28 +1289,33 @@ extern CuSignal cu_Event(Copper input, CuData *data)
     return cu_NeedData;
 
  do_Match: {
-        CU_ON_DEBUG(3, {
-                indent(3); CU_DEBUG(3, "pass  (%s) [%d] %s",
+        int level = 3;
+        if (cu_MatchName == start->oper) {
+            level = 1;
+        }
+
+        CU_ON_DEBUG(level, {
+                indent(level); CU_DEBUG(level, "pass  (%s) [%d] %s",
                                     node_label(start),
                                     frame->phase,
                                     oper2name(start->oper));
 
                 if (cu_MatchName == start->oper) {
                     const char *name = start->arg.name;
-                    CU_DEBUG(3, " %s", name);
+                    CU_DEBUG(level, " %s", name);
                 }
 
-                CU_DEBUG(3, " at (%u,%u)",
+                CU_DEBUG(level, " at (%u,%u)",
                          frame->at.line_number + 1,
                          frame->at.char_offset);
 
-                CU_DEBUG(3, " to (%u,%u) ",
+                CU_DEBUG(level, " to (%u,%u) ",
                          input->cursor.line_number + 1,
                          input->cursor.char_offset);
 
-                echo(3, frame->at.text_inx, input->cursor.text_inx);
+                echo(level, frame->at.text_inx, input->cursor.text_inx);
 
-                CU_DEBUG(3, "\n");
+                CU_DEBUG(level, "\n");
             });
 
         CuFrame next = frame->next;
@@ -1328,24 +1338,29 @@ extern CuSignal cu_Event(Copper input, CuData *data)
     if (!cache_Point(cache, frame)) goto do_Error;
 
  do_MisMatch_nocache: {
-        CU_ON_DEBUG(3, {
-                indent(3); CU_DEBUG(3, "fail  (%s) [%d] %s",
+        int level = 3;
+        if (cu_MatchName == start->oper) {
+            level = 1;
+        }
+
+        CU_ON_DEBUG(level, {
+                indent(level); CU_DEBUG(level, "fail  (%s) [%d] %s",
                                     node_label(start),
                                     frame->phase,
                                     oper2name(start->oper));
 
                 if (cu_MatchName == start->oper) {
                     const char *name = start->arg.name;
-                    CU_DEBUG(3, " %s", name);
+                    CU_DEBUG(level, " %s", name);
                 }
 
-                CU_DEBUG(3, " at (%u,%u) ",
+                CU_DEBUG(level, " at (%u,%u) ",
                          frame->at.line_number + 1,
                          frame->at.char_offset);
 
-                echo(3, frame->at.text_inx, frame->at.text_inx + 10);
+                echo(level, frame->at.text_inx, frame->at.text_inx + 10);
 
-                CU_DEBUG(3, "\n");
+                CU_DEBUG(level, "\n");
             });
 
         reset();
