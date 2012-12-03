@@ -70,6 +70,7 @@ enum cu_signal {
 
 enum cu_operator {
     cu_Apply,       // @name - an named event
+    cu_Argument,    // :[name] - an argument name
     cu_AssertFalse, // e !
     cu_AssertTrue,  // e &
     cu_Begin,       // set state.begin
@@ -204,8 +205,10 @@ struct cu_pair {
 
 struct cu_state {
     const char* rule;
-    CuCursor   begin;
-    CuCursor   end;
+    CuNode      on;
+    CuCursor    begin;
+    CuCursor    end;
+    CuNode      argument;
 };
 
 /* */
@@ -216,10 +219,11 @@ struct cu_label {
 
 /* a member of the event queue */
 struct cu_thread {
-    CuThread   next;
+    CuThread    next;
     const char* rule;
-    CuCursor   at;
-    CuLabel    label;
+    CuCursor    at;
+    CuLabel     label;
+    CuNode      on;
 };
 
 /* a section of the event queue */

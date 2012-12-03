@@ -357,6 +357,7 @@ static bool meta_StartFirstSets(Copper input, CuNode node, CuMetaFirst *target)
 
     switch (node->oper) {
     case cu_Apply:       return do_Event();
+    case cu_Argument:    return do_Event();
     case cu_AssertFalse: return do_AssertFalse();
     case cu_AssertTrue:  return do_AssertChild();
     case cu_Begin:       return do_Event();
@@ -428,7 +429,8 @@ static bool meta_Recheck(Copper input, CuNode node, CuMetaFirst *target, bool *c
 
     // %predicate
     // dot
-    // @name - an named event
+    // @name   - an named event
+    // :[name] - an argument name
     // set state.begin
     // set state.begin
     // {...} - an unnamed event
@@ -603,6 +605,7 @@ static bool meta_Recheck(Copper input, CuNode node, CuMetaFirst *target, bool *c
 
     switch (node->oper) {
     case cu_Apply:       return do_Nothing();
+    case cu_Argument:    return do_Nothing();
     case cu_AssertFalse: return do_AssertFalse();
     case cu_AssertTrue:  return do_AssertChild();
     case cu_Begin:       return do_Nothing();
@@ -749,6 +752,7 @@ static void meta_DebugSets(FILE *output, unsigned level, CuNode node)
 
     switch (node->oper) {
     case cu_Apply:       return;
+    case cu_Argument:    return;
     case cu_AssertFalse: do_Child(); return;
     case cu_AssertTrue:  do_Child(); return;
     case cu_Begin:       return;
@@ -799,6 +803,7 @@ static bool meta_Clear(Copper input, CuNode node)
 
     switch (node->oper) {
     case cu_Apply:       return do_Nothing();
+    case cu_Argument:    return do_Nothing();
     case cu_AssertFalse: return do_Child();
     case cu_AssertTrue:  return do_Child();
     case cu_Begin:       return do_Nothing();

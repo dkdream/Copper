@@ -40,6 +40,7 @@ along with Copper.  If not, see <http://www.gnu.org/licenses/>.
 static bool make_Thread(const char* rule,
                         CuCursor at,
                         CuLabel  label,
+                        CuNode   on,
                         CuThread *target)
 {
     struct cu_thread *result = malloc(sizeof(struct cu_thread));
@@ -48,6 +49,7 @@ static bool make_Thread(const char* rule,
     result->rule  = rule;
     result->at    = at;
     result->label = label;
+    result->on    = on;
 
     *target = result;
 
@@ -69,20 +71,22 @@ static bool make_Queue(CuQueue *target) {
 static bool queue_Event(CuQueue    queue,
                         const char* rule,
                         CuCursor   at,
-                        CuLabel    label)
+                        CuLabel    label,
+                        CuNode     on)
 {
     if (!queue) return true;
 
     struct cu_thread *result = queue->free_list;
 
     if (!result) {
-        make_Thread(rule, at, label, &result);
+        make_Thread(rule, at, label, on, &result);
     } else {
         queue->free_list = result->next;
         result->next     = 0;
         result->rule     = rule;
         result->at       = at;
         result->label    = label;
+        result->on       = on;
     }
 
     if (!queue->begin) {
@@ -149,6 +153,7 @@ static bool queue_Run(CuQueue queue,
         CuLabel label = current->label;
 
         input->context.rule = current->rule;
+        input->context.on   = current->on;
 
         if (!label.function(input, current->at)) {
             queue_FreeList(queue, current);
@@ -276,6 +281,15 @@ static bool mark_end(Copper input, CuCursor at) {
 
 static struct cu_label end_label = { &mark_end, "set.end" };
 
+static bool mark_argument(Copper input, CuCursor at) {
+    if (!input) return false;
+    input->context.argument = input->context.on;
+    return true;
+    (void) at;
+}
+
+static struct cu_label argument_label = { &mark_argument, "set.argument" };
+
 /* this is use only in copper_vm for debugging (SINGLE THEADED ALERT) */
 static char *char2string(unsigned char value)
 {
@@ -346,7 +360,6 @@ static bool cache_MorePoints(CuCache value, unsigned count) {
 
     return true;
 }
-
 
 static bool make_Cache(unsigned size, CuCache *target) {
     unsigned fullsize = (sizeof(struct cu_cache) + (size * sizeof(CuPoint)));
@@ -822,13 +835,15 @@ extern CuSignal cu_Event(Copper input, CuData *data)
         return queue_Event(queue,
                            frame->rulename,
                            frame->at,
-                           label);
+                           label,
+                           start);
     }
 
     // return true if MisMatch
     // if the (node,inx) is in the cache then it is a mismatch
     inline bool checkCache(CuNode cnode) {
-        return cache_Find(cache, cnode, input->cursor.text_inx);
+        bool result = cache_Find(cache, cnode, input->cursor.text_inx);
+        return result;
     }
 
     // return true if MisMatch
@@ -867,9 +882,10 @@ extern CuSignal cu_Event(Copper input, CuData *data)
                             frame->at.char_offset,
                             (result ? "continue" : "skip"));
 
-        CU_DEBUG(4, " (");
-        debug_charclass(4, bits);
-        CU_DEBUG(4, ")\n");
+        CU_DEBUG(6, " (");
+        debug_charclass(6, bits);
+        CU_DEBUG(6, ")");
+        CU_DEBUG(4, "\n");
 
         return !result;
     }
@@ -898,14 +914,16 @@ extern CuSignal cu_Event(Copper input, CuData *data)
         const unsigned char *bits   = first->bitfield;
         bool                 result = (bits[binx >> 3] & (1 << (binx & 7)));
 
-        indent(4); CU_DEBUG(4, "check (%s) to cursor(\'%s\') at (%u,%u) meta %s (",
+        indent(4); CU_DEBUG(4, "check (%s) to cursor(\'%s\') at (%u,%u) meta %s ",
                             node_label(cnode),
                             char2string(token),
                             frame->at.line_number + 1,
                             frame->at.char_offset,
                             (result ? "continue" : "skip"));
-        debug_charclass(4, bits);
-        CU_DEBUG(4, ")\n");
+        CU_DEBUG(5, "(");
+        debug_charclass(5, bits);
+        CU_DEBUG(5, ")");
+        CU_DEBUG(4, "\n");
 
         return !result;
     }
@@ -956,6 +974,7 @@ extern CuSignal cu_Event(Copper input, CuData *data)
  do_Switch:
     switch (start->oper) {
     case cu_Apply:       goto do_Apply;
+    case cu_Argument:    goto do_Argument;
     case cu_AssertFalse: goto do_AssertFalse;
     case cu_AssertTrue:  goto do_AssertTrue;
     case cu_Begin:       goto do_Begin;
@@ -981,6 +1000,15 @@ extern CuSignal cu_Event(Copper input, CuData *data)
         CuLabel label = { 0, start->arg.name };
         if (!event(&label))    goto do_Error;
         if (!add_event(label)) goto do_Error;
+        goto do_Match;
+    }
+    goto do_PhaseError;
+
+ do_Argument: {     // :[name] - an argument name
+        // set set.argument
+        if (add_event(argument_label)) {
+            input->context.argument = start;
+        }
         goto do_Match;
     }
     goto do_PhaseError;

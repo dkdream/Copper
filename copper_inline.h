@@ -21,6 +21,7 @@ along with Copper.  If not, see <http://www.gnu.org/licenses/>.
 static inline const char* oper2name(const CuOperator oper) {
     switch (oper) {
     case cu_Apply:       return "cu_Apply";       // @name - an named event
+    case cu_Argument:    return "cu_Argument";    // :[name] - an argument name
     case cu_AssertFalse: return "cu_AssertFalse"; // e !
     case cu_AssertTrue:  return "cu_AssertTrue";  // e &
     case cu_Begin:       return "cu_Begin";       // set state.begin

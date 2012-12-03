@@ -26,8 +26,8 @@ primary    = identifier !EQUAL     @makeCall
            | literal
            | class
            | DOT
-           | predicate ( argument )?
-           | event     ( argument )?
+           | predicate ( argument @bindTo )?
+           | event     ( argument @bindTo )?
            | BEGIN                 
            | END
 

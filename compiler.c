@@ -652,6 +652,25 @@ static bool makePredicate(Copper file, CuCursor at) {
     (void) at;
 }
 
+static bool makeBinding(Copper file, CuCursor at) {
+        SynNode after;
+    SynNode before;
+
+    if (!pop(file, &after))  return false;
+    if (!pop(file, &before)) return false;
+
+    CU_DEBUG(1, "binding (%s %s)\n",
+             type2name(before.any->type),
+             type2name(after.any->type));
+
+    if (!push(file, after)) return false;
+    if (!push(file, before)) return false;
+
+    return makeTree(file, syn_sequence);
+
+    (void) at;
+}
+
 static bool makeDot(Copper file, CuCursor at) {
     SynAny value = 0;
 
@@ -1535,8 +1554,8 @@ extern bool file_ParserInit(Copper file) {
     hash_Replace(copper_events, "makeCheck", makeCheck);
     hash_Replace(copper_events, "makeSequence", makeSequence);
     hash_Replace(copper_events, "makeChoice", makeChoice);
-    //    hash_Replace(copper_events, "defineRule", defineRule);
     hash_Replace(copper_events, "makeLoop", makeLoop);
+    hash_Replace(copper_events, "bindTo", makeBinding);
 
     copper_graph(file);
 
