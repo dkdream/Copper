@@ -63,7 +63,7 @@ static inline bool set_Contains(CuMetaSet contains, CuMetaSet group) {
 static inline const char* node_label(CuNode node) {
     static char buffer[10];
     if (node->label) return node->label;
-    sprintf(buffer, "%x__", (unsigned) node);
+    sprintf(buffer, "%lx__", (unsigned long) node);
     return buffer;
 }
 
@@ -695,7 +695,7 @@ static void meta_DebugSets(FILE *output, unsigned level, CuNode node)
 
     inline void debug_label(CuNode cnode) {
         if (!cnode) {
-            fprintf(output,"%x_ ", (unsigned) cnode);
+            fprintf(output,"%lx_ ", (unsigned long) cnode);
             return;
         }
 
@@ -704,7 +704,7 @@ static void meta_DebugSets(FILE *output, unsigned level, CuNode node)
             return;
         }
 
-        fprintf(output,"%x_ ", (unsigned) cnode);
+        fprintf(output,"%lx_ ", (unsigned long) cnode);
     }
 
     inline void debug_oper() {
@@ -928,7 +928,7 @@ extern bool cu_FillMetadata(Copper input) {
 
     CuTree root = input->map;
 
-    CU_DEBUG(1, "filling metadata %x\n", (unsigned) root);
+    CU_DEBUG(1, "filling metadata %lx\n", (unsigned long) root);
 
     if (!tree_StartFirstSets(input, root)) {
         CU_DEBUG(1, "tree_StartFirstSets error\n");
@@ -940,7 +940,7 @@ extern bool cu_FillMetadata(Copper input) {
     for ( ; changed ; ) {
         changed = false;
         CU_ON_DEBUG(6, { tree_DebugSets(input, root); });
-        CU_DEBUG(4, "merging metadata  %x\n", (unsigned) root);
+        CU_DEBUG(4, "merging metadata  %lx\n", (unsigned long) root);
         if (!tree_MergeFirstSets(input, root, &changed)) {
             CU_DEBUG(1, "tree_MergeFirstSets error\n");
             return false;
@@ -949,7 +949,7 @@ extern bool cu_FillMetadata(Copper input) {
 
     CU_ON_DEBUG(7, { tree_DebugSets(input, root); });
 
-    CU_DEBUG(7, "filling metadata %x done\n", (unsigned) root);
+    CU_DEBUG(7, "filling metadata %lx done\n", (unsigned long) root);
 
     return true;
 

@@ -41,6 +41,8 @@ struct prs_buffer {
 };
 typedef struct prs_buffer PrsBuffer;
 
+/* should be in stdio.h */
+extern  ssize_t getline(char **lineptr, size_t *n, FILE *stream);
 
 static char*  program_name = 0;
 static Copper file_parser = 0;

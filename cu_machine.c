@@ -551,7 +551,7 @@ extern CuSignal cu_Event(Copper input, CuData *data)
     char buffer[10];
     inline const char* node_label(CuNode node) {
         if (node->label) return node->label;
-        sprintf(buffer, "%x__", (unsigned) node);
+        sprintf(buffer, "%lx__", (unsigned long) node);
         return buffer;
     }
 
@@ -825,9 +825,9 @@ extern CuSignal cu_Event(Copper input, CuData *data)
         CU_ON_DEBUG(3,
                     {
                         indent(3);
-                        CU_DEBUG(3, "event %s(%x) at (%u,%u) queue.size=%d\n",
+                        CU_DEBUG(3, "event %s(%lx) at (%u,%u) queue.size=%d\n",
                                  label.name,
-                                 (unsigned) label.function,
+                                 (unsigned long) label.function,
                                  frame->at.line_number + 1,
                                  frame->at.char_offset,
                                  queue_Count(queue) + 1);
@@ -1423,7 +1423,9 @@ extern bool cu_InputInit(Copper input, unsigned cacheSize) {
     assert(0 != cache);
     assert(cacheSize == cache->size);
 
-    CU_DEBUG(3, "InputInit done (queue %x) (cache %x)\n", (unsigned) queue, (unsigned) cache);
+    CU_DEBUG(3, "InputInit done (queue %lx) (cache %lx)\n",
+             (unsigned long) queue,
+             (unsigned long) cache);
 
     return true;
 }
@@ -1443,17 +1445,17 @@ extern bool cu_Start(const char* name, Copper input) {
     assert(0 != input->cache);
     assert(0 != input->stack);
 
-    CU_DEBUG(3, "clearing queue %x\n", (unsigned) input->queue);
+    CU_DEBUG(3, "clearing queue %lx\n", (unsigned long) input->queue);
     if (!queue_Clear(input->queue)) return false;
 
-    CU_DEBUG(3, "clearing cache %x\n", (unsigned) input->cache);
+    CU_DEBUG(3, "clearing cache %lx\n", (unsigned long) input->cache);
     if (!cache_Clear(input->cache)) return false;
 
     CU_DEBUG(2, "start rule \"%s\"\n", name);
 
     CuStack stack = input->stack;
 
-    CU_DEBUG(3, "clearing parse stack %x\n", (unsigned) stack);
+    CU_DEBUG(3, "clearing parse stack %lx\n", (unsigned long) stack);
 
     while (stack->top) {
         CuFrame top = stack->top;

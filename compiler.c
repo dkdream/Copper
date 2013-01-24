@@ -187,7 +187,7 @@ struct syn_tree {
 /* */
 // use for the name to object hashtables
 struct prs_map {
-    unsigned       code;
+    unsigned long  code;
     const void*    key;
     void*          value;
     struct prs_map *next;
@@ -281,7 +281,7 @@ static const char* convert(CuData name) {
     return buffer;
 }
 
-static bool make_Map(unsigned code,
+static bool make_Map(unsigned long code,
                      const void* key,
                      void* value,
                      struct prs_map *next,
@@ -340,8 +340,8 @@ static bool hash_Find(struct prs_hash *hash,
 {
     if (!key) return false;
 
-    unsigned code  = encode_name(key);
-    unsigned index = code % hash->size;
+    unsigned long code  = encode_name(key);
+    unsigned      index = code % hash->size;
 
     struct prs_map *map = hash->table[index];
 

@@ -29,6 +29,10 @@ along with Copper.  If not, see <http://www.gnu.org/licenses/>.
 
 /* */
 
+/* should be in ctype.h *
+extern int isblank(int c);
+*/
+
 extern void cu_SyntaxError(FILE* error,
                            Copper cu_input,
                            const char* filename)
