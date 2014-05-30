@@ -955,6 +955,13 @@ extern CuSignal cu_Event(Copper input, CuData *data)
                              char2string(start->arg.range->end));
                 }
 
+                if (cu_MatchText == start->oper) {
+                    const CuString string = start->arg.string;
+                    CU_DEBUG(level, " match(%d, \"%s\")",
+                             string->length,
+                             string->text);
+                }
+
                 if (cu_MatchSet == start->oper) {
                     CU_DEBUG(level,  " set(%s)", start->arg.set->label);
                 }
@@ -1172,7 +1179,7 @@ extern CuSignal cu_Event(Copper input, CuData *data)
 
         if (lookahead(string->length)) goto do_MoreTokens;
 
-        if (!match_string(string->text)) goto do_Match;
+        if (!match_string(string->text)) goto do_MisMatch;
 
         goto do_Match;
     }
