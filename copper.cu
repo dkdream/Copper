@@ -21,7 +21,7 @@ suffix     = primary (QUESTION @makeQuestion
                      )?
 
 primary    = identifier !EQUAL     @makeCall
-           | START expression SEMICOLON expression STOP @makeLoop
+           | START expression SEMICOLON expression STOP @makeLoop ## match(e1) test(e2,matchThenLoop,returnTrue)
            | OPEN expression CLOSE
            | literal
            | class
