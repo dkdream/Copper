@@ -37,13 +37,21 @@ along with Copper.  If not, see <http://www.gnu.org/licenses/>.
 
 /* */
 
+static CuThread _free_threads_ = 0;
+
 static bool make_Thread(const char* rule,
                         CuCursor at,
                         CuLabel  label,
                         CuNode   on,
                         CuThread *target)
 {
-    struct cu_thread *result = malloc(sizeof(struct cu_thread));
+    CuThread result = _free_threads_;
+
+    if (!result) {
+       result = malloc(sizeof(struct cu_thread));
+    } else {
+        _free_threads_ = result->next;
+    }
 
     result->next  = 0;
     result->rule  = rule;
@@ -56,8 +64,24 @@ static bool make_Thread(const char* rule,
     return true;
 }
 
+static bool free_Thread(CuThread *source) {
+    if (!source)  return false;
+    if (!*source) return false;
+
+    CuThread thread = *source;
+
+    thread->next   = _free_threads_;
+    _free_threads_ = thread;
+
+    *source = 0;
+
+    return true;
+}
+
 static bool make_Queue(CuQueue *target) {
-    struct cu_queue *result = malloc(sizeof(struct cu_queue));
+    if (!target) return false;
+
+    CuQueue result = malloc(sizeof(struct cu_queue));
 
     result->free_list = 0;
     result->begin     = 0;
@@ -74,9 +98,9 @@ static bool queue_Event(CuQueue    queue,
                         CuLabel    label,
                         CuNode     on)
 {
-    if (!queue) return true;
+    if (!queue) return false;
 
-    struct cu_thread *result = queue->free_list;
+    CuThread result = queue->free_list;
 
     if (!result) {
         make_Thread(rule, at, label, on, &result);
@@ -104,7 +128,7 @@ static unsigned queue_Count(CuQueue queue)
 {
     if (!queue) return 0;
 
-    struct cu_thread *result = queue->begin;
+    CuThread result = queue->begin;
 
     unsigned count = 0;
     for (; result ; ++count) {
@@ -177,6 +201,7 @@ static bool queue_WillAdjust(CuQueue  queue,
                              CuThread to)
 {
     if (!queue) return false;
+
     if (!to) {
         if (queue->begin) return true;
         if (queue->end)   return true;
@@ -217,11 +242,10 @@ static bool queue_TrimTo(CuQueue  queue,
     queue->end = to;
 
     return queue_FreeList(queue, current);
-
 }
 
 static bool queue_Clear(CuQueue queue) {
-    if (!queue) return true;
+    if (!queue) return false;
 
     CuThread node = queue->begin;
 
@@ -231,14 +255,74 @@ static bool queue_Clear(CuQueue queue) {
     return queue_FreeList(queue, node);
 }
 
+static bool free_Queue(CuQueue *source) {
+    if (!source) return false;
+
+    CuQueue  queue = *source;
+    CuThread at    = queue->begin;
+
+    queue->begin = 0;
+    queue->end   = 0;
+
+    for (; at ;) {
+        CuThread hold = at->next;
+        if (!free_Thread(&at)) {
+            queue->begin = at;
+            return false;
+        }
+        at = hold;
+    }
+
+    at = queue->free_list;
+
+    queue->free_list = 0;
+
+    for (; at ;) {
+        CuThread hold = at->next;
+        if (!free_Thread(&at)) {
+            queue->free_list = at;
+            return false;
+        }
+        at = hold;
+    }
+
+    free(queue);
+
+    *source = 0;
+
+    return true;
+}
+
+static CuFrame _free_frames_ = 0;
+
 static bool make_Frame(CuFrame next, CuFrame *target) {
-    struct cu_frame *result = malloc(sizeof(struct cu_frame));
+    CuFrame result = _free_frames_;
+
+    if (!result) {
+        result = malloc(sizeof(struct cu_frame));
+    } else {
+        _free_frames_ = result->next;
+    }
 
     memset(result, 0, sizeof(struct cu_frame));
 
     result->next = next;
 
     *target = result;
+
+    return true;
+}
+
+static bool free_Frame(CuFrame *source) {
+    if (!source)  return false;
+    if (!*source) return false;
+
+    CuFrame frame =  *source;
+
+    frame->next   = _free_frames_;
+    _free_frames_ = frame;
+
+    *source = 0;
 
     return true;
 }
@@ -266,87 +350,77 @@ static bool stack_Extend(CuStack target) {
     return true;
 }
 
-static bool mark_begin(Copper input, CuCursor at) {
-    if (!input) return false;
-    CuContext local = theContext(input);
-    local->context.begin = at;
-    local->context.argument = (CuNode)0;
-    return true;
-}
+static bool free_Stack(CuStack *source) {
+    if (!source)  return false;
+    if (!*source) return false;
 
-static struct cu_label begin_label = { &mark_begin, "set.begin" };
+    CuStack stack = *source;
+    CuFrame at    = stack->top;
 
-static bool mark_end(Copper input, CuCursor at) {
-    if (!input) return false;
-    CuContext local = theContext(input);
-    local->context.end = at;
-    return true;
-}
+    stack->top = 0;
 
-static struct cu_label end_label = { &mark_end, "set.end" };
-
-static bool mark_argument(Copper input, CuCursor at) {
-    if (!input) return false;
-    CuContext local = theContext(input);
-    local->context.argument = local->context.on;
-    return true;
-    (void) at;
-}
-
-static struct cu_label argument_label = { &mark_argument, "set.argument" };
-
-/* this is use only in copper_vm for debugging (SINGLE THEADED ALERT) */
-static char *char2string(unsigned char value)
-{
-    static unsigned index = 0;
-    static char buffer[60];
-    char *text = buffer + (index * 6);
-
-    // allow up to 10 call before reusing the same buffer section
-    index = (index + 1) % 10;
-
-    switch (value) {
-    case '\a': return "\\a"; /* bel */
-    case '\b': return "\\b"; /* bs */
-    case '\e': return "\\e"; /* esc */
-    case '\f': return "\\f"; /* ff */
-    case '\n': return "\\n"; /* nl */
-    case '\r': return "\\r"; /* cr */
-    case '\t': return "\\t"; /* ht */
-    case '\v': return "\\v"; /* vt */
-    case '\'': return "\\'"; /* ' */
-    case '\"': return "\\\"";
-    case '\\': return "\\\\";
-    default:
-        if (value < 32) {
-            int len = sprintf(text, "\\%03o", value);
-            text[len] = 0;
-            return text;
+    for (; at ;) {
+        CuFrame hold = at->next;
+        if (!free_Frame(&at)) {
+            stack->top = at;
+            return false;
         }
-        if (126 < value) {
-            int len = sprintf(text, "\\%03o", value);
-            text[len] = 0;
-            return text;
-        }
-        break;
+        at = hold;
     }
 
-    text[0] = (char) value;
-    text[1] = 0;
-    return text;
+    at = stack->free_list;
+
+    stack->free_list = 0;
+
+    for (; at ;) {
+        CuFrame hold = at->next;
+        if (!free_Frame(&at)) {
+            stack->free_list = at;
+            return false;
+        }
+        at = hold;
+    }
+
+    free(stack);
+
+    *source = 0;
+
+    return true;
 }
+
+static CuPoint _free_points_ = 0;
 
 static bool make_Point(CuPoint *target)
 {
-    unsigned fullsize = sizeof(struct cu_point);
+    CuPoint result = _free_points_;
 
-    struct cu_point *result = malloc(fullsize);
-    memset(result, 0, fullsize);
+    if (!result) {
+        result = malloc(sizeof(struct cu_point));
+    } else {
+        _free_points_ = result->next;
+    }
+
+    memset(result, 0, sizeof(struct cu_point));
 
     *target = result;
 
     return true;
 }
+
+static bool free_Point(CuPoint *source) {
+    if (!source)  return false;
+    if (!*source) return false;
+
+    CuPoint point = *source;
+
+    point->next   = _free_points_;
+    _free_points_ = point;
+
+    *source = 0;
+
+    return true;
+}
+
 
 static bool cache_MorePoints(CuCache value, unsigned count) {
     if (!value) return false;
@@ -484,6 +558,133 @@ static bool cache_Clear(CuCache cache) {
     return true;
 }
 
+static bool free_Cache(CuCache *source) {
+    if (!source)  return false;
+    if (!*source) return false;
+
+    CuCache cache = *source;
+    CuPoint at;
+
+    unsigned index   = 0;
+    unsigned columns = cache->size;
+
+    for ( ; index < columns ; ++index ) {
+        if (!cache->table[index]) continue;
+
+        at = cache->table[index];
+
+        cache->table[index] = 0;
+
+        for (; at ;) {
+            CuPoint hold = at->next;
+            if (!free_Point(&at)) {
+                cache->table[index] = at;
+                return false;
+            }
+            at = hold;
+        }
+    }
+
+    at = cache->free_list;
+
+    cache->free_list = 0;
+
+    for (; at ;) {
+        CuPoint hold = at->next;
+        if (!free_Point(&at)) {
+            cache->free_list = at;
+            return false;
+        }
+        at = hold;
+    }
+
+    free(*source);
+    *source = 0;
+
+    return true;
+}
+
+/*****************************************************************
+ *****************************************************************/
+
+// event to mark the begin of text '<'
+static bool mark_begin(Copper input, CuCursor at) {
+    if (!input) return false;
+    CuContext local = theContext(input);
+    local->context.begin = at;
+    local->context.argument = (CuNode)0;
+    return true;
+}
+
+static struct cu_label begin_label = { &mark_begin, "set.begin" };
+
+// event to mark the end of text '>'
+static bool mark_end(Copper input, CuCursor at) {
+    if (!input) return false;
+    CuContext local = theContext(input);
+    local->context.end = at;
+    return true;
+}
+
+static struct cu_label end_label = { &mark_end, "set.end" };
+
+// event to set the argument for the
+static bool mark_argument(Copper input, CuCursor at) {
+    if (!input) return false;
+    CuContext local = theContext(input);
+    local->context.argument = local->context.on;
+    return true;
+    (void) at;
+}
+
+static struct cu_label argument_label = { &mark_argument, "set.argument" };
+
+/* this is use only in copper_vm for debugging (SINGLE THEADED ALERT) */
+static char *char2string(unsigned char value)
+{
+    static unsigned index = 0;
+    static char buffer[60];
+    char *text = buffer + (index * 6);
+
+    // allow up to 10 call before reusing the same buffer section
+    index = (index + 1) % 10;
+
+    switch (value) {
+    case '\a': return "\\a"; /* bel */
+    case '\b': return "\\b"; /* bs */
+    case '\e': return "\\e"; /* esc */
+    case '\f': return "\\f"; /* ff */
+    case '\n': return "\\n"; /* nl */
+    case '\r': return "\\r"; /* cr */
+    case '\t': return "\\t"; /* ht */
+    case '\v': return "\\v"; /* vt */
+    case '\'': return "\\'"; /* ' */
+    case '\"': return "\\\"";
+    case '\\': return "\\\\";
+    default:
+        if (value < 32) {
+            int len = sprintf(text, "\\%03o", value);
+            text[len] = 0;
+            return text;
+        }
+        if (126 < value) {
+            int len = sprintf(text, "\\%03o", value);
+            text[len] = 0;
+            return text;
+        }
+        break;
+    }
+
+    text[0] = (char) value;
+    text[1] = 0;
+    return text;
+}
+
+/*************************************************************************************
+ *************************************************************************************
+ *************************************************************************************
+ *************************************************************************************/
+
 static void cu_append(CuContext input, CuData *text)
 {
     struct cu_text *data = &input->data;
@@ -528,6 +729,187 @@ static void cu_append(CuContext input, CuData *text)
 
     extend();
     append();
+}
+
+extern bool cu_InputInit(CuContext input, unsigned cacheSize) {
+    assert(0 != input);
+
+    CU_DEBUG(3, "making stack\n");
+    if (!make_Stack(&(input->stack))) return false;
+
+    CU_DEBUG(3, "making buffer\n");
+    struct cu_text *data = &input->data;
+    const unsigned size = 1024;
+    data->buffer = malloc(size);
+    memset(data->buffer, 0, size);
+    data->size = size;
+
+    CU_DEBUG(3, "making queue\n");
+    if (!make_Queue(&(input->queue))) return false;
+
+    CuQueue queue = input->queue;
+    assert(0 != queue);
+
+    CU_DEBUG(3, "making cache\n");
+    if (!make_Cache(cacheSize, &(input->cache))) return false;
+
+    CuCache cache = input->cache;
+    assert(0 != cache);
+    assert(cacheSize == cache->size);
+
+    CU_DEBUG(3, "InputInit done (queue %lx) (cache %lx)\n",
+             (unsigned long) queue,
+             (unsigned long) cache);
+
+    return true;
+}
+
+extern bool cu_MarkedText(CuContext input, CuData *target) {
+    if (!input)  return false;
+    if (!target) return false;
+
+    unsigned text_begin = input->context.begin.text_inx;
+    unsigned text_end   = input->context.end.text_inx;
+
+    if (text_begin > text_end) return false;
+
+    if (text_begin == text_end) {
+        target->length = 0;
+        target->start  = 0;
+        return true;
+    }
+
+    if (text_begin > input->data.limit) return false;
+    if (text_end   > input->data.limit) return false;
+
+    target->length = text_end - text_begin;
+    target->start  = input->data.buffer + text_begin;
+
+    return true;
+}
+
+extern bool cu_InputFinit(CuContext input) {
+    if (!input)  return false;
+
+    if (!free_Cache(&(input->cache))) return false;
+
+    if (!free_Queue(&(input->queue))) return false;
+
+    struct cu_text *data = &input->data;
+    if (data->buffer) {
+        free(data->buffer);
+        data->buffer = 0;
+        data->size   = 0;
+    }
+
+    if (!free_Stack(&(input->stack))) return false;
+
+    return true;
+}
+
+/*****************************************************************
+ *****************************************************************
+ *****************************************************************
+ *****************************************************************/
+
+intptr_t cu_global_debug = 0;
+
+extern void cu_debug(const char *filename,
+                     unsigned int linenum,
+                     const char *format,
+                     ...)
+{
+    va_list ap; va_start (ap, format);
+
+    //    printf("file %s line %u :: ", filename, linenum);
+    vprintf(format, ap);
+    fflush(stdout);
+
+    (void) filename;
+    (void) linenum;
+}
+
+extern void cu_error(const char *filename,
+                     unsigned int linenum,
+                     const char *format,
+                     ...)
+{
+    va_list ap; va_start (ap, format);
+
+    printf("file %s line %u :: ", filename, linenum);
+    vprintf(format, ap);
+    exit(1);
+}
+
+extern void cu_error_part(const char *format, ...)
+{
+    va_list ap; va_start (ap, format);
+    vprintf(format, ap);
+}
+
+
+/*****************************************************************
+ *****************************************************************
+ *****************************************************************
+ *****************************************************************/
+
+extern bool cu_Start(const char* name, Copper input) {
+    assert(0 != input);
+
+    CuCallback callback = theCallback(input);
+    CuContext  local    = theContext(input);
+
+    CuNode start = 0;
+
+    assert(0 != callback->node);
+
+    CU_DEBUG(3, "requesting start node %s\n", name);
+    if (!callback->node(callback, name, &start)) return false;
+
+    assert(0 != start);
+    assert(0 != local->queue);
+    assert(0 != local->cache);
+    assert(0 != local->stack);
+
+    CU_DEBUG(3, "clearing queue %lx\n", (unsigned long) local->queue);
+    if (!queue_Clear(local->queue)) return false;
+
+    CU_DEBUG(3, "clearing cache %lx\n", (unsigned long) local->cache);
+    if (!cache_Clear(local->cache)) return false;
+
+    CU_DEBUG(2, "start rule \"%s\"\n", name);
+
+    CuStack stack = local->stack;
+
+    CU_DEBUG(3, "clearing parse stack %lx\n", (unsigned long) stack);
+
+    while (stack->top) {
+        CuFrame top = stack->top;
+        stack->top  = top->next;
+        top->next   = stack->free_list;
+        stack->free_list = top;
+    }
+
+    if (!stack->free_list) {
+        if (!stack_Extend(stack)) return false;
+    }
+
+    CuFrame next = stack->free_list;
+
+    stack->free_list = next->next;
+
+    next->next     = (CuFrame) 0;
+    next->node     = start;
+    next->phase    = cu_One;
+    next->last     = false;
+    next->rulename = name;         // set the rulename
+    next->level    = 0;
+    next->mark     = 0;
+    next->at       = local->cursor;
+
+    stack->top = next;
+
+    return true;
 }
 
 extern CuSignal cu_Event(Copper input, CuData *data)
@@ -1407,103 +1789,6 @@ extern CuSignal cu_Event(Copper input, CuData *data)
     (void)cache_Remove;
 }
 
-/*************************************************************************************
- *************************************************************************************
- *************************************************************************************
- *************************************************************************************/
-
-extern bool cu_InputInit(CuContext input, unsigned cacheSize) {
-    assert(0 != input);
-
-    CU_DEBUG(3, "making stack\n");
-    if (!make_Stack(&(input->stack))) return false;
-
-    CU_DEBUG(3, "making buffer\n");
-    struct cu_text *data = &input->data;
-    const unsigned size = 1024;
-    data->buffer = malloc(size);
-    memset(data->buffer, 0, size);
-    data->size = size;
-
-    CU_DEBUG(3, "making queue\n");
-    if (!make_Queue(&(input->queue))) return false;
-
-    CuQueue queue = input->queue;
-    assert(0 != queue);
-
-    CU_DEBUG(3, "making cache\n");
-    if (!make_Cache(cacheSize, &(input->cache))) return false;
-
-    CuCache cache = input->cache;
-    assert(0 != cache);
-    assert(cacheSize == cache->size);
-
-    CU_DEBUG(3, "InputInit done (queue %lx) (cache %lx)\n",
-             (unsigned long) queue,
-             (unsigned long) cache);
-
-    return true;
-}
-
-extern bool cu_Start(const char* name, Copper input) {
-    assert(0 != input);
-
-    CuCallback callback = theCallback(input);
-    CuContext  local    = theContext(input);
-
-    CuNode start = 0;
-
-    assert(0 != callback->node);
-
-    CU_DEBUG(3, "requesting start node %s\n", name);
-    if (!callback->node(callback, name, &start)) return false;
-
-    assert(0 != start);
-    assert(0 != local->queue);
-    assert(0 != local->cache);
-    assert(0 != local->stack);
-
-    CU_DEBUG(3, "clearing queue %lx\n", (unsigned long) local->queue);
-    if (!queue_Clear(local->queue)) return false;
-
-    CU_DEBUG(3, "clearing cache %lx\n", (unsigned long) local->cache);
-    if (!cache_Clear(local->cache)) return false;
-
-    CU_DEBUG(2, "start rule \"%s\"\n", name);
-
-    CuStack stack = local->stack;
-
-    CU_DEBUG(3, "clearing parse stack %lx\n", (unsigned long) stack);
-
-    while (stack->top) {
-        CuFrame top = stack->top;
-        stack->top  = top->next;
-        top->next   = stack->free_list;
-        stack->free_list = top;
-    }
-
-    if (!stack->free_list) {
-        if (!stack_Extend(stack)) return false;
-    }
-
-    CuFrame next = stack->free_list;
-
-    stack->free_list = next->next;
-
-    next->next     = (CuFrame) 0;
-    next->node     = start;
-    next->phase    = cu_One;
-    next->last     = false;
-    next->rulename = name;         // set the rulename
-    next->level    = 0;
-    next->mark     = 0;
-    next->at       = local->cursor;
-
-    stack->top = next;
-
-    return true;
-}
-
 extern bool cu_RunQueue(Copper input) {
     if (!input) return false;
 
@@ -1511,63 +1796,3 @@ extern bool cu_RunQueue(Copper input) {
 
     return queue_Run(local->queue, input);
 }
-
-extern bool cu_MarkedText(CuContext input, CuData *target) {
-    if (!input)  return false;
-    if (!target) return false;
-
-    unsigned text_begin = input->context.begin.text_inx;
-    unsigned text_end   = input->context.end.text_inx;
-
-    if (text_begin > text_end) return false;
-
-    if (text_begin == text_end) {
-        target->length = 0;
-        target->start  = 0;
-        return true;
-    }
-
-    if (text_begin > input->data.limit) return false;
-    if (text_end   > input->data.limit) return false;
-
-    target->length = text_end - text_begin;
-    target->start  = input->data.buffer + text_begin;
-
-    return true;
-}
-
-intptr_t cu_global_debug = 0;
-
-extern void cu_debug(const char *filename,
-                     unsigned int linenum,
-                     const char *format,
-                     ...)
-{
-    va_list ap; va_start (ap, format);
-
-    //    printf("file %s line %u :: ", filename, linenum);
-    vprintf(format, ap);
-    fflush(stdout);
-
-    (void) filename;
-    (void) linenum;
-}
-
-extern void cu_error(const char *filename,
-                     unsigned int linenum,
-                     const char *format,
-                     ...)
-{
-    va_list ap; va_start (ap, format);
-
-    printf("file %s line %u :: ", filename, linenum);
-    vprintf(format, ap);
-    exit(1);
-}
-
-extern void cu_error_part(const char *format, ...)
-{
-    va_list ap; va_start (ap, format);
-    vprintf(format, ap);
-}
-
