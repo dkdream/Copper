@@ -607,6 +607,7 @@ static bool free_Cache(CuCache *source) {
 /*****************************************************************
  *****************************************************************/
 
+// event to mark the begin of text '<'
 static bool mark_begin(Copper input, CuCursor at) {
     if (!input) return false;
     CuContext local = theContext(input);
@@ -617,6 +618,7 @@ static bool mark_begin(Copper input, CuCursor at) {
 
 static struct cu_label begin_label = { &mark_begin, "set.begin" };
 
+// event to mark the end of text '>'
 static bool mark_end(Copper input, CuCursor at) {
     if (!input) return false;
     CuContext local = theContext(input);
@@ -626,6 +628,7 @@ static bool mark_end(Copper input, CuCursor at) {
 
 static struct cu_label end_label = { &mark_end, "set.end" };
 
+// event to set the argument for the
 static bool mark_argument(Copper input, CuCursor at) {
     if (!input) return false;
     CuContext local = theContext(input);
