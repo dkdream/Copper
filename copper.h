@@ -24,6 +24,9 @@ along with Copper.  If not, see <http://www.gnu.org/licenses/>.
 #include <error.h>
 
 /* parsing structure */
+typedef struct copper_callback* CuCallback;
+typedef struct copper_context*  CuContext;
+
 typedef struct copper*   Copper;
 typedef struct cu_cursor CuCursor;
 typedef enum   cu_signal CuSignal;
@@ -306,19 +309,22 @@ struct cu_node {
 };
 
 /* parsing structure call back */
-typedef bool (*FindNode)(Copper, CuName, CuNode*);            // find the CuNode labelled name
-typedef bool (*AddName)(Copper, CuName, CuNode);              // add a CuNode to label name
+typedef bool (*FindNode)(CuCallback, CuName, CuNode*);            // find the CuNode labelled name
+typedef bool (*AddName)(CuCallback, CuName, CuNode);              // add a CuNode to label name
 
-typedef bool (*FindPredicate)(Copper, CuName, CuPredicate*);  // find the CuPredicate labelled name
-typedef bool (*FindEvent)(Copper, CuName, CuEvent*);          // find the CuEvent labelled name
+typedef bool (*FindPredicate)(CuCallback, CuName, CuPredicate*);  // find the CuPredicate labelled name
+typedef bool (*FindEvent)(CuCallback, CuName, CuEvent*);          // find the CuEvent labelled name
 
-struct copper {
+struct copper_callback {
     /* call-backs */
     FindNode      node;      // find the CuNode for rule name
     AddName       attach;    // add CuNode as rule name
     FindPredicate predicate; // find CuPredicate by name
     FindEvent     event;     // find CuEvent by name
+    CuTree        map;       // map rule name to first-set
+};
 
+struct copper_context {
     /* data */
     CuStack  stack;  // the parse node stack
     CuText   data;   // the text in the current parse phase
@@ -326,19 +332,68 @@ struct copper {
     CuCursor reach;  // the maximum location reached in the current parse phase
 
     CuCache cache;   // parser state cache (stores parse failures: (node, text_inx))
-    CuTree  map;     // map rule name to first-set
     CuQueue queue;   // the current event queue
     CuState context; // the current context while the event queue is running
 };
 
-extern bool     cu_InputInit(Copper input, unsigned cacheSize); // initials the copper parser
-extern bool     cu_AddName(Copper input, CuName, CuNode);
-extern bool     cu_FillMetadata(Copper input);
+#if 0
+
+struct copper {
+    struct copper_callback global;
+    struct copper_context  local;
+};
+
+#define theCallback(ptr) &(ptr->global)
+#define theContext(ptr)  &(ptr->local)
+
+#endif
+
+#if 0
+
+struct copper {
+    struct copper_callback global;
+    CuContext local;
+};
+
+#define theCallback(ptr) &(ptr->global)
+#define theContext(ptr)  (ptr->local)
+
+#endif
+
+#if 0
+
+struct copper {
+    CuCallback global;
+    struct copper_context  local;
+};
+
+#define theCallback(ptr)  (ptr->global)
+#define theContext(ptr)  &(ptr->local)
+
+#endif
+
+#if 1
+
+struct copper {
+    CuCallback global;
+    CuContext  local;
+};
+
+#define theCallback(ptr) (ptr->global)
+#define theContext(ptr)  (ptr->local)
+
+#endif
+
 extern bool     cu_Start(const char* name, Copper input);
 extern CuSignal cu_Event(Copper input, CuData *data);
-extern bool     cu_MarkedText(Copper input, CuData *target);
 extern bool     cu_RunQueue(Copper input);
-extern void     cu_SyntaxError(FILE* error, Copper cu_input, const char* filename);
+
+extern bool     cu_AddName(CuCallback input, CuName, CuNode);
+extern bool     cu_FillMetadata(CuCallback input);
+
+extern bool     cu_InputInit(CuContext input, unsigned cacheSize); // initials the copper parser
+extern bool     cu_MarkedText(CuContext input, CuData *target);
+extern void     cu_SyntaxError(FILE* error, CuContext input, const char* filename);
 
 extern intptr_t cu_global_debug;
 extern void     cu_debug(const char *filename, unsigned int linenum, const char *format, ...);

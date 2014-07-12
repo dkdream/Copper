@@ -34,12 +34,12 @@ extern int isblank(int c);
 */
 
 extern void cu_SyntaxError(FILE* error,
-                           Copper cu_input,
+                           CuContext input,
                            const char* filename)
 {
-    unsigned  lineNumber = cu_input->reach.line_number + 1;
-    unsigned  charOffset = cu_input->reach.text_inx;
-    unsigned       limit = cu_input->data.limit;
+    unsigned  lineNumber = input->reach.line_number + 1;
+    unsigned  charOffset = input->reach.text_inx;
+    unsigned       limit = input->data.limit;
 
     fprintf(stderr, "%s:%d: %s", filename, lineNumber, "syntax error");
 
@@ -48,7 +48,7 @@ extern void cu_SyntaxError(FILE* error,
         exit(1);
     }
 
-    char   *buffer = cu_input->data.buffer;
+    char   *buffer = input->data.buffer;
     unsigned start = charOffset;
     unsigned inx;
 

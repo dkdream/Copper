@@ -212,7 +212,7 @@ struct prs_stack {
     struct prs_cell *free_list;
 };
 
-extern bool copper_graph(Copper parser);
+extern bool copper_graph(CuCallback parser);
 
 static char             buffer[4096];
 static struct prs_hash *copper_nodes      = 0;
@@ -383,22 +383,22 @@ static bool hash_Replace(struct prs_hash *hash,
     return true;
 }
 
-static bool copper_FindNode(Copper input, CuName name, CuNode* target) {
+static bool copper_FindNode(CuCallback input, CuName name, CuNode* target) {
     return hash_Find(copper_nodes, name, (void**)target);
     (void) input;
 }
 
-static bool copper_SetNode(Copper input, CuName name, CuNode value) {
+static bool copper_SetNode(CuCallback input, CuName name, CuNode value) {
     return hash_Replace(copper_nodes, (void*)name, value);
     (void) input;
 }
 
-static bool copper_FindPredicate(Copper input, CuName name, CuPredicate* target) {
+static bool copper_FindPredicate(CuCallback input, CuName name, CuPredicate* target) {
     return hash_Find(copper_predicates, name, (void**)target);
     (void) input;
 }
 
-static bool copper_FindEvent(Copper input, CuName name, CuEvent* target) {
+static bool copper_FindEvent(CuCallback input, CuName name, CuEvent* target) {
     return hash_Find(copper_events, name, (void**)target);
     (void) input;
 }
@@ -499,12 +499,13 @@ static bool empty(Copper file) {
 }
 
 static bool makeText(Copper file, SynType type) {
-    SynText text = 0;
-    CuData value;
+    CuContext local = theContext(file);
+    SynText   text  = 0;
+    CuData    value;
 
     if (syn_text != type2kind(type)) return false;
 
-    if (!cu_MarkedText((Copper) file, &value)) return false;
+    if (!cu_MarkedText(local, &value)) return false;
 
     if (!make_Any(type, &text)) return false;
 
@@ -558,9 +559,10 @@ static bool makeTree(Copper file, SynType type) {
 }
 
 static bool checkRule(Copper file, CuCursor at) {
-    CuData name;
+    CuContext local = theContext(file);
+    CuData    name;
 
-    if (!cu_MarkedText(file, &name)) return false;
+    if (!cu_MarkedText(local, &name)) return false;
 
     SynDefine rule = file_rules;
 
@@ -1523,13 +1525,15 @@ static bool writeTree(Copper file, CuCursor at) {
 }
 
 extern bool file_ParserInit(Copper file) {
+    CuCallback callback = theCallback(file);
+    CuContext     local = theContext(file);
 
-    file->node      = copper_FindNode;
-    file->attach    = copper_SetNode;
-    file->predicate = copper_FindPredicate;
-    file->event     = copper_FindEvent;
+    callback->node      = copper_FindNode;
+    callback->attach    = copper_SetNode;
+    callback->predicate = copper_FindPredicate;
+    callback->event     = copper_FindEvent;
 
-    cu_InputInit(file, 1024);
+    cu_InputInit(local, 1024);
 
     make_Hash(100, &copper_nodes);
     make_Hash(100, &copper_predicates);
@@ -1557,7 +1561,7 @@ extern bool file_ParserInit(Copper file) {
     hash_Replace(copper_events, "makeLoop", makeLoop);
     hash_Replace(copper_events, "bindTo", makeBinding);
 
-    copper_graph(file);
+    copper_graph(callback);
 
     return true;
 }
@@ -1582,7 +1586,7 @@ extern bool file_WriteTree(Copper file, FILE* output, const char* function) {
         fprintf(output, "\n");
     }
 
-    fprintf(output, "extern bool %s(Copper input) {\n", function);
+    fprintf(output, "extern bool %s(CuCallback input) {\n", function);
     fprintf(output, "\n");
     fprintf(output, "    inline bool attach(CuName name, CuNode value) { return cu_AddName(input, name, value); }\n");
     fprintf(output, "\n");

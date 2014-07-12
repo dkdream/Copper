@@ -67,7 +67,7 @@ static inline const char* node_label(CuNode node) {
     return buffer;
 }
 
-static bool meta_StartFirstSets(Copper input, CuNode node, CuMetaFirst *target)
+static bool meta_StartFirstSets(CuCallback input, CuNode node, CuMetaFirst *target)
 {
     CuMetaFirst result = 0;
 
@@ -381,7 +381,7 @@ static bool meta_StartFirstSets(Copper input, CuNode node, CuMetaFirst *target)
     return false;
 }
 
-static bool meta_Recheck(Copper input, CuNode node, CuMetaFirst *target, bool *changed)
+static bool meta_Recheck(CuCallback input, CuNode node, CuMetaFirst *target, bool *changed)
 {
     struct cu_metaset holding;
     CuMetaFirst result = 0;
@@ -828,14 +828,14 @@ static bool meta_Clear(Copper input, CuNode node)
     return false;
 }
 
-static bool tree_Clear(Copper input, CuTree tree) {
+static bool tree_Clear(CuCallback input, CuTree tree) {
     if (!tree) return true;
     tree->node = 0;
     if (!tree_Clear(input, tree->left)) return false;
     return tree_Clear(input, tree->right);
 }
 
-static bool tree_Fill(Copper input, CuTree tree) {
+static bool tree_Fill(CuCallback input, CuTree tree) {
     if (!input) return false;
     if (!tree)  return true;
 
@@ -846,10 +846,11 @@ static bool tree_Fill(Copper input, CuTree tree) {
     }
 
     if (!tree_Clear(input, tree->left)) return false;
+
     return tree_Clear(input, tree->right);
 }
 
-static bool tree_StartFirstSets(Copper input, CuTree tree) {
+static bool tree_StartFirstSets(CuCallback input, CuTree tree) {
     if (!input)      return false;
     if (!tree)       return true;
     if (!tree->node) return false;
@@ -877,7 +878,7 @@ static bool tree_StartFirstSets(Copper input, CuTree tree) {
     return true;
 }
 
-static bool tree_MergeFirstSets(Copper input, CuTree tree, bool *changed) {
+static bool tree_MergeFirstSets(CuCallback input, CuTree tree, bool *changed) {
     if (!input)      return false;
     if (!tree)       return true;
     if (!tree->node) return false;
@@ -900,7 +901,7 @@ static bool tree_MergeFirstSets(Copper input, CuTree tree, bool *changed) {
     return tree_MergeFirstSets(input, tree->right, changed);
 }
 
-static bool tree_DebugSets(Copper input, CuTree tree) {
+static bool tree_DebugSets(CuCallback input, CuTree tree) {
     if (!input)      return false;
     if (!tree)       return true;
     if (!tree->node) return false;
@@ -915,12 +916,13 @@ static bool tree_DebugSets(Copper input, CuTree tree) {
 }
 
 
-extern bool cu_FillMetadata(Copper input) {
+extern bool cu_FillMetadata(CuCallback input) {
 
     if (!input) {
         CU_DEBUG(1, "cu_FillMetadata error: no input\n");
         return false;
     }
+
     if (!input->map) {
         CU_DEBUG(1, "cu_FillMetadata error: no map\n");
         return false;
@@ -959,7 +961,7 @@ extern bool cu_FillMetadata(Copper input) {
 }
 
 
-extern bool cu_AddName(Copper input, CuName name, CuNode node) {
+extern bool cu_AddName(CuCallback input, CuName name, CuNode node) {
     assert(0 != input);
     assert(0 != name);
     assert(0 != node);

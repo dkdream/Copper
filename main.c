@@ -47,6 +47,12 @@ extern  ssize_t getline(char **lineptr, size_t *n, FILE *stream);
 static char*  program_name = 0;
 static Copper file_parser = 0;
 
+struct copper_file {
+    struct copper          main;
+    struct copper_callback callback;
+    struct copper_context  context;
+};
+
 static void help() {
     fprintf(stderr, "copper [-verbose]+ --name c_func_name [--output outfile] [--file infile]\n");
     fprintf(stderr, "copper [-v]+ -n c_func_name [-o outfile] [-f infile]\n");
@@ -84,17 +90,24 @@ static bool copper_GetLine(PrsBuffer *input, CuData *target)
 }
 
 static bool make_Copper() {
-    file_parser = malloc(sizeof(struct copper));
+    struct copper_file * hold = malloc(sizeof(struct copper_file));
 
-    if (!file_parser) return false;
+    if (!hold) return false;
 
-    memset(file_parser, 0, sizeof(struct copper));
+    memset(hold, 0, sizeof(struct copper_file));
+
+    hold->main.global = &(hold->callback);
+    hold->main.local  = &(hold->context);
+
+    file_parser = (Copper) hold;
 
     if (!file_ParserInit(file_parser)) return false;
 
 #ifndef SKIP_META
+    CuCallback callback = theCallback(file_parser);
+
     CU_DEBUG(1, "filling parser metadata\n");
-    if (!cu_FillMetadata(file_parser)) return false;
+    if (!cu_FillMetadata(callback)) return false;
 #endif
 
     if (!cu_Start("grammar", file_parser)) return false;
@@ -203,6 +216,8 @@ int main(int argc, char **argv)
 
     CU_DEBUG(1, "parsing infile %s\n", infile);
 
+    CuContext local = theContext(file_parser);
+
     for ( ; ; ) {
         switch(cu_Event(file_parser, &data)) {
         case cu_NeedData:
@@ -220,7 +235,7 @@ int main(int argc, char **argv)
             break;
 
         case cu_NoPath:
-            cu_SyntaxError(stderr, file_parser, infile);
+            cu_SyntaxError(stderr, local, infile);
             return 1;
 
         case cu_Error:

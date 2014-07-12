@@ -5,10 +5,13 @@ BINDIR	= $(PREFIX)/bin
 INCDIR  = $(PREFIX)/include
 LIBDIR  = $(PREFIX)/lib
 
+MACHINE     := $(shell uname --machine)
 TIME        := $(shell date +T=%s.%N)
 STAGE       := zero
 COPPER      := copper.vm
 COPPER.test := copper.vm
+#COPPER.old  := /tools/Copper/bin/copper_o
+COPPER.old  := ./copper.ovm
 Copper.ext  := cu
 
 PATH := $(PATH):.
@@ -19,8 +22,17 @@ AR     = ar
 RANLIB = ranlib
 
 CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
-OFLAGS = -Wall -W -mtune=i686
+OFLAGS = -Wall -W
 ARFLAGS = qv
+
+ifeq ($(MACHINE),i686)
+OFLAGS += -m32
+endif
+
+ifeq ($(MACHINE),x86_64)
+OFLAGS += -m64
+endif
+
 
 LIB_SRCS = cu_error.c cu_firstset.c cu_machine.c
 LIB_OBJS = $(LIB_SRCS:%.c=%.o)
@@ -49,7 +61,7 @@ checkpoint : ; git checkpoint
 test.run : $(COPPER.test) ; $(MAKE) --directory=tests
 
 err_test: copper.vm
-	./copper.ovm --name test --file test_error.cu
+	$(COPPER.old) --name test --file test_error.cu
 
 $(BINDIR) : ; [ -d $@ ] || mkdir -p $@
 $(INCDIR) : ; [ -d $@ ] || mkdir -p $@
@@ -107,7 +119,7 @@ cu_machine_o.o : copper.h copper_inline.h cu_machine_o.c.bootstrap
 # -- -------------------------------------------------
 DEPENDS += .depends/main.d
 
-copper.c : copper.cu ./copper.ovm ; ./copper.ovm --name copper_graph --output $@ --file copper.cu
+copper.c : copper.cu $(COPPER.old) ; $(COPPER.old) --name copper_graph --output $@ --file copper.cu
 copper.o : copper.c
 main.o   : main.c
 
