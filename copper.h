@@ -353,6 +353,7 @@ extern bool     cu_FillMetadata(CuCallback input);
 
 extern bool     cu_InputInit(CuContext input, unsigned cacheSize); // initials the copper parser
 extern bool     cu_MarkedText(CuContext input, CuData *target);
+extern bool     cu_ArgumentText(CuContext input, CuData *target);
 extern void     cu_SyntaxError(FILE* error, CuContext input, const char* filename);
 extern bool     cu_InputFinit(CuContext input);
 
