@@ -961,7 +961,7 @@ extern bool cu_FillMetadata(CuCallback input) {
 }
 
 
-extern bool cu_AddName(CuCallback input, CuName name, CuNode node) {
+extern bool cu_AddName(CuCallback input, AddName addname, CuName name, CuNode node) {
     assert(0 != input);
     assert(0 != name);
     assert(0 != node);
@@ -990,7 +990,7 @@ extern bool cu_AddName(CuCallback input, CuName name, CuNode node) {
         return true;
     }
 
-    if (!input->attach(input, name, node)) return false;
+    if (!addname(input, name, node)) return false;
 
     CuTree root = input->map;
 
