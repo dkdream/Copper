@@ -916,19 +916,24 @@ static bool tree_DebugSets(CuCallback input, CuTree tree) {
 }
 
 
-extern bool cu_FillMetadata(CuCallback input) {
+extern bool cu_FillMetadata(CuCallback input, CuTree *map) {
 
     if (!input) {
         CU_DEBUG(1, "cu_FillMetadata error: no input\n");
         return false;
     }
 
-    if (!input->map) {
+    if (!map) {
         CU_DEBUG(1, "cu_FillMetadata error: no map\n");
         return false;
     }
 
-    CuTree root = input->map;
+    CuTree root = *map;
+
+    if (!root) {
+        CU_DEBUG(1, "cu_FillMetadata error: no root\n");
+        return false;
+    }
 
     CU_DEBUG(1, "filling metadata %lx\n", (unsigned long) root);
 
@@ -961,10 +966,16 @@ extern bool cu_FillMetadata(CuCallback input) {
 }
 
 
-extern bool cu_AddName(CuCallback input, AddName addname, CuName name, CuNode node) {
+extern bool cu_AddName(CuCallback input,
+                       AddName addname,
+                       CuName name,
+                       CuNode node,
+                       CuTree *map)
+{
     assert(0 != input);
     assert(0 != name);
     assert(0 != node);
+    assert(0 != map);
 
     inline bool fetch(CuNode *target) {
         if (!input->node(input, name, target)) {
@@ -992,10 +1003,10 @@ extern bool cu_AddName(CuCallback input, AddName addname, CuName name, CuNode no
 
     if (!addname(input, name, node)) return false;
 
-    CuTree root = input->map;
+    CuTree root = *map;
 
     if (!root) {
-        return allocate(&input->map);
+        return allocate(map);
     }
 
     for ( ; ; ) {

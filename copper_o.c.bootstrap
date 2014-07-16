@@ -910,9 +910,11 @@ static struct cu_node   node_000008  = { pft_opaque, 0, &first_000008_list, 0, "
 static struct cu_pair   pair_000009  = { &node_000005, &node_000008 };
 static struct cu_node   node_000009  = { pft_opaque, 0, &first_000009_list, 0, "_000009",  cu_Sequence, (union cu_arg) (&pair_000009) };
 
+static CuTree copper_map = 0;
+
 extern bool copper_graph(CuCallback input, AddName add) {
 
-    inline bool attach(CuName name, CuNode value) { return cu_AddName(input, add, name, value); }
+    inline bool attach(CuName name, CuNode value) { return cu_AddName(input, add, name, value, &copper_map); }
 
     if (!attach("end-of-file", &node_000166)) return false;
     if (!attach("end-of-line", &node_000163)) return false;
@@ -950,6 +952,6 @@ extern bool copper_graph(CuCallback input, AddName add) {
     if (!attach("define-rule", &node_000013)) return false;
     if (!attach("grammar", &node_000009)) return false;
 
-    return true;
+    return cu_FillMetadata(input, &copper_map);
 }
 

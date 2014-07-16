@@ -322,7 +322,7 @@ struct copper_callback {
     FindNode      node;      // find the CuNode for rule name
     FindPredicate predicate; // find CuPredicate by name
     FindEvent     event;     // find CuEvent by name
-    CuTree        map;       // map rule name to first-set
+//    CuTree        map;       // map rule name to first-set
 };
 
 struct copper_context {
@@ -349,9 +349,6 @@ extern bool     cu_Start(const char* name, Copper input);
 extern CuSignal cu_Event(Copper input, CuData *data);
 extern bool     cu_RunQueue(Copper input);
 
-extern bool     cu_AddName(CuCallback input, AddName, CuName, CuNode);
-extern bool     cu_FillMetadata(CuCallback input);
-
 extern bool     cu_InputInit(CuContext input, unsigned cacheSize); // initials the copper parser
 extern bool     cu_MarkedText(CuContext input, CuData *target);
 extern bool     cu_ArgumentText(CuContext input, CuData *target);
@@ -362,6 +359,9 @@ extern intptr_t cu_global_debug;
 extern void     cu_debug(const char *filename, unsigned int linenum, const char *format, ...);
 extern void     cu_error(const char *filename, unsigned int linenum, const char *format, ...);
 extern void     cu_error_part(const char *format, ...);
+
+extern bool     cu_AddName(CuCallback, AddName, CuName, CuNode, CuTree *map);
+extern bool     cu_FillMetadata(CuCallback input, CuTree *map);
 
 #endif
 
