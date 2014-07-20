@@ -628,7 +628,7 @@ static bool mark_end(Copper input, CuCursor at) {
 
 static struct cu_label end_label = { &mark_end, "set.end" };
 
-// event to set the argument for the
+// ????
 static bool mark_argument(Copper input, CuCursor at) {
     if (!input) return false;
     CuContext local = theContext(input);
@@ -784,6 +784,24 @@ extern bool cu_MarkedText(CuContext input, CuData *target) {
 
     target->length = text_end - text_begin;
     target->start  = input->data.buffer + text_begin;
+
+    return true;
+}
+
+extern bool cu_ArgumentText(CuContext input, CuData *target) {
+    if (!input)  return false;
+    if (!target) return false;
+
+    CuNode argument = input->context.argument;
+
+    if (!argument) return false;
+
+    CuName name = argument->arg.name;
+
+    if (!name) return false;
+
+    target->length = strlen(name);
+    target->start  = name;
 
     return true;
 }
