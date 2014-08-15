@@ -31,6 +31,7 @@ typedef struct copper*   Copper;
 typedef struct cu_cursor CuCursor;
 typedef enum   cu_signal CuSignal;
 typedef struct cu_frame* CuFrame;
+typedef const  char      *CuName;
 
 /**
     user define event actions are ONLY call after a
@@ -42,7 +43,7 @@ typedef struct cu_frame* CuFrame;
     if an event return false then the RunQueue stops on
     that event.
 **/
-typedef bool (*CuEvent)(Copper, CuCursor);
+typedef bool (*CuEvent)(Copper, CuCursor, CuName);
 
 /**
    a predicate is called during the cu_Event phase to check if we can
@@ -62,7 +63,7 @@ typedef bool (*CuEvent)(Copper, CuCursor);
    predicates should NOT have side-effects since they may be call more
    than once per location.
 **/
-typedef CuSignal (*CuPredicate)(Copper, CuFrame); // user defined predicate
+typedef CuSignal (*CuPredicate)(Copper, CuFrame, CuName); // user defined predicate
 
 enum cu_signal {
     cu_NeedData,
@@ -125,7 +126,6 @@ typedef unsigned char     CuChar;
 typedef struct cu_string *CuString;
 typedef struct cu_range  *CuRange;
 typedef struct cu_set    *CuSet;
-typedef const  char      *CuName;
 typedef struct cu_node   *CuNode;
 typedef struct cu_pair   *CuPair;
 

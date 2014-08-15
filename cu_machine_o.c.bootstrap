@@ -180,7 +180,7 @@ static bool queue_Run(CuQueue queue,
         local->context.rule = current->rule;
         local->context.on   = current->on;
 
-        if (!label.function(input, current->at)) {
+        if (!label.function(input, current->at, label.name)) {
             queue_FreeList(queue, current);
             return false;
         }
@@ -616,7 +616,7 @@ static bool mark_begin(Copper input, CuCursor at) {
     return true;
 }
 
-static struct cu_label begin_label = { &mark_begin, "set.begin" };
+static struct cu_label begin_label = { (CuEvent) &mark_begin, "set.begin" };
 
 // event to mark the end of text '>'
 static bool mark_end(Copper input, CuCursor at) {
@@ -626,7 +626,7 @@ static bool mark_end(Copper input, CuCursor at) {
     return true;
 }
 
-static struct cu_label end_label = { &mark_end, "set.end" };
+static struct cu_label end_label = { (CuEvent) &mark_end, "set.end" };
 
 // ????
 static bool mark_argument(Copper input, CuCursor at) {
@@ -637,7 +637,7 @@ static bool mark_argument(Copper input, CuCursor at) {
     (void) at;
 }
 
-static struct cu_label argument_label = { &mark_argument, "set.argument" };
+static struct cu_label argument_label = { (CuEvent) &mark_argument, "set.argument" };
 
 /* this is use only in copper_vm for debugging (SINGLE THEADED ALERT) */
 static char *char2string(unsigned char value)
@@ -1625,7 +1625,7 @@ extern CuSignal cu_Event(Copper input, CuData *data)
         // a predicate dosent have phases
         CuPredicate test;
         if (!predicate(start->arg.name, &test)) goto do_Error;
-        switch (test(input, frame)) {
+        switch (test(input, frame, start->arg.name)) {
         case cu_FoundPath:
             reset();
             goto do_Match;
