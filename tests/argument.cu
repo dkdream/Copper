@@ -1,2 +1,2 @@
 
-Fooness = %test :[x] Barness
+Fooness = %test:x Barness
