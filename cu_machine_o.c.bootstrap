@@ -803,6 +803,8 @@ extern bool cu_ArgumentText(CuContext input, CuData *target) {
     target->length = strlen(name);
     target->start  = name;
 
+    input->context.argument = 0;
+
     return true;
 }
 
