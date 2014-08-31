@@ -1587,7 +1587,8 @@ extern bool file_WriteTree(Copper file, FILE* output, const char* function) {
     }
 
     fprintf(output, "\n");
-    fprintf(output, "static CuTree node_map = 0;");
+    fprintf(output, "static CuTree node_map = 0;\n");
+    fprintf(output, "\n");
     fprintf(output, "extern bool %s(CuCallback input, AddName add) {\n", function);
     fprintf(output, "    inline bool attach(CuName name, CuNode value) { return cu_AddName(input, add, name, value, &node_map); }\n");
     fprintf(output, "\n");
