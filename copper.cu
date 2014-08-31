@@ -35,7 +35,7 @@ primary    = identifier !EQUAL     @makeCall
 
 predicate  = '%' < [-a-zA-Z_][-a-zA-Z_0-9]* > - @makePredicate
 event      = '@' < [-a-zA-Z_][-a-zA-Z_0-9]* > - @makeApply
-argument   = ':' < [-a-zA-Z_][-a-zA-Z_0-9]* > - @makeArgument
+argument   = ':' < [-a-zA-Z_0-9]+           > - @makeArgument
 identifier =     < [-a-zA-Z_][-a-zA-Z_0-9]* > -
 
 literal    = ['] < ( !['] char )* > ['] - @makeString
