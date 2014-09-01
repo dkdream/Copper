@@ -41,7 +41,11 @@ extern void cu_SyntaxError(FILE* error,
     unsigned  charOffset = input->reach.text_inx;
     unsigned       limit = input->data.limit;
 
-    fprintf(stderr, "%s:%d: %s", filename, lineNumber, "syntax error");
+    if (input) {
+        fprintf(stderr, "%s:%d: %s", filename, lineNumber, "syntax error");
+    } else {
+        fprintf(stderr, "%s:%d: %s", "input", lineNumber, "syntax error");
+    }
 
     if (charOffset >= limit) {
         fprintf(error, "\n");
