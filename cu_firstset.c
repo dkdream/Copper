@@ -967,18 +967,23 @@ extern bool cu_FillMetadata(CuCallback input, CuTree *map) {
 
 
 extern bool cu_AddName(CuCallback input,
+                       FindNode findnode,
                        AddName addname,
                        CuName name,
                        CuNode node,
                        CuTree *map)
 {
-    assert(0 != input);
+    //    assert(0 != input);
+
+    assert(0 != findnode);
+    assert(0 != addname);
+
     assert(0 != name);
     assert(0 != node);
     assert(0 != map);
 
     inline bool fetch(CuNode *target) {
-        if (!input->node(input, name, target)) {
+        if (!findnode(input, name, target)) {
             CU_ERROR("node %s not found\n", name);
             return false;
         }

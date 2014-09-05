@@ -315,14 +315,11 @@ typedef bool (*AddName)(CuCallback, CuName, CuNode);              // add a CuNod
 typedef bool (*FindPredicate)(CuCallback, CuName, CuPredicate*);  // find the CuPredicate labelled name
 typedef bool (*FindEvent)(CuCallback, CuName, CuEvent*);          // find the CuEvent labelled name
 
-//    AddName       attach;    // add CuNode as rule name
-
 struct copper_callback {
     /* call-backs */
     FindNode      node;      // find the CuNode for rule name
     FindPredicate predicate; // find CuPredicate by name
     FindEvent     event;     // find CuEvent by name
-//    CuTree        map;       // map rule name to first-set
 };
 
 struct copper_context {
@@ -360,7 +357,7 @@ extern void     cu_debug(const char *filename, unsigned int linenum, const char 
 extern void     cu_error(const char *filename, unsigned int linenum, const char *format, ...);
 extern void     cu_error_part(const char *format, ...);
 
-extern bool     cu_AddName(CuCallback, AddName, CuName, CuNode, CuTree *map);
+extern bool     cu_AddName(CuCallback, FindNode, AddName, CuName, CuNode, CuTree *map);
 extern bool     cu_FillMetadata(CuCallback input, CuTree *map);
 
 #endif
