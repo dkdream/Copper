@@ -15,7 +15,7 @@ all test :
 	@cat Times.list
 
 clear :       ; rm -f $(Test_files:%.cu=%.tmp)
-clean : clear 
+clean : clear
 scrub : clean ; rm -f Times.list
 
 collect : $(Test_files:%.cu=%.tmp)
@@ -32,9 +32,16 @@ collect : $(Test_files:%.cu=%.tmp)
 ## -------------------------------------------------------------------------------------
 ##
 
+echo ::
+	@echo 'H_SOURCES    = $(H_SOURCES)'
+	@echo 'C_SOURCES    = $(C_SOURCES)'
+	@echo 'WATER_TREES  = $(WATER_TREES)'
+	@echo 'COPPER_TREES = $(COPPER_TREES)'
+	@echo 'MAINS        = $(MAINS)'
+	@echo 'DEPENDS      = $(DEPENDS)'
+
 .PHONY        : all test echo rebuild
 .PHONY        : clear clean scrub distclean
 .PHONY        : gitadd checkin
 .INTERMEDIATE :
 .SECONDARY    :
-

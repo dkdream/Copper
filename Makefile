@@ -1,18 +1,11 @@
-MACHINE := $(shell uname --machine)
 TIME    := $(shell date +T=%s.%N)
 DATE    := $(shell date +%Y-%b-%d-%a-%I.%M%P)
-KIND    :=
-
-ifeq ($(MACHINE),x86_64)
-KIND := 64
-endif
-
 
 TMP_DIR = /tmp
-PREFIX	= /tools/Copper
+PREFIX	= /tools
 BINDIR	= $(PREFIX)/bin
 INCDIR  = $(PREFIX)/include
-LIBDIR  = $(PREFIX)/${KIND:%=lib%}
+LIBDIR  = $(PREFIX)/lib
 
 STAGE       := zero
 COPPER      := copper.vm
@@ -32,26 +25,17 @@ CFLAGS = -ggdb $(OFLAGS) $(XFLAGS)
 OFLAGS = -Wall -W
 ARFLAGS = qv
 
-ifeq ($(MACHINE),i686)
-OFLAGS += -m32
-endif
-
-ifeq ($(MACHINE),x86_64)
-OFLAGS += -m64
-endif
-
-
 LIB_SRCS = cu_error.c cu_firstset.c cu_machine.c
 LIB_OBJS = $(LIB_SRCS:%.c=%.o)
 DEPENDS  = $(LIB_SRCS:%.c=.depends/%.d)
 
 default : all
 
-all : copper.vm 
+all : copper.vm
 
 other : copper_n.vm
 
-test : do.stage.two 
+test : do.stage.two
 
 install :: $(BINDIR)/copper
 install :: $(INCDIR)/copper.h
@@ -84,8 +68,8 @@ $(INCDIR)/copper.h : $(INCDIR) copper.h
 $(INCDIR)/static_table.h : $(INCDIR) static_table.h
 	cp -p static_table.h $@
 
-$(LIBDIR)/libCopper.a : $(LIBDIR) libCopper_$(MACHINE).a
-	cp -p libCopper_$(MACHINE).a $@
+$(LIBDIR)/libCopper.a : $(LIBDIR) libCopper.a
+	cp -p libCopper.a $@
 
 copper_ver.h: FORCE
 	@./Version.gen COPPER_VERSION copper_ver.h
@@ -93,8 +77,8 @@ copper_ver.h: FORCE
 # -- -------------------------------------------------
 DEPENDS += .depends/compiler.d
 
-libCopper_$(MACHINE).a : copper.h
-libCopper_$(MACHINE).a : $(LIB_OBJS)
+libCopper.a : copper.h
+libCopper.a : $(LIB_OBJS)
 	-@$(RM) $@ /tmp/$@
 	-@echo $(AR) $(ARFLAGS) $@ $(LIB_OBJS)
 	@$(AR) $(ARFLAGS) /tmp/$@ $(LIB_OBJS)
@@ -108,8 +92,8 @@ compiler.o : compiler.c
 
 DEPENDS += .depends/copper_o.d
 
-copper.ovm : main_o.o copper_o.o cu_machine_o.o compiler.o libCopper_$(MACHINE).a
-	$(CC) $(CFLAGS) -o $@ main_o.o copper_o.o cu_machine_o.o compiler.o -L. -lCopper_$(MACHINE)
+copper.ovm : main_o.o copper_o.o cu_machine_o.o compiler.o libCopper.a
+	$(CC) $(CFLAGS) -o $@ main_o.o copper_o.o cu_machine_o.o compiler.o -L. -lCopper
 
 main_o.o   : compiler.h copper.h main_o.c.bootstrap
 	@cp main_o.c.bootstrap main_o.c
@@ -130,15 +114,15 @@ copper.c : copper.cu $(COPPER.old) ; $(COPPER.old) --name copper_graph --output 
 copper.o : copper.c
 main.o   : main.c
 
-copper.vm : main.o copper.o compiler.o libCopper_$(MACHINE).a
-	$(CC) $(CFLAGS) -o $@ main.o copper.o compiler.o -L. -lCopper_$(MACHINE)
+copper.vm : main.o copper.o compiler.o libCopper.a
+	$(CC) $(CFLAGS) -o $@ main.o copper.o compiler.o -L. -lCopper
 
 # -- -------------------------------------------------
 
 main_n.o   : main_n.c
 
-copper_n.vm : main_n.o copper.o compiler.o libCopper_$(MACHINE).a
-	$(CC) $(CFLAGS) -o $@ main_n.o copper.o compiler.o -L. -lCopper_$(MACHINE)
+copper_n.vm : main_n.o copper.o compiler.o libCopper.a
+	$(CC) $(CFLAGS) -o $@ main_n.o copper.o compiler.o -L. -lCopper
 
 # -- -------------------------------------------------
 
@@ -154,8 +138,8 @@ stage.$(STAGE).c : copper.cu $(COPPER.test)
 
 stage.$(STAGE).o : stage.$(STAGE).c
 
-stage.$(STAGE) : main.o stage.$(STAGE).o compiler.o libCopper_$(MACHINE).a
-	$(CC) $(CFLAGS) -o $@ main.o stage.$(STAGE).o compiler.o -L. -lCopper_$(MACHINE)
+stage.$(STAGE) : main.o stage.$(STAGE).o compiler.o libCopper.a
+	$(CC) $(CFLAGS) -o $@ main.o stage.$(STAGE).o compiler.o -L. -lCopper
 
 compare : $(COPPER.test) stage.$(STAGE)
 	@./compare_graphs.sh $(COPPER.test) stage.$(STAGE)
@@ -179,6 +163,15 @@ clean : clear
 
 scrub spotless : clean
 	rm -rf copper.ovm copper_o.c cu_machine_o.c main_o.c
+
+echo ::
+	@echo 'ROOT_DIR     = $(ROOT_DIR)'
+	@echo 'H_SOURCES    = $(H_SOURCES)'
+	@echo 'C_SOURCES    = $(C_SOURCES)'
+	@echo 'WATER_TREES  = $(WATER_TREES)'
+	@echo 'COPPER_TREES = $(COPPER_TREES)'
+	@echo 'MAINS        = $(MAINS)'
+	@echo 'DEPENDS      = $(DEPENDS)'
 
 # --
 
