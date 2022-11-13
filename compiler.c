@@ -228,7 +228,7 @@ static inline SynKind type2kind(SynType type) {
     case syn_argument:  return syn_text;      // - :[name]
     case syn_begin:     return syn_any;       // - set state.begin
     case syn_call:      return syn_text;      // - name
-    case syn_char:      return syn_char;      // - 'chr
+    case syn_char:      return syn_text;      // - 'chr
     case syn_check:     return syn_operator;  // - e &
     case syn_choice:    return syn_tree;      // - e1 e2 |
     case syn_dot:       return syn_any;       // - .
@@ -1607,4 +1607,3 @@ extern bool file_WriteTree(Copper file, FILE* output, const char* function) {
     return true;
     (void) file;
 }
-

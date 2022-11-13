@@ -961,7 +961,7 @@ extern CuSignal cu_Event(Copper input, CuData *data)
     CuNode  start = frame->node;
 
     /************* for debugging (begin) *******************/
-    char buffer[10];
+    char buffer[20];
     inline const char* node_label(CuNode node) {
         if (node->label) return node->label;
         sprintf(buffer, "%lx__", (unsigned long) node);
@@ -1487,6 +1487,7 @@ extern CuSignal cu_Event(Copper input, CuData *data)
     case cu_Two:
         if (frame->last) goto do_Match;
         frame->phase = cu_Three;
+        goto do_Continue; // ???
 
     case cu_Three:
         if (!push_node(start->arg.pair->right, cu_Four)) goto do_Error;
@@ -1517,6 +1518,7 @@ extern CuSignal cu_Event(Copper input, CuData *data)
     case cu_Two: // return(e1) have we match the first one (once)?
         if (!frame->last) goto do_MisMatch;
         frame->phase = cu_Three;
+        goto do_Continue; // ???
 
     case cu_Three: // call(e2)
         if (!push_node(start->arg.pair->right, cu_Four)) goto do_Error;
@@ -1525,6 +1527,7 @@ extern CuSignal cu_Event(Copper input, CuData *data)
     case cu_Four: // return(e2) have we match the next one?
         if (!frame->last) goto do_Match;
         frame->phase = cu_Five;
+        goto do_Continue; // ???
 
     case cu_Five: // call(e1)
         if (!push_node(start->arg.pair->left, cu_Two)) goto do_Error;
@@ -1609,6 +1612,7 @@ extern CuSignal cu_Event(Copper input, CuData *data)
     case cu_Two: // have we match the first one?
         if (!frame->last) goto do_MisMatch;
         frame->phase = cu_Three;
+        goto do_Continue; // ??
 
     case cu_Three:
         if (!cursorMoved()) goto do_Match;
@@ -1658,6 +1662,7 @@ extern CuSignal cu_Event(Copper input, CuData *data)
     case cu_Two: // have we match the first one?
         if (!frame->last) goto do_MisMatch;
         frame->phase = cu_Three;
+        goto do_Continue; // ???
 
     case cu_Three:
         if (!push_node(start->arg.pair->right, cu_Four)) goto do_Error;
