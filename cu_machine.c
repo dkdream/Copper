@@ -608,33 +608,36 @@ static bool free_Cache(CuCache *source) {
  *****************************************************************/
 
 // event to mark the begin of text '<'
-static bool mark_begin(Copper input, CuCursor at) {
+static bool mark_begin(Copper input, CuCursor at, CuName name) {
     if (!input) return false;
     CuContext local = theContext(input);
     local->context.begin = at;
     local->context.argument = (CuNode)0;
     return true;
+    (void) name;  // to remove: unused parameter warning
 }
 
 static struct cu_label begin_label = { (CuEvent) &mark_begin, "set.begin" };
 
 // event to mark the end of text '>'
-static bool mark_end(Copper input, CuCursor at) {
+static bool mark_end(Copper input, CuCursor at, CuName name) {
     if (!input) return false;
     CuContext local = theContext(input);
     local->context.end = at;
     return true;
+    (void) name;  // to remove: unused parameter warning
 }
 
 static struct cu_label end_label = { (CuEvent) &mark_end, "set.end" };
 
 // ????
-static bool mark_argument(Copper input, CuCursor at) {
+static bool mark_argument(Copper input, CuCursor at, CuName name) {
     if (!input) return false;
     CuContext local = theContext(input);
     local->context.argument = local->context.on;
     return true;
-    (void) at;
+    (void) at; // to remove: unused parameter warning
+    (void) name;  // to remove: unused parameter warning
 }
 
 static struct cu_label argument_label = { (CuEvent) &mark_argument, "set.argument" };

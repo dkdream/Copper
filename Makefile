@@ -47,7 +47,7 @@ push : #-- put the new graph under version control
 	cp main.c       main_o.c.bootstrap
 	cp cu_machine.c cu_machine_o.c.bootstrap
 
-checkpoint : ; git checkpoint
+checkpoint : ; git commit -a -m checkpoint
 
 test.run : $(COPPER.test) ; $(MAKE) --directory=tests
 
