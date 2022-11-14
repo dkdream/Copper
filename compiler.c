@@ -1561,7 +1561,8 @@ extern bool file_ParserInit(Copper file) {
     hash_Replace(copper_events, "makeLoop", makeLoop);
     hash_Replace(copper_events, "bindTo", makeBinding);
 
-    copper_graph(callback, copper_FindNode, copper_SetNode);
+    // copper_graph(callback, copper_FindNode, copper_SetNode);
+    copper_graph(callback, callback->node, copper_SetNode);
 
     return true;
 }
