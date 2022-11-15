@@ -216,7 +216,7 @@ struct prs_stack {
 extern bool copper_graph(CuCallback parser);
 
 static char             buffer[4096];
-static struct prs_stack file_stack = { 0, 0 };
+//static struct prs_stack file_stack = { 0, 0 };
 
 static inline SynKind type2kind(SynType type) {
     switch (type) {
@@ -436,7 +436,9 @@ static bool make_Any(SynType type, SynTarget target)
 static unsigned depth(Copper file) {
     if (!file) return 0;
 
-    struct prs_stack *stack = &file_stack;
+    CuContext local = theContext(file);
+
+    struct prs_stack *stack = &(local->file_stack);
     struct prs_cell  *top   = stack->top;
 
     unsigned result = 0;
@@ -452,9 +454,11 @@ static bool push(Copper file, SynNode value) {
     if (!file)      return false;
     if (!value.any) return false;
 
+    CuContext local = theContext(file);
+
     unsigned       fullsize = sizeof(struct prs_cell);
-    struct prs_stack *stack = &file_stack;
-    struct prs_cell  *top  = stack->free_list;
+    struct prs_stack *stack = &(local->file_stack);
+    struct prs_cell   *top  = stack->free_list;
 
     if (top) {
         stack->free_list = top->next;
@@ -476,7 +480,9 @@ static bool pop(Copper file, SynTarget target) {
     if (!file)       return false;
     if (!target.any) return false;
 
-    struct prs_stack *stack = &file_stack;
+    CuContext local = theContext(file);
+
+    struct prs_stack *stack = &(local->file_stack);
     struct prs_cell  *top   = stack->top;
 
     if (!top) return false;
@@ -493,7 +499,9 @@ static bool pop(Copper file, SynTarget target) {
 static bool empty(Copper file) {
     if (!file) return true;
 
-    struct prs_stack *stack = &file_stack;
+    CuContext local = theContext(file);
+
+    struct prs_stack *stack = &(local->file_stack);
 
     if (!stack->top) return true;
 
