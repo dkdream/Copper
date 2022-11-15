@@ -385,33 +385,28 @@ static bool hash_Replace(struct prs_hash *hash,
 }
 
 static bool copper_FindNode(CuCallback input, CuName name, CuNode* target) {
-    return hash_Find(copper_nodes, name, (void**)target);
+    return hash_Find(input->node_table, name, (void**)target);
     (void) input;
 }
 
 static bool copper_SetNode(CuCallback input, CuName name, CuNode value) {
-    return hash_Replace(copper_nodes, (void*)name, value);
-    (void) input;
+    return hash_Replace(input->node_table, name, value);
 }
 
 static bool copper_FindPredicate(CuCallback input, CuName name, CuPredicate* target) {
-    return hash_Find(copper_predicates, name, (void**)target);
-    (void) input;
+    return hash_Find(input->predicate_table, name, (void**)target);
 }
 
 static bool copper_SetPredicate(CuCallback input, CuName name, CuPredicate value) {
-    return hash_Replace(copper_predicates, (void*)name, value);
-    (void) input;
+    return hash_Replace(input->predicate_table, name, value);
 }
 
 static bool copper_FindEvent(CuCallback input, CuName name, CuEvent* target) {
     return hash_Find(input->event_table, name, (void**)target);
-    //return hash_Find(copper_events, name, (void**)target);
 }
 
 static bool copper_SetEvent(CuCallback input, CuName name, CuEvent value) {
     return hash_Replace(input->event_table, name, value);
-    //return hash_Replace(copper_events, (void*)name, value);
 }
 
 static bool make_Any(SynType type, SynTarget target)
@@ -1577,7 +1572,6 @@ extern bool file_ParserInit(Copper file) {
     make_Hash(100, &(callback->predicate_table));
     make_Hash(100, &(callback->event_table));
 
-    // inline bool attach(CuName name, CuEvent value) { return hash_Replace(copper_events, name, value); }
     inline bool attach(CuName name, CuEvent value) { return callback->attach_event(callback, name, value); }
 
     attach("writeTree", writeTree);
