@@ -215,9 +215,6 @@ extern bool copper_graph(CuCallback parser);
 
 
 static char             buffer[4096];
-static struct prs_hash *copper_nodes      = 0;
-static struct prs_hash *copper_predicates = 0;
-static struct prs_hash *copper_events     = 0;
 static struct prs_stack file_stack = { 0, 0 };
 
 static inline SynKind type2kind(SynType type) {
@@ -1561,10 +1558,6 @@ extern bool file_ParserInit(Copper file) {
     callback->attach_event     = copper_SetEvent;
 
     cu_InputInit(local, 1024);
-
-    make_Hash(100, &copper_nodes);
-    make_Hash(100, &copper_predicates);
-    make_Hash(100, &copper_events);
 
     make_Hash(100, &(callback->node_table));
     make_Hash(100, &(callback->predicate_table));
