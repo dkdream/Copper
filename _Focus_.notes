@@ -1,0 +1,7 @@
+Need to
+o. fully discribe the parsing model
+o. combine differnce types of simlar types (if possible)
+   o. struct cu_stack and struct prs_stack
+   o. struct cu_tree  and struct syn_tree
+   o. struct cu_set   and struct cu_firstset and struct cu_metaset
+o. fix meta_ and tree_ functions
