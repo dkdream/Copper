@@ -367,7 +367,11 @@ extern void     cu_debug(const char *filename, unsigned int linenum, const char 
 extern void     cu_error(const char *filename, unsigned int linenum, const char *format, ...);
 extern void     cu_error_part(const char *format, ...);
 
+#ifndef OLD_VM
+extern bool     cu_AddNode(CuCallback, CuName, CuNode, CuTree *map);
+#else
 extern bool     cu_AddName(CuCallback, FindNode, AddName, CuName, CuNode, CuTree *map);
+#endif
 extern bool     cu_FillMetadata(CuCallback input, CuTree *map);
 
 #endif

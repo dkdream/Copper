@@ -101,7 +101,7 @@ main_o.o   : compiler.h copper.h main_o.c.bootstrap
 
 copper_o.o : copper.h copper_o.c.bootstrap
 	@cp copper_o.c.bootstrap copper_o.c
-	$(CC) $(CFLAGS) -I. -c -o $@ copper_o.c
+	$(CC) $(CFLAGS) -DOLD_VM -I. -c -o $@ copper_o.c
 
 cu_machine_o.o : copper.h copper_inline.h cu_machine_o.c.bootstrap
 	@cp cu_machine_o.c.bootstrap cu_machine_o.c
