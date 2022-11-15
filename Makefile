@@ -92,12 +92,12 @@ compiler.o : compiler.c
 
 DEPENDS += .depends/copper_o.d
 
-copper.ovm : main_o.o copper_o.o cu_machine_o.o compiler.o libCopper.a
-	$(CC) $(CFLAGS) -o $@ main_o.o copper_o.o cu_machine_o.o compiler.o -L. -lCopper
+copper.ovm : main_o.o copper_o.o cu_machine_o.o compiler_o.o cu_firstset_o.o libCopper.a
+	$(CC) $(CFLAGS) -o $@ main_o.o copper_o.o cu_machine_o.o compiler_o.o cu_firstset_o.o -L. -lCopper
 
 main_o.o   : compiler.h copper.h main_o.c.bootstrap
 	@cp main_o.c.bootstrap main_o.c
-	$(CC) $(CFLAGS) -DSKIP_META -DSKIP_VERSION -I. -c -o $@ main_o.c
+	$(CC) $(CFLAGS) -DSKIP_META -DSKIP_VERSION -DOLD_VM -I. -c -o $@ main_o.c
 
 copper_o.o : copper.h copper_o.c.bootstrap
 	@cp copper_o.c.bootstrap copper_o.c
@@ -106,6 +106,14 @@ copper_o.o : copper.h copper_o.c.bootstrap
 cu_machine_o.o : copper.h copper_inline.h cu_machine_o.c.bootstrap
 	@cp cu_machine_o.c.bootstrap cu_machine_o.c
 	$(CC) $(CFLAGS) -DOLD_VM -I. -c -o $@ cu_machine_o.c
+
+cu_firstset_o.o : copper.h copper_inline.h cu_firstset_o.c.bootstrap
+	@cp cu_firstset_o.c.bootstrap cu_firstset_o.c
+	$(CC) $(CFLAGS) -DOLD_VM -I. -c -o $@ cu_firstset_o.c
+
+compiler_o.o : copper.h copper_inline.h compiler_o.c.bootstrap
+	@cp compiler_o.c.bootstrap compiler_o.c
+	$(CC) $(CFLAGS) -DOLD_VM -I. -c -o $@ compiler_o.c
 
 # -- -------------------------------------------------
 DEPENDS += .depends/main.d

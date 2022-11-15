@@ -1566,7 +1566,7 @@ extern bool file_ParserInit(Copper file) {
     hash_Replace(copper_events, "bindTo", makeBinding);
 
     // copper_graph(callback, copper_FindNode, copper_SetNode);
-    copper_graph(callback, (FindNode)0, (AddName)0);
+    copper_graph(callback, (FindNode)0, (AddName)callback->attach_node);
 
     return true;
 }

@@ -979,10 +979,6 @@ extern bool cu_AddName(CuCallback input,
       findnode = input->node;
     }
 
-    if (!addname) {
-      addname = input->attach_node;
-    }
-
     assert(0 != findnode);
     assert(0 != addname);
 

@@ -309,17 +309,27 @@ struct cu_node {
 };
 
 /* parsing structure call back */
-typedef bool (*FindNode)(CuCallback, CuName, CuNode*);            // find the CuNode labelled name
-typedef bool (*AddName)(CuCallback, CuName, CuNode);              // add a CuNode to label name
+typedef bool (*FindNode)(CuCallback, CuName, CuNode*);            // find   CuNode by label name
+typedef bool (*AttachNode)(CuCallback, CuName, CuNode);           // attach CuNode to label name
 
-typedef bool (*FindPredicate)(CuCallback, CuName, CuPredicate*);  // find the CuPredicate labelled name
-typedef bool (*FindEvent)(CuCallback, CuName, CuEvent*);          // find the CuEvent labelled name
+typedef AttachNode AddName; //
+
+typedef bool (*FindPredicate)(CuCallback, CuName, CuPredicate*);  // find   CuPredicate by label name
+typedef bool (*AttachPredicate)(CuCallback, CuName, CuPredicate); // attach CuPredicate to label name
+
+typedef bool (*FindEvent)(CuCallback, CuName, CuEvent*);          // find   CuEvent by label name
+typedef bool (*AttachEvent)(CuCallback, CuName, CuEvent*);        // attach CuEvent to label name
 
 struct copper_callback {
-    /* call-backs */
-    FindNode      node;      // find the CuNode for rule name
-    FindPredicate predicate; // find CuPredicate by name
-    FindEvent     event;     // find CuEvent by name
+  /* find call-backs */
+  FindNode      node;      // find the CuNode for rule name
+  FindPredicate predicate; // find CuPredicate by name
+  FindEvent     event;     // find CuEvent by name
+
+  /* attach call-backs */
+  AttachNode       attach_node;
+  AttachPredicate  attach_predicate;
+  AttachEvent      attach_event;
 };
 
 struct copper_context {
@@ -361,4 +371,3 @@ extern bool     cu_AddName(CuCallback, FindNode, AddName, CuName, CuNode, CuTree
 extern bool     cu_FillMetadata(CuCallback input, CuTree *map);
 
 #endif
-
