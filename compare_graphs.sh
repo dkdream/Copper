@@ -11,6 +11,7 @@ if [ $# -ne 2 ] ; then
     exit 1
 fi
 
+echo $temp
 mkdir $temp
 
 ./$1 --name copper_graph --file copper.cu | sed -e 's,_[0-9a-f][0-9a-f]*,,g' > $left
@@ -19,7 +20,6 @@ shift
 
 if diff $left $right ; then
     echo $1 Passed '(Same Graph)'
-    rm -rf $temp
     exit 0
 else
     echo $1 Failed '(Different Graph)'

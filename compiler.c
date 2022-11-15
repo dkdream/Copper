@@ -212,7 +212,7 @@ struct prs_stack {
     struct prs_cell *free_list;
 };
 
-extern bool copper_graph(CuCallback parser, FindNode find, AddName attach);
+extern bool copper_graph(CuCallback parser);
 
 
 static char             buffer[4096];
@@ -1565,8 +1565,7 @@ extern bool file_ParserInit(Copper file) {
     hash_Replace(copper_events, "makeLoop", makeLoop);
     hash_Replace(copper_events, "bindTo", makeBinding);
 
-    // copper_graph(callback, copper_FindNode, copper_SetNode);
-    copper_graph(callback, (FindNode)0, (AddName)0);
+    copper_graph(callback);
 
     return true;
 }
@@ -1594,7 +1593,7 @@ extern bool file_WriteTree(Copper file, FILE* output, const char* function) {
     fprintf(output, "\n");
     fprintf(output, "static CuTree node_map = 0;\n");
     fprintf(output, "\n");
-    fprintf(output, "extern bool %s(CuCallback input, FindNode find, AddName add) {\n", function);
+    fprintf(output, "extern bool %s(CuCallback input) {\n", function);
     fprintf(output, "    inline bool attach(CuName name, CuNode value) { return cu_AddNode(input, name, value, &node_map); }\n");
     fprintf(output, "\n");
 
@@ -1606,8 +1605,6 @@ extern bool file_WriteTree(Copper file, FILE* output, const char* function) {
     }
     fprintf(output, "\n");
     fprintf(output, "    return cu_FillMetadata(input, &node_map);\n");
-    fprintf(output, "    (void)find;\n");
-    fprintf(output, "    (void)add;\n");
     fprintf(output, "}\n");
     fprintf(output, "\n");
 

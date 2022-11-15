@@ -48,9 +48,9 @@ static char*  program_name = 0;
 static Copper file_parser = 0;
 
 struct copper_file {
-    struct copper          main;
-    struct copper_callback callback;
-    struct copper_context  context;
+    struct copper         main;
+    struct copper_global  callback;
+    struct copper_context context;
 };
 
 static void help() {
@@ -270,4 +270,3 @@ int main(int argc, char **argv)
 /*****************
  ** end of file **
  *****************/
-

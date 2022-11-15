@@ -24,7 +24,7 @@ along with Copper.  If not, see <http://www.gnu.org/licenses/>.
 #include <error.h>
 
 /* parsing structure */
-typedef struct copper_callback* CuCallback;
+typedef struct copper_global*   CuCallback;
 typedef struct copper_context*  CuContext;
 
 typedef struct copper*   Copper;
@@ -320,7 +320,7 @@ typedef bool (*AttachPredicate)(CuCallback, CuName, CuPredicate); // attach CuPr
 typedef bool (*FindEvent)(CuCallback, CuName, CuEvent*);          // find   CuEvent by label name
 typedef bool (*AttachEvent)(CuCallback, CuName, CuEvent*);        // attach CuEvent to label name
 
-struct copper_callback {
+struct copper_global {
   /* find call-backs */
   FindNode      node;      // find the CuNode for rule name
   FindPredicate predicate; // find CuPredicate by name

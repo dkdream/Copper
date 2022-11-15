@@ -965,8 +965,6 @@ extern bool cu_FillMetadata(CuCallback input, CuTree *map) {
     (void) tree_MergeFirstSets;
 }
 
-
-#ifndef OLD_VM
 extern bool cu_AddNode(CuCallback input,
                        CuName name,
                        CuNode node,
@@ -1038,83 +1036,3 @@ extern bool cu_AddNode(CuCallback input,
         return fetch(&root->node);
     }
 }
-#else
-extern bool cu_AddName(CuCallback input,
-                       FindNode findnode,
-                       AddName addname,
-                       CuName name,
-                       CuNode node,
-                       CuTree *map)
-{
-    assert(0 != input);
-
-    if (!findnode) {
-      findnode = input->node;
-    }
-
-    if (!addname) {
-      addname = input->attach_node;
-    }
-
-    assert(0 != findnode);
-    assert(0 != addname);
-
-    assert(0 != name);
-    assert(0 != node);
-    assert(0 != map);
-
-    inline bool fetch(CuNode *target) {
-        if (!findnode(input, name, target)) {
-            CU_ERROR("node %s not found\n", name);
-            return false;
-        }
-        return true;
-    }
-
-    inline bool allocate(CuTree *target) {
-        unsigned fullsize = sizeof(struct cu_tree);
-
-        CuTree result = malloc(fullsize);
-
-        if (!result) return false;
-
-        *target = result;
-
-        result->name = name;
-
-        if (!fetch(&result->node)) return false;
-
-        return true;
-    }
-
-    if (!addname(input, name, node)) return false;
-
-    CuTree root = *map;
-
-    if (!root) {
-        return allocate(map);
-    }
-
-    for ( ; ; ) {
-        int direction = strcmp(root->name, name);
-
-        if (0 < direction) {
-            if (root->left) {
-                root = root->left;
-                continue;
-            }
-            return allocate(&root->left);
-        }
-
-        if (0 > direction) {
-            if (root->right) {
-                root = root->right;
-                continue;
-            }
-            return allocate(&root->right);
-        }
-
-        return fetch(&root->node);
-    }
-}
-#endif

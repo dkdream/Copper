@@ -49,7 +49,7 @@ static Copper file_parser = 0;
 
 struct copper_file {
     struct copper          main;
-    struct copper_callback callback;
+    struct copper_global   callback;
     struct copper_context  context;
 };
 
@@ -270,4 +270,3 @@ int main(int argc, char **argv)
 /*****************
  ** end of file **
  *****************/
-
