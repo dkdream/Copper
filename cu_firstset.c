@@ -1008,6 +1008,8 @@ extern bool cu_AddNode(CuCallback input,
 
     if (!attachnode(input, name, node)) return false;
 
+    if (!map) return true;
+
     CuTree root = *map;
 
     if (!root) {

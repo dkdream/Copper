@@ -984,7 +984,7 @@ extern bool cu_AddName(CuCallback input,
 
     assert(0 != name);
     assert(0 != node);
-    assert(0 != map);
+    //    assert(0 != map);
 
     inline bool fetch(CuNode *target) {
         if (!findnode(input, name, target)) {
@@ -1011,6 +1011,8 @@ extern bool cu_AddName(CuCallback input,
     }
 
     if (!addname(input, name, node)) return false;
+
+    if (!map) return true;
 
     CuTree root = *map;
 

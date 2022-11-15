@@ -899,7 +899,7 @@ static struct cu_node   node_000009  = { pft_opaque, 0, &first_000009_list, 0, "
 static CuTree node_map = 0;
 
 extern bool copper_graph(CuCallback input, FindNode find, AddName add) {
-    inline bool attach(CuName name, CuNode value) { return cu_AddName(input, find, add, name, value, &node_map); }
+    inline bool attach(CuName name, CuNode value) { return cu_AddName(input, find, add, name, value, (CuTree)0); }
 
     if (!attach("end-of-file", &node_000162)) return false;
     if (!attach("end-of-line", &node_00015f)) return false;
@@ -937,6 +937,7 @@ extern bool copper_graph(CuCallback input, FindNode find, AddName add) {
     if (!attach("define-rule", &node_000013)) return false;
     if (!attach("grammar", &node_000009)) return false;
 
-    return cu_FillMetadata(input, &node_map);
-}
 
+    return true;
+    //return cu_FillMetadata(input, &node_map);
+}

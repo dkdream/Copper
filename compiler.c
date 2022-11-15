@@ -1622,8 +1622,6 @@ extern bool file_WriteTree(Copper file, FILE* output, const char* function) {
     }
 
     fprintf(output, "\n");
-    fprintf(output, "static CuTree node_map = 0;\n");
-    fprintf(output, "\n");
     fprintf(output, "extern bool %s(CuCallback input) {\n", function);
     fprintf(output, "    inline bool attach(CuName name, CuNode value) { return input->attach_node(input, name, value); }\n");
     fprintf(output, "\n");
@@ -1635,10 +1633,10 @@ extern bool file_WriteTree(Copper file, FILE* output, const char* function) {
                 rule->value.any->id);
     }
     fprintf(output, "\n");
-    fprintf(output, "    return cu_FillMetadata(input, &node_map);\n");
+    fprintf(output, "    return true;\n");
     fprintf(output, "}\n");
     fprintf(output, "\n");
 
     return true;
-    (void) file;
+    (void)file;
 }

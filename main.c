@@ -103,15 +103,6 @@ static bool make_Copper() {
 
     if (!file_ParserInit(file_parser)) return false;
 
-/*(
-#ifndef SKIP_META
-    CuCallback callback = theCallback(file_parser);
-
-    CU_DEBUG(1, "filling parser metadata\n");
-    if (!cu_FillMetadata(callback)) return false;
-#endif
-*/
-
     if (!cu_Start("grammar", file_parser)) return false;
 
     return true;
