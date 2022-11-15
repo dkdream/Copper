@@ -149,8 +149,8 @@ typedef struct cu_label CuLabel;
 typedef struct cu_slice CuSlice;
 
 /* */
-typedef struct prs_hash *PrsHash;
-
+typedef struct prs_hash   *PrsHash;
+typedef struct syn_define *SynDefine;
 
 /* a location in the current input */
 struct cu_cursor {
@@ -351,6 +351,8 @@ struct copper_context {
     CuCache cache;   // parser state cache (stores parse failures: (node, text_inx))
     CuQueue queue;   // the current event queue
     CuState context; // the current context while the event queue is running
+
+    SynDefine file_rules;
 };
 
 struct copper {
