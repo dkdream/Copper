@@ -926,39 +926,39 @@ extern bool cu_FillMetadata(CuCallback input, CuTree *map) {
     if (!map) {
         CU_DEBUG(1, "cu_FillMetadata error: no map\n");
         return false;
-    }
+    } else {
+      CuTree root = *map;
 
-    CuTree root = *map;
-
-    if (!root) {
+      if (!root) {
         CU_DEBUG(1, "cu_FillMetadata error: no root\n");
         return false;
-    }
+      }
 
-    CU_DEBUG(1, "filling metadata %lx\n", (unsigned long) root);
+      CU_DEBUG(1, "filling metadata %lx\n", (unsigned long) root);
 
-    if (!tree_StartFirstSets(input, root)) {
+      if (!tree_StartFirstSets(input, root)) {
         CU_DEBUG(1, "tree_StartFirstSets error\n");
         return false;
-    }
+      }
 
-    bool changed = true;
+      bool changed = true;
 
-    for ( ; changed ; ) {
+      for ( ; changed ; ) {
         changed = false;
         CU_ON_DEBUG(6, { tree_DebugSets(input, root); });
         CU_DEBUG(4, "merging metadata  %lx\n", (unsigned long) root);
         if (!tree_MergeFirstSets(input, root, &changed)) {
-            CU_DEBUG(1, "tree_MergeFirstSets error\n");
-            return false;
+          CU_DEBUG(1, "tree_MergeFirstSets error\n");
+          return false;
         }
+      }
+
+      CU_ON_DEBUG(7, { tree_DebugSets(input, root); });
+
+      CU_DEBUG(7, "filling metadata %lx done\n", (unsigned long) root);
+
+      return true;
     }
-
-    CU_ON_DEBUG(7, { tree_DebugSets(input, root); });
-
-    CU_DEBUG(7, "filling metadata %lx done\n", (unsigned long) root);
-
-    return true;
 
     (void) tree_Fill;
     (void) tree_StartFirstSets;

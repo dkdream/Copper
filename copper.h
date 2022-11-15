@@ -148,6 +148,10 @@ typedef struct cu_state CuState;
 typedef struct cu_label CuLabel;
 typedef struct cu_slice CuSlice;
 
+/* */
+typedef struct prs_hash *PrsHash;
+
+
 /* a location in the current input */
 struct cu_cursor {
     unsigned line_number; // line number in the current file
@@ -330,6 +334,11 @@ struct copper_global {
   AttachNode       attach_node;
   AttachPredicate  attach_predicate;
   AttachEvent      attach_event;
+
+  /* */
+  PrsHash node_table;
+  PrsHash predicate_table;
+  PrsHash event_table;
 };
 
 struct copper_context {
