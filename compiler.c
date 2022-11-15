@@ -215,7 +215,7 @@ struct prs_stack {
 
 extern bool copper_graph(CuCallback parser);
 
-static char             buffer[4096];
+//static char             buffer[4096];
 //static struct prs_stack file_stack = { 0, 0 };
 
 static inline SynKind type2kind(SynType type) {
@@ -273,6 +273,7 @@ static inline const char* type2name(SynType type) {
 }
 
 static const char* convert(CuData name) {
+    static char buffer[4096];
     strncpy(buffer, name.start, name.length);
     buffer[name.length] = 0;
     return buffer;
