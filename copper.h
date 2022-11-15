@@ -322,7 +322,7 @@ typedef bool (*FindPredicate)(CuCallback, CuName, CuPredicate*);  // find   CuPr
 typedef bool (*AttachPredicate)(CuCallback, CuName, CuPredicate); // attach CuPredicate to label name
 
 typedef bool (*FindEvent)(CuCallback, CuName, CuEvent*);          // find   CuEvent by label name
-typedef bool (*AttachEvent)(CuCallback, CuName, CuEvent*);        // attach CuEvent to label name
+typedef bool (*AttachEvent)(CuCallback, CuName, CuEvent);         // attach CuEvent to label name
 
 struct copper_global {
   /* find call-backs */

@@ -399,9 +399,19 @@ static bool copper_FindPredicate(CuCallback input, CuName name, CuPredicate* tar
     (void) input;
 }
 
-static bool copper_FindEvent(CuCallback input, CuName name, CuEvent* target) {
-    return hash_Find(copper_events, name, (void**)target);
+static bool copper_SetPredicate(CuCallback input, CuName name, CuPredicate value) {
+    return hash_Replace(copper_predicates, (void*)name, value);
     (void) input;
+}
+
+static bool copper_FindEvent(CuCallback input, CuName name, CuEvent* target) {
+    return hash_Find(input->event_table, name, (void**)target);
+    //return hash_Find(copper_events, name, (void**)target);
+}
+
+static bool copper_SetEvent(CuCallback input, CuName name, CuEvent value) {
+    return hash_Replace(input->event_table, name, value);
+    //return hash_Replace(copper_events, (void*)name, value);
 }
 
 static bool make_Any(SynType type, SynTarget target)
@@ -559,7 +569,7 @@ static bool makeTree(Copper file, SynType type) {
     return push(file, tree);
 }
 
-static bool checkRule(Copper file, CuCursor at) {
+static bool checkRule(Copper file, CuCursor at, CuName xname) {
     CuContext local = theContext(file);
     CuData    name;
 
@@ -581,9 +591,10 @@ static bool checkRule(Copper file, CuCursor at) {
 
     return push(file, rule);
     (void) at;
+    (void) xname;
 }
 
-static bool defineRule(Copper file, CuCursor at) {
+static bool defineRule(Copper file, CuCursor at, CuName name) {
     SynDefine rule;
     SynNode   value;
 
@@ -615,9 +626,10 @@ static bool defineRule(Copper file, CuCursor at) {
 
     return true;
     (void) at;
+    (void) name;
 }
 
-static bool makeEnd(Copper file, CuCursor at) {
+static bool makeEnd(Copper file, CuCursor at, CuName name) {
     SynAny value = 0;
 
     if (!make_Any(syn_end, &value)) return false;
@@ -626,9 +638,10 @@ static bool makeEnd(Copper file, CuCursor at) {
 
     return true;
     (void) at;
+    (void) name;
 }
 
-static bool makeBegin(Copper file, CuCursor at) {
+static bool makeBegin(Copper file, CuCursor at, CuName name) {
     SynAny value = 0;
 
     if (!make_Any(syn_begin, &value)) return false;
@@ -637,26 +650,30 @@ static bool makeBegin(Copper file, CuCursor at) {
 
     return true;
     (void) at;
+    (void) name;
 }
 
 // namefull event
-static bool makeApply(Copper file, CuCursor at) {
+static bool makeApply(Copper file, CuCursor at, CuName name) {
     return makeText(file, syn_apply);
     (void) at;
+    (void) name;
 }
 
-static bool makeArgument(Copper file, CuCursor at) {
+static bool makeArgument(Copper file, CuCursor at, CuName name) {
     return makeText(file, syn_argument);
     (void) at;
+    (void) name;
 }
 
-static bool makePredicate(Copper file, CuCursor at) {
+static bool makePredicate(Copper file, CuCursor at, CuName name) {
     return makeText(file, syn_predicate);
     (void) at;
+    (void) name;
 }
 
-static bool makeBinding(Copper file, CuCursor at) {
-        SynNode after;
+static bool makeBinding(Copper file, CuCursor at, CuName name) {
+    SynNode after;
     SynNode before;
 
     if (!pop(file, &after))  return false;
@@ -670,11 +687,11 @@ static bool makeBinding(Copper file, CuCursor at) {
     if (!push(file, before)) return false;
 
     return makeTree(file, syn_sequence);
-
     (void) at;
+    (void) name;
 }
 
-static bool makeDot(Copper file, CuCursor at) {
+static bool makeDot(Copper file, CuCursor at, CuName name) {
     SynAny value = 0;
 
     if (!make_Any(syn_dot, &value)) return false;
@@ -683,61 +700,73 @@ static bool makeDot(Copper file, CuCursor at) {
 
     return true;
     (void) at;
+    (void) name;
 }
 
-static bool makeSet(Copper file, CuCursor at) {
+static bool makeSet(Copper file, CuCursor at, CuName name) {
     return makeText(file, syn_set);
     (void) at;
+    (void) name;
 }
 
-static bool makeString(Copper file, CuCursor at) {
+static bool makeString(Copper file, CuCursor at, CuName name) {
     return makeText(file, syn_string);
     (void) at;
+    (void) name;
 }
 
-static bool makeCall(Copper file, CuCursor at) {
+static bool makeCall(Copper file, CuCursor at, CuName name) {
     return makeText(file, syn_call);
     (void) at;
+    (void) name;
 }
 
-static bool makePlus(Copper file, CuCursor at) {
+static bool makePlus(Copper file, CuCursor at, CuName name) {
     return makeOperator(file, syn_plus);
     (void) at;
+    (void) name;
 }
 
-static bool makeStar(Copper file, CuCursor at) {
+static bool makeStar(Copper file, CuCursor at, CuName name) {
     return makeOperator(file, syn_star);
     (void) at;
+    (void) name;
 }
 
-static bool makeQuestion(Copper file, CuCursor at) {
+static bool makeQuestion(Copper file, CuCursor at, CuName name) {
     return makeOperator(file, syn_question);
     (void) at;
+    (void) name;
 }
 
-static bool makeNot(Copper file, CuCursor at) {
+static bool makeNot(Copper file, CuCursor at, CuName name) {
     return makeOperator(file, syn_not);
     (void) at;
+    (void) name;
 }
 
-static bool makeCheck(Copper file, CuCursor at) {
+static bool makeCheck(Copper file, CuCursor at, CuName name) {
     return makeOperator(file, syn_check);
     (void) at;
+    (void) name;
 }
 
-static bool makeSequence(Copper file, CuCursor at) {
+static bool makeSequence(Copper file, CuCursor at, CuName name) {
     return makeTree(file, syn_sequence);
     (void) at;
+    (void) name;
 }
 
-static bool makeLoop(Copper file, CuCursor at) {
+static bool makeLoop(Copper file, CuCursor at, CuName name) {
     return makeTree(file, syn_loop);
     (void) at;
+    (void) name;
 }
 
-static bool makeChoice(Copper file, CuCursor at) {
+static bool makeChoice(Copper file, CuCursor at, CuName name) {
     return makeTree(file, syn_choice);
     (void) at;
+    (void) name;
 }
 
 static void data_Write(CuData data, FILE* output);
@@ -1517,12 +1546,13 @@ static bool node_WriteTree(SynNode node, FILE* output)
     return do_node();
 }
 
-static bool writeTree(Copper file, CuCursor at) {
+static bool writeTree(Copper file, CuCursor at, CuName name) {
     if (!empty(file)) {
         CU_ERROR("stack not empty ; %u\n", depth(file));
     }
     return true;
     (void) at;
+    (void) name;
 }
 
 extern bool file_ParserInit(Copper file) {
@@ -1534,8 +1564,8 @@ extern bool file_ParserInit(Copper file) {
     callback->event     = copper_FindEvent;
 
     callback->attach_node      = copper_SetNode;
-    callback->attach_predicate = (AttachPredicate)0;
-    callback->attach_event     = (AttachEvent)0;
+    callback->attach_predicate = copper_SetPredicate;
+    callback->attach_event     = copper_SetEvent;
 
     cu_InputInit(local, 1024);
 
@@ -1543,27 +1573,34 @@ extern bool file_ParserInit(Copper file) {
     make_Hash(100, &copper_predicates);
     make_Hash(100, &copper_events);
 
-    hash_Replace(copper_events, "writeTree", writeTree);
-    hash_Replace(copper_events, "checkRule", checkRule);
-    hash_Replace(copper_events, "defineRule", defineRule);
-    hash_Replace(copper_events, "makeEnd", makeEnd);
-    hash_Replace(copper_events, "makeBegin", makeBegin);
-    hash_Replace(copper_events, "makeApply", makeApply);
-    hash_Replace(copper_events, "makeArgument", makeArgument);
-    hash_Replace(copper_events, "makePredicate", makePredicate);
-    hash_Replace(copper_events, "makeDot", makeDot);
-    hash_Replace(copper_events, "makeSet", makeSet);
-    hash_Replace(copper_events, "makeString", makeString);
-    hash_Replace(copper_events, "makeCall", makeCall);
-    hash_Replace(copper_events, "makePlus", makePlus);
-    hash_Replace(copper_events, "makeStar", makeStar);
-    hash_Replace(copper_events, "makeQuestion", makeQuestion);
-    hash_Replace(copper_events, "makeNot", makeNot);
-    hash_Replace(copper_events, "makeCheck", makeCheck);
-    hash_Replace(copper_events, "makeSequence", makeSequence);
-    hash_Replace(copper_events, "makeChoice", makeChoice);
-    hash_Replace(copper_events, "makeLoop", makeLoop);
-    hash_Replace(copper_events, "bindTo", makeBinding);
+    make_Hash(100, &(callback->node_table));
+    make_Hash(100, &(callback->predicate_table));
+    make_Hash(100, &(callback->event_table));
+
+    // inline bool attach(CuName name, CuEvent value) { return hash_Replace(copper_events, name, value); }
+    inline bool attach(CuName name, CuEvent value) { return callback->attach_event(callback, name, value); }
+
+    attach("writeTree", writeTree);
+    attach("checkRule", checkRule);
+    attach("defineRule", defineRule);
+    attach("makeEnd", makeEnd);
+    attach("makeBegin", makeBegin);
+    attach("makeApply", makeApply);
+    attach("makeArgument", makeArgument);
+    attach("makePredicate", makePredicate);
+    attach("makeDot", makeDot);
+    attach("makeSet", makeSet);
+    attach("makeString", makeString);
+    attach("makeCall", makeCall);
+    attach("makePlus", makePlus);
+    attach("makeStar", makeStar);
+    attach("makeQuestion", makeQuestion);
+    attach("makeNot", makeNot);
+    attach("makeCheck", makeCheck);
+    attach("makeSequence", makeSequence);
+    attach("makeChoice", makeChoice);
+    attach("makeLoop", makeLoop);
+    attach("bindTo", makeBinding);
 
     copper_graph(callback);
 
