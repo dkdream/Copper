@@ -206,13 +206,14 @@ struct prs_cell {
     struct prs_cell *next;
 };
 
+/*
 struct prs_stack {
     struct prs_cell *top;
     struct prs_cell *free_list;
 };
+*/
 
 extern bool copper_graph(CuCallback parser);
-
 
 static char             buffer[4096];
 static struct prs_stack file_stack = { 0, 0 };

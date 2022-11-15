@@ -151,6 +151,12 @@ typedef struct cu_slice CuSlice;
 /* */
 typedef struct prs_hash   *PrsHash;
 typedef struct syn_define *SynDefine;
+typedef struct prs_cell   *PrsCell;
+
+struct prs_stack {
+    PrsCell top;
+    PrsCell free_list;
+};
 
 /* a location in the current input */
 struct cu_cursor {
@@ -353,6 +359,7 @@ struct copper_context {
     CuState context; // the current context while the event queue is running
 
     SynDefine file_rules;
+    struct prs_stack file_stack;
 };
 
 struct copper {
