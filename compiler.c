@@ -1555,10 +1555,7 @@ static bool writeTree(Copper file, CuCursor at, CuName name) {
     (void) name;
 }
 
-extern bool file_ParserInit(Copper file) {
-    CuCallback callback = theCallback(file);
-    CuContext     local = theContext(file);
-
+extern bool cu_GlobalInit(CuCallback callback) {
     callback->node      = copper_FindNode;
     callback->predicate = copper_FindPredicate;
     callback->event     = copper_FindEvent;
@@ -1567,11 +1564,19 @@ extern bool file_ParserInit(Copper file) {
     callback->attach_predicate = copper_SetPredicate;
     callback->attach_event     = copper_SetEvent;
 
-    cu_InputInit(local, 1024);
-
     make_Hash(100, &(callback->node_table));
     make_Hash(100, &(callback->predicate_table));
     make_Hash(100, &(callback->event_table));
+
+    return true;
+}
+
+extern bool file_ParserInit(Copper file) {
+    CuCallback callback = theCallback(file);
+    CuContext     local = theContext(file);
+
+    cu_GlobalInit(callback);
+    cu_LocalInit(local, 1024);
 
     inline bool attach(CuName name, CuEvent value) { return callback->attach_event(callback, name, value); }
 

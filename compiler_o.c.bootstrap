@@ -42,6 +42,8 @@ along with Copper.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdbool.h>
 #include <error.h>
 
+extern bool cu_InputInit(CuContext local, unsigned cacheSize);
+
 /* */
 typedef struct syn_any      *SynAny;
 typedef struct syn_define   *SynDefine;
