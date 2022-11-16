@@ -734,7 +734,7 @@ static void cu_append(CuContext input, CuData *text)
     append();
 }
 
-extern bool cu_LocalInit(CuContext input, unsigned cacheSize) {
+extern bool cu_LocalEnter(CuContext input, unsigned cacheSize) {
     assert(0 != input);
 
     CU_DEBUG(3, "making stack\n");

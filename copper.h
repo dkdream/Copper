@@ -374,13 +374,13 @@ extern bool     cu_Start(const char* name, Copper input);
 extern CuSignal cu_Event(Copper input, CuData *data);
 extern bool     cu_RunQueue(Copper input);
 
-extern bool     cu_GlobalInit(CuCallback global);
-extern bool     cu_LocalInit(CuContext local, unsigned cacheSize); // initials the copper parser
+extern bool     cu_GlobalEnter(CuCallback global);
+extern bool     cu_LocalEnter(CuContext local, unsigned cacheSize); // initials the copper parser
 extern bool     cu_MarkedText(CuContext local, CuData *target);
 extern bool     cu_ArgumentText(CuContext local, CuData *target);
 extern void     cu_SyntaxError(FILE* error, CuContext local, const char* filename);
-extern bool     cu_LocalFinit(CuContext local);
-extern bool     cu_GlobalInit(CuCallback global);
+extern bool     cu_LocalExit(CuContext local);
+extern bool     cu_GlobaExit(CuCallback global);
 
 extern intptr_t cu_global_debug;
 extern void     cu_debug(const char *filename, unsigned int linenum, const char *format, ...);

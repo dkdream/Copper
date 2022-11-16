@@ -122,8 +122,8 @@ copper.c : copper.cu $(COPPER.old) ; $(COPPER.old) --name copper_graph --output 
 copper.o : copper.c
 main.o   : main.c
 
-copper.vm : main.o copper.o compiler.o libCopper.a
-	$(CC) $(CFLAGS) -o $@ main.o copper.o compiler.o -L. -lCopper
+copper.vm : main.o copper.o compiler.o cu_machine.o libCopper.a
+	$(CC) $(CFLAGS) -o $@ main.o copper.o compiler.o cu_machine.o -L. -lCopper
 
 # -- -------------------------------------------------
 
