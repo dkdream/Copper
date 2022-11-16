@@ -36,6 +36,21 @@ along with Copper.  If not, see <http://www.gnu.org/licenses/>.
 #include <assert.h>
 
 /* */
+// use for the name to object hashtables
+struct prs_map {
+    unsigned long  code;
+    const void*    key;
+    void*          value;
+    struct prs_map *next;
+};
+
+
+struct prs_hash {
+    unsigned size;
+    struct prs_map *table[];
+};
+
+/* */
 
 static CuThread _free_threads_ = 0;
 
@@ -732,6 +747,154 @@ static void cu_append(CuLocal input, CuData *text)
 
     extend();
     append();
+}
+
+static unsigned long encode_name(const void* name) {
+    const char *cursor = name;
+
+    unsigned long result = 5381;
+
+    for ( ; *cursor ; ++cursor ) {
+        int val = *cursor;
+        result = ((result << 5) + result) + val;
+    }
+
+    return result;
+}
+
+static unsigned compare_name(const void* lname, const void* rname) {
+    const char *left  = lname;
+    const char *right = rname;
+
+    int result = strcmp(left, right);
+
+    return (0 == result);
+}
+
+static bool make_Map(unsigned long code,
+                     const void* key,
+                     void* value,
+                     struct prs_map *next,
+                     struct prs_map **target)
+{
+    struct prs_map *result = malloc(sizeof(struct prs_map));
+
+    result->code  = code;
+    result->key   = key;
+    result->value = value;
+    result->next  = next;
+
+    *target = result;
+    return true;
+}
+
+static bool hash_Find(struct prs_hash *hash,
+                      const void* key,
+                      void** target)
+{
+    if (!key) return false;
+
+    unsigned long code  = encode_name(key);
+    unsigned      index = code % hash->size;
+
+    struct prs_map *map = hash->table[index];
+
+    for ( ; map ; map = map->next) {
+        if (code != map->code) continue;
+        if (!compare_name(key, map->key)) continue;
+        *target = map->value;
+        return true;
+    }
+
+    return false;
+}
+
+static bool hash_Replace(struct prs_hash *hash,
+                         const void* key,
+                         void* value)
+{
+    if (!key)     return false;
+    if (!value)   return false;
+
+    unsigned long code  = encode_name(key);
+    unsigned      index = code % hash->size;
+
+    struct prs_map *map = hash->table[index];
+
+    for ( ; map ; map = map->next) {
+        if (code != map->code) continue;
+        if (!compare_name(key, map->key)) continue;
+        map->value = value;
+        return true;
+    }
+
+    if (!make_Map(code, key, value, hash->table[index], &map)) {
+        return false;
+    }
+
+    hash->table[index] = map;
+
+    return true;
+}
+
+static bool make_Hash(unsigned size, struct prs_hash **target)
+{
+    unsigned fullsize = (sizeof(struct prs_hash)
+                         + (size * sizeof(struct prs_map *)));
+
+    struct prs_hash* result = malloc(fullsize);
+    memset(result, 0, fullsize);
+
+    result->size    = size;
+
+    *target = result;
+    return true;
+}
+
+static bool copper_FindNode(CuCallback input, CuName name, CuNode* target) {
+    return hash_Find(input->node_table, name, (void**)target);
+    (void) input;
+}
+
+static bool copper_SetNode(CuCallback input, CuName name, CuNode value) {
+    return hash_Replace(input->node_table, name, value);
+}
+
+static bool copper_FindPredicate(CuCallback input, CuName name, CuPredicate* target) {
+    return hash_Find(input->predicate_table, name, (void**)target);
+}
+
+static bool copper_SetPredicate(CuCallback input, CuName name, CuPredicate value) {
+    return hash_Replace(input->predicate_table, name, value);
+}
+
+static bool copper_FindEvent(CuCallback input, CuName name, CuEvent* target) {
+    return hash_Find(input->event_table, name, (void**)target);
+}
+
+static bool copper_SetEvent(CuCallback input, CuName name, CuEvent value) {
+    return hash_Replace(input->event_table, name, value);
+}
+
+extern bool cu_GlobalEnter(CuCallback callback) {
+    callback->node      = copper_FindNode;
+    callback->predicate = copper_FindPredicate;
+    callback->event     = copper_FindEvent;
+
+    callback->attach_node      = copper_SetNode;
+    callback->attach_predicate = copper_SetPredicate;
+    callback->attach_event     = copper_SetEvent;
+
+    make_Hash(100, &(callback->node_table));
+    make_Hash(100, &(callback->predicate_table));
+    make_Hash(100, &(callback->event_table));
+
+    return true;
+}
+
+extern bool cu_GlobalExit(CuGlobal global) {
+    return true;
+    (void)global;
 }
 
 extern bool cu_LocalEnter(CuLocal input, unsigned cacheSize) {
