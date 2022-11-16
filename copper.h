@@ -384,9 +384,9 @@ extern bool     cu_GlobalEnter(CuGlobal global);
 extern bool     cu_LocalEnter(CuLocal local, unsigned cacheSize); // initials the copper parser
 extern bool     cu_MarkedText(CuLocal local, CuData *target);
 extern bool     cu_ArgumentText(CuLocal local, CuData *target);
-extern void     cu_SyntaxError(FILE* error, CuContext local, const char* filename);
+extern void     cu_SyntaxError(FILE* error, CuLocal local, const char* filename);
 extern bool     cu_LocalExit(CuLocal local);
-extern bool     cu_GlobaExit(CuGlobal global);
+extern bool     cu_GlobalExit(CuGlobal global);
 
 extern intptr_t cu_global_debug;
 extern void     cu_debug(const char *filename, unsigned int linenum, const char *format, ...);
