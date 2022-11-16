@@ -24,8 +24,11 @@ along with Copper.  If not, see <http://www.gnu.org/licenses/>.
 #include <error.h>
 
 /* parsing structure */
-typedef struct copper_global*   CuCallback;
-typedef struct copper_context*  CuContext;
+typedef struct copper_global* CuCallback;
+typedef struct copper_local*  CuContext;
+
+typedef struct copper_global* CuGlobal;
+typedef struct copper_local*  CuLocal;
 
 typedef struct copper*   Copper;
 typedef struct cu_cursor CuCursor;
@@ -347,7 +350,7 @@ struct copper_global {
   PrsHash event_table;
 };
 
-struct copper_context {
+struct copper_local {
     /* data */
     CuStack  stack;  // the parse node stack
     CuText   data;   // the text in the current parse phase
@@ -363,24 +366,27 @@ struct copper_context {
 };
 
 struct copper {
-    CuCallback global;
-    CuContext  local;
+    CuGlobal global;
+    CuLocal  local;
 };
 
 #define theCallback(ptr) (ptr->global)
 #define theContext(ptr)  (ptr->local)
 
+#define theGlobal(ptr) (ptr->global)
+#define theLocal(ptr)  (ptr->local)
+
 extern bool     cu_Start(const char* name, Copper input);
 extern CuSignal cu_Event(Copper input, CuData *data);
 extern bool     cu_RunQueue(Copper input);
 
-extern bool     cu_GlobalEnter(CuCallback global);
-extern bool     cu_LocalEnter(CuContext local, unsigned cacheSize); // initials the copper parser
-extern bool     cu_MarkedText(CuContext local, CuData *target);
-extern bool     cu_ArgumentText(CuContext local, CuData *target);
+extern bool     cu_GlobalEnter(CuGlobal global);
+extern bool     cu_LocalEnter(CuLocal local, unsigned cacheSize); // initials the copper parser
+extern bool     cu_MarkedText(CuLocal local, CuData *target);
+extern bool     cu_ArgumentText(CuLocal local, CuData *target);
 extern void     cu_SyntaxError(FILE* error, CuContext local, const char* filename);
-extern bool     cu_LocalExit(CuContext local);
-extern bool     cu_GlobaExit(CuCallback global);
+extern bool     cu_LocalExit(CuLocal local);
+extern bool     cu_GlobaExit(CuGlobal global);
 
 extern intptr_t cu_global_debug;
 extern void     cu_debug(const char *filename, unsigned int linenum, const char *format, ...);
@@ -388,9 +394,9 @@ extern void     cu_error(const char *filename, unsigned int linenum, const char 
 extern void     cu_error_part(const char *format, ...);
 
 #ifndef OLD_VM
-extern bool     cu_AddNode(CuCallback, CuName, CuNode, CuTree *map);
+extern bool     cu_AddNode(CuGlobal, CuName, CuNode, CuTree *map);
 #else
-extern bool     cu_AddName(CuCallback, FindNode, AddName, CuName, CuNode, CuTree *map);
+extern bool     cu_AddName(CuGlobal, FindNode, AddName, CuName, CuNode, CuTree *map);
 #endif
 extern bool     cu_FillMetadata(CuCallback input, CuTree *map);
 

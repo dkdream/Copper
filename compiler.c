@@ -1571,6 +1571,11 @@ extern bool cu_GlobalEnter(CuCallback callback) {
     return true;
 }
 
+extern bool cu_GlobalExit(CuCallback global) {
+    return true;
+    (void)global;
+}
+
 extern bool file_ParserInit(Copper file) {
     CuCallback callback = theCallback(file);
     CuContext     local = theContext(file);

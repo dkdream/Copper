@@ -767,6 +767,11 @@ extern bool cu_LocalEnter(CuContext input, unsigned cacheSize) {
     return true;
 }
 
+extern bool cu_LocalExit(CuContext local) {
+    return true;
+    (void)local;
+}
+
 extern bool cu_MarkedText(CuContext input, CuData *target) {
     if (!input)  return false;
     if (!target) return false;

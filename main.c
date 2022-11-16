@@ -48,9 +48,9 @@ static char*  program_name = 0;
 static Copper file_parser = 0;
 
 struct copper_file {
-    struct copper          main;
-    struct copper_global   callback;
-    struct copper_context  context;
+    struct copper        main;
+    struct copper_global callback;
+    struct copper_local  context;
 };
 
 static void help() {
