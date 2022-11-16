@@ -1571,7 +1571,7 @@ extern bool cu_GlobalEnter(CuCallback callback) {
     return true;
 }
 
-extern bool cu_GlobalExit(CuCallback global) {
+extern bool cu_GlobalExit(CuGlobal global) {
     return true;
     (void)global;
 }
