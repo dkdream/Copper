@@ -398,6 +398,6 @@ extern bool     cu_AddNode(CuGlobal, CuName, CuNode, CuTree *map);
 #else
 extern bool     cu_AddName(CuGlobal, FindNode, AddName, CuName, CuNode, CuTree *map);
 #endif
-extern bool     cu_FillMetadata(CuCallback input, CuTree *map);
+extern bool     cu_FillMetadata(CuGlobal input, CuTree *map);
 
 #endif
