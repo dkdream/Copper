@@ -209,7 +209,7 @@ int main(int argc, char **argv)
 
     CU_DEBUG(1, "parsing infile %s\n", infile);
 
-    CuContext local = theContext(file_parser);
+    CuLocal local = theLocal(file_parser);
 
     for ( ; ; ) {
         switch(cu_Event(file_parser, &data)) {

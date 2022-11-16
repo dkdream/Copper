@@ -169,7 +169,7 @@ static bool queue_Run(CuQueue queue,
     if (!queue->begin) return true;
     if (!input)        return false;
 
-    CuContext  local = theContext(input);
+    CuLocal  local = theLocal(input);
     CuThread current = queue->begin;
 
     queue->begin = 0;
@@ -610,7 +610,7 @@ static bool free_Cache(CuCache *source) {
 // event to mark the begin of text '<'
 static bool mark_begin(Copper input, CuCursor at, CuName name) {
     if (!input) return false;
-    CuContext local = theContext(input);
+    CuLocal local = theLocal(input);
     local->context.begin = at;
     local->context.argument = (CuNode)0;
     return true;
@@ -622,7 +622,7 @@ static struct cu_label begin_label = { (CuEvent) &mark_begin, "set.begin" };
 // event to mark the end of text '>'
 static bool mark_end(Copper input, CuCursor at, CuName name) {
     if (!input) return false;
-    CuContext local = theContext(input);
+    CuLocal local = theLocal(input);
     local->context.end = at;
     return true;
     (void) name;  // to remove: unused parameter warning
@@ -633,7 +633,7 @@ static struct cu_label end_label = { (CuEvent) &mark_end, "set.end" };
 // ????
 static bool mark_argument(Copper input, CuCursor at, CuName name) {
     if (!input) return false;
-    CuContext local = theContext(input);
+    CuLocal local = theLocal(input);
     local->context.argument = local->context.on;
     return true;
     (void) at; // to remove: unused parameter warning
@@ -688,7 +688,7 @@ static char *char2string(unsigned char value)
  *************************************************************************************
  *************************************************************************************/
 
-static void cu_append(CuContext input, CuData *text)
+static void cu_append(CuLocal input, CuData *text)
 {
     struct cu_text *data = &input->data;
 
@@ -734,7 +734,7 @@ static void cu_append(CuContext input, CuData *text)
     append();
 }
 
-extern bool cu_LocalEnter(CuContext input, unsigned cacheSize) {
+extern bool cu_LocalEnter(CuLocal input, unsigned cacheSize) {
     assert(0 != input);
 
     CU_DEBUG(3, "making stack\n");
@@ -767,12 +767,12 @@ extern bool cu_LocalEnter(CuContext input, unsigned cacheSize) {
     return true;
 }
 
-extern bool cu_LocalExit(CuContext local) {
+extern bool cu_LocalExit(CuLocal local) {
     return true;
     (void)local;
 }
 
-extern bool cu_MarkedText(CuContext input, CuData *target) {
+extern bool cu_MarkedText(CuLocal input, CuData *target) {
     if (!input)  return false;
     if (!target) return false;
 
@@ -796,7 +796,7 @@ extern bool cu_MarkedText(CuContext input, CuData *target) {
     return true;
 }
 
-extern bool cu_ArgumentText(CuContext input, CuData *target) {
+extern bool cu_ArgumentText(CuLocal input, CuData *target) {
     if (!input)  return false;
     if (!target) return false;
 
@@ -816,7 +816,7 @@ extern bool cu_ArgumentText(CuContext input, CuData *target) {
     return true;
 }
 
-extern bool cu_InputFinit(CuContext input) {
+extern bool cu_InputFinit(CuLocal input) {
     if (!input)  return false;
 
     if (!free_Cache(&(input->cache))) return false;
@@ -885,7 +885,7 @@ extern bool cu_Start(const char* name, Copper input) {
     assert(0 != input);
 
     CuCallback callback = theCallback(input);
-    CuContext  local    = theContext(input);
+    CuLocal  local    = theLocal(input);
 
     CuNode start = 0;
 
@@ -945,7 +945,7 @@ extern CuSignal cu_Event(Copper input, CuData *data)
     assert(0 != input);
 
     CuCallback callback = theCallback(input);
-    CuContext  local    = theContext(input);
+    CuLocal  local    = theLocal(input);
 
     assert(0 != local->stack);
     assert(0 != local->stack->top);
@@ -1825,7 +1825,7 @@ extern CuSignal cu_Event(Copper input, CuData *data)
 extern bool cu_RunQueue(Copper input) {
     if (!input) return false;
 
-    CuContext local = theContext(input);
+    CuLocal local = theLocal(input);
 
     return queue_Run(local->queue, input);
 }
